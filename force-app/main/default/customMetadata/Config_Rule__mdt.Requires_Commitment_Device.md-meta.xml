@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Requires Commitment Device</label>
+    <protected>false</protected>
+    <values>
+        <field>Rule_Kind__c</field>
+        <value xsi:type="xsd:string">Requires Commitment</value>
+    </values>
+    <values>
+        <field>Product__c</field>
+        <value xsi:type="xsd:string">TELCO_DEVICE</value>
+    </values>
+    <values>
+        <field>Applies_When_Commitment__c</field>
+        <value xsi:type="xsd:string">NOCOMMIT</value>
+    </values>
+    <values>
+        <field>Message__c</field>
+        <value xsi:type="xsd:string">This device requires a 12 or 24 month commitment. Choose a commitment option, or remove the device from the quote.</value>
+    </values>
+    <values>
+        <field>Severity__c</field>
+        <value xsi:type="xsd:string">Block</value>
+    </values>
+    <values>
+        <field>Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+</CustomMetadata>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Product Classification</label>
+    <pluralLabel>Product Classifications</pluralLabel>
+    <nameField>
+        <label>Classification Name</label>
+        <type>Text</type>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>ReadWrite</sharingModel>
+    <description>Revenue Core - tree that groups products for the 360° view and the wizard's plan step. Replaces RCA ProductClassification.</description>
+</CustomObject>

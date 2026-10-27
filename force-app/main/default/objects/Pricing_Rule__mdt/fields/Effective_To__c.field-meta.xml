@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="UTF-8"?><CustomField xmlns="http://soap.sforce.com/2006/04/metadata"><fullName>Effective_To__c</fullName><label>Effective To</label><inlineHelpText>Blank = open ended. A rule with a date in the past is never evaluated by PricingService.</inlineHelpText><required>false</required><type>Date</type></CustomField>
