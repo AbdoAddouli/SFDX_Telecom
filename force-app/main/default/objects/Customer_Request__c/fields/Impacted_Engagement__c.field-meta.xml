@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Impacted_Engagement__c</fullName>
+    <description>Resolved at intake, not at approval.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Impacted Engagement</label>
+    <referenceTo>Engagement__c</referenceTo>
+    <relationshipLabel>Customer Requests</relationshipLabel>
+    <relationshipName>Customer_Requests</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Committed__c</fullName>
+    <description>Deliberately a formula. A stored copy would drift the moment a date changes.</description>
+    <formula>AND(NOT(ISBLANK(Engagement__c)), TEXT(Engagement__r.Status__c) = "Active", Engagement__r.End_Date__c &gt; TODAY())</formula>
+    <formulaTreatBlanksAs>BlankAsBlank</formulaTreatBlanksAs>
+    <label>Is Committed</label>
+    <type>Checkbox</type>
+</CustomField>

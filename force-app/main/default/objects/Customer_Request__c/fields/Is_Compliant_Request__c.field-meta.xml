@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Compliant_Request__c</fullName>
+    <description>Rendered as a disabled-state hint, not as a hard block.</description>
+    <formula>OR(ISBLANK(Impacted_Engagement__c), TEXT(Impacted_Engagement__r.Status__c) &lt;&gt; "Active", Impacted_Engagement__r.End_Date__c &lt;= TODAY())</formula>
+    <formulaTreatBlanksAs>BlankAsBlank</formulaTreatBlanksAs>
+    <label>Compliant Request</label>
+    <type>Checkbox</type>
+</CustomField>

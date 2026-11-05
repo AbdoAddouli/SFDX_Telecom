@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customObject>true</customObject>
+    <description>Callout audit trail. Hard deleted after 13 months so the table does not grow without bound.</description>
+    <label>Integration Logs</label>
+    <motif>Custom62: Handshake</motif>
+</CustomTab>

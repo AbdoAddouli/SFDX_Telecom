@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Portal_Submitted__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Quote originated from the customer portal.</description>
+    <label>Portal Submitted</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

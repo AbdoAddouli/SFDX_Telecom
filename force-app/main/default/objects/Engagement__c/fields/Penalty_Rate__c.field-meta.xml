@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Penalty_Rate__c</fullName>
+    <description>Snapshot of the rate applied. Makes the fee reproducible years later.</description>
+    <label>Penalty Rate</label>
+    <precision>5</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <type>Percent</type>
+</CustomField>

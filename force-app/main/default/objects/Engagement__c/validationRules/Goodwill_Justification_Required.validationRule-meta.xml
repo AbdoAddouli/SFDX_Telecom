@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Goodwill_Justification_Required</fullName>
+    <active>true</active>
+    <description>Goodwill waiver needs a written justification.</description>
+    <errorConditionFormula>AND(Goodwill_Waiver__c = TRUE, ISBLANK(Goodwill_Justification__c))</errorConditionFormula>
+    <errorDisplayField>Goodwill_Justification__c</errorDisplayField>
+    <errorMessage>A goodwill justification is required when the goodwill waiver is applied.</errorMessage>
+</ValidationRule>

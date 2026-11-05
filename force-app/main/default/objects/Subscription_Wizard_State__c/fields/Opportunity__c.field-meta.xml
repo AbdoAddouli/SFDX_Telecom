@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Opportunity__c</fullName>
+    <description>Created on completion.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Opportunity</label>
+    <referenceTo>Opportunity</referenceTo>
+    <relationshipLabel>Wizard States</relationshipLabel>
+    <relationshipName>Wizard_States</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

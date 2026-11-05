@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Speed_Mbps__c</fullName>
+    <description>Plan speed compared against Eligibility maximum downstream speed.</description>
+    <externalId>false</externalId>
+    <label>Speed Mbps</label>
+    <precision>6</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

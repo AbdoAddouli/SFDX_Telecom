@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Postal_Code__c</fullName>
+    <description>The lookup key used by the wizard and the portal.</description>
+    <externalId>true</externalId>
+    <label>Postal Code</label>
+    <length>10</length>
+    <required>true</required>
+    <type>Text</type>
+    <unique>true</unique>
+</CustomField>

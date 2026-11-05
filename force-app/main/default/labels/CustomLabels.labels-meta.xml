@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>LBL_STATUS_SUBSCRIBED</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Status label for a subscribed customer</shortDescription>
+        <value>Subscribed customer</value>
+    </labels>
+    <labels>
+        <fullName>LBL_STATUS_PROSPECT</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Status label for a prospect</shortDescription>
+        <value>Prospect</value>
+    </labels>
+    <labels>
+        <fullName>LBL_ACTION_SUBSCRIBE</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Action label to subscribe</shortDescription>
+        <value>Subscribe</value>
+    </labels>
+    <labels>
+        <fullName>LBL_ACTION_UNSUBSCRIBE</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Action label to unsubscribe</shortDescription>
+        <value>Unsubscribe</value>
+    </labels>
+    <labels>
+        <fullName>LBL_ACTION_FINISH_ACTIVATE</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Action label to finish and activate</shortDescription>
+        <value>Finish &amp; Activate</value>
+    </labels>
+    <labels>
+        <fullName>LBL_WIZ_STEP1_TITLE</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Wizard step 1 title</shortDescription>
+        <value>Confirm your information</value>
+    </labels>
+    <labels>
+        <fullName>LBL_WIZ_STEP2_TITLE</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Wizard step 2 title</shortDescription>
+        <value>Choose an offer</value>
+    </labels>
+    <labels>
+        <fullName>LBL_WIZ_STEP3_TITLE</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Wizard step 3 title</shortDescription>
+        <value>Select a plan</value>
+    </labels>
+    <labels>
+        <fullName>LBL_WIZ_STEP4_TITLE</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Wizard step 4 title</shortDescription>
+        <value>Add a mobile phone</value>
+    </labels>
+    <labels>
+        <fullName>LBL_WIZ_STEP5_TITLE</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Wizard step 5 title</shortDescription>
+        <value>Confirm and create the quote</value>
+    </labels>
+    <labels>
+        <fullName>LBL_FEE_DISCLAIMER</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Disclaimer shown alongside calculated fees</shortDescription>
+        <value>Fees are calculated at the time of request</value>
+    </labels>
+    <labels>
+        <fullName>LBL_CANCEL_BLOCKED_ACTIVE_COMMITMENT</fullName>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Message shown when cancellation is blocked by an active commitment</shortDescription>
+        <value>This subscription is under commitment</value>
+    </labels>
+</CustomLabels>

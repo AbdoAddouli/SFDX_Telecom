@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Base_Url__c</fullName>
+    <label>Base URL</label>
+    <inlineHelpText>Endpoint root. For BSS provisioning this resolves through NamedCredential.BSS_Api.Data.ApiEndpoint; the secret never leaves the platform.</inlineHelpText>
+    <required>true</required>
+    <type>Url</type>
+</CustomField>

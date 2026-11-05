@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Parent_Subscription__c</fullName>
+    <description>Self-lookup. Display grouping only.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Parent Subscription</label>
+    <referenceTo>Subscription__c</referenceTo>
+    <relationshipLabel>Child Subscriptions</relationshipLabel>
+    <relationshipName>Child_Subscriptions</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

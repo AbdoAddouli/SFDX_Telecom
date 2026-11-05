@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>MSISDN_Format</fullName>
+    <active>true</active>
+    <description>MSISDN is 7-15 digits with an optional leading plus sign.</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(MSISDN__c)),
+  NOT(REGEX(MSISDN__c, "^[+]?[0-9]{7,15}$"))
+)</errorConditionFormula>
+    <errorDisplayField>MSISDN__c</errorDisplayField>
+    <errorMessage>MSISDN must contain 7 to 15 digits, optionally prefixed with +.</errorMessage>
+</ValidationRule>

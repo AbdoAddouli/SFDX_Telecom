@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Root_Engagement__c</fullName>
+    <description>Groups plan and device under a single commitment.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Root Engagement</label>
+    <referenceTo>Engagement__c</referenceTo>
+    <relationshipLabel>Child Engagements</relationshipLabel>
+    <relationshipName>Child_Engagements</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

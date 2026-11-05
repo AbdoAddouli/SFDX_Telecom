@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Subscription Wizard State</label>
+    <pluralLabel>Subscription Wizard States</pluralLabel>
+    <nameField>
+        <displayFormat>WIZ-{0000}</displayFormat>
+        <label>Wizard State Number</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>Private</sharingModel>
+    <description>Resumable guided journey state, one active record per advisor. Hard deleted 7 days after last activity.</description>
+</CustomObject>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Early_Termination_Fee__c</fullName>
+    <description>Output of EngagementPenaltyService.</description>
+    <label>Early Termination Fee</label>
+    <precision>12</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <type>Currency</type>
+</CustomField>

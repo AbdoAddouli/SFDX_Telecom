@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Technologies__c</fullName>
+    <label>Technologies</label>
+    <required>false</required>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>false</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>FTTH</fullName>
+                <label>FTTH</label>
+            </value>
+            <value>
+                <fullName>FTTC</fullName>
+                <label>FTTC</label>
+            </value>
+            <value>
+                <fullName>DSL</fullName>
+                <label>DSL</label>
+            </value>
+            <value>
+                <fullName>Cable</fullName>
+                <label>Cable</label>
+            </value>
+            <value>
+                <fullName>5G</fullName>
+                <label>5G</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+    <visibleLines>5</visibleLines>
+</CustomField>

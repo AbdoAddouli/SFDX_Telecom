@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <description>Blocks an Engagement from being saved with Status = Breached when Breach Amount is blank. Implemented as an after-save Flow so Apex-written penalty fields are visible. Implements DATA_MODEL.md section 11.2.</description>
+    <interviewLabel>Engagement Breach Amount Required {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Engagement Breach Amount Required</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <decisions>
+        <name>Check_Breach_Amount</name>
+        <label>Check Breach Amount</label>
+        <locationX>176</locationX>
+        <locationY>158</locationY>
+        <defaultConnectorLabel>Amount Present</defaultConnectorLabel>
+        <rules>
+            <name>Breach_Amount_Is_Blank</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Breach_Amount__c</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Raise_Breach_Amount_Error</targetReference>
+            </connector>
+            <label>Breach Amount Is Blank</label>
+        </rules>
+    </decisions>
+    <customErrors>
+        <name>Raise_Breach_Amount_Error</name>
+        <label>Raise Breach Amount Error</label>
+        <locationX>176</locationX>
+        <locationY>338</locationY>
+        <customErrorMessages>
+            <errorMessage>Breach Amount is required when Status is Breached.</errorMessage>
+            <fieldSelection>Breach_Amount__c</fieldSelection>
+            <isFieldError>true</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Check_Breach_Amount</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Breached</stringValue>
+            </value>
+        </filters>
+        <object>Engagement__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

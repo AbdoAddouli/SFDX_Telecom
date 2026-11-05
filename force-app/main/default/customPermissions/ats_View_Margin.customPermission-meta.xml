@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ats_View_Margin</fullName>
+    <description>See cost and margin in the subscription wizard.</description>
+    <isLicensed>false</isLicensed>
+    <label>View Margin</label>
+</CustomPermission>

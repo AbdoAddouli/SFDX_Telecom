@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Offer_Type__c</fullName>
+    <description>Step 2.</description>
+    <label>Offer Type</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Mobile</fullName>
+                <label>Mobile</label>
+            </value>
+            <value>
+                <fullName>Landline</fullName>
+                <label>Landline</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

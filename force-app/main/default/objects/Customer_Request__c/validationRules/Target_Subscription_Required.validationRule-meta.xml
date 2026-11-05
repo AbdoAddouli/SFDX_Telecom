@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Target_Subscription_Required</fullName>
+    <active>true</active>
+    <description>A target subscription is required for plan changes, cancellations, equipment swaps, suspensions and portability requests.</description>
+    <errorConditionFormula>AND(
+  OR(ISPICKVAL(Request_Type__c, "PlanChange"),
+     ISPICKVAL(Request_Type__c, "Cancellation"),
+     ISPICKVAL(Request_Type__c, "EquipmentSwap"),
+     ISPICKVAL(Request_Type__c, "Suspension"),
+     ISPICKVAL(Request_Type__c, "Portability")),
+  ISBLANK(Subscription__c)
+)</errorConditionFormula>
+    <errorDisplayField>Subscription__c</errorDisplayField>
+    <errorMessage>A target subscription is required for this request type.</errorMessage>
+</ValidationRule>

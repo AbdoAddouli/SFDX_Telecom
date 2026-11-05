@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Request_Link__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>Reciprocal of Customer Request Case lookup.</description>
+    <label>Request Link</label>
+    <referenceTo>Customer_Request__c</referenceTo>
+    <relationshipLabel>Request Link Cases</relationshipLabel>
+    <relationshipName>Request_Link_Cases</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

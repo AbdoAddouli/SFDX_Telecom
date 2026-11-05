@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Timeout_Ms__c</fullName>
+    <label>Timeout (ms)</label>
+    <inlineHelpText>Callout timeout in milliseconds. Default 10000.</inlineHelpText>
+    <precision>8</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <type>Number</type>
+    <defaultValue>10000</defaultValue>
+</CustomField>

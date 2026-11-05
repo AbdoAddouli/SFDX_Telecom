@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Duration_12_Or_24</fullName>
+    <active>true</active>
+    <description>Commitment terms are 12 or 24 months.</description>
+    <errorConditionFormula>NOT(OR(Duration_Months__c = 12, Duration_Months__c = 24))</errorConditionFormula>
+    <errorDisplayField>Duration_Months__c</errorDisplayField>
+    <errorMessage>Duration must be 12 or 24 months.</errorMessage>
+</ValidationRule>

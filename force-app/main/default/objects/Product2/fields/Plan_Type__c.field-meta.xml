@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Plan_Type__c</fullName>
+    <description>Offer family used by wizard step 2.</description>
+    <label>Plan Type</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Mobile</fullName>
+                <default>false</default>
+                <label>Mobile</label>
+            </value>
+            <value>
+                <fullName>Fiber</fullName>
+                <default>false</default>
+                <label>Fiber</label>
+            </value>
+            <value>
+                <fullName>Landline</fullName>
+                <default>false</default>
+                <label>Landline</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

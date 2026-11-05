@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Integration Log</label>
+    <pluralLabel>Integration Logs</pluralLabel>
+    <nameField>
+        <displayFormat>LOG-{0000}</displayFormat>
+        <label>Log Number</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>Private</sharingModel>
+    <description>Callout audit trail. Hard deleted after 13 months so the table does not grow without bound.</description>
+</CustomObject>

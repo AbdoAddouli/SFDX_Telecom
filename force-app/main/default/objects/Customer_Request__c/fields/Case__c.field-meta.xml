@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Case__c</fullName>
+    <description>Traceability guarantee. Flow-enforced for actionable types; Info requests raise no Case.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Case</label>
+    <referenceTo>Case</referenceTo>
+    <relationshipLabel>Customer Requests</relationshipLabel>
+    <relationshipName>Customer_Requests</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

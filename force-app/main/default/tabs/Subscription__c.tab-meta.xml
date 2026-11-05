@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customObject>true</customObject>
+    <description>Telecom service instance per line. High-volume object; Subscription__c is the parent of truth while Revenue Cloud is unavailable.</description>
+    <label>Subscriptions</label>
+    <motif>Custom16: Phone</motif>
+</CustomTab>

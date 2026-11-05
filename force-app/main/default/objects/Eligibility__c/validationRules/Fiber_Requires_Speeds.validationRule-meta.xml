@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Fiber_Requires_Speeds</fullName>
+    <active>true</active>
+    <description>Fibre availability must carry a positive downstream speed.</description>
+    <errorConditionFormula>AND(Fiber_Available__c = TRUE,
+    OR(ISBLANK(Max_Downstream_Mbps__c), Max_Downstream_Mbps__c &lt;= 0))</errorConditionFormula>
+    <errorDisplayField>Max_Downstream_Mbps__c</errorDisplayField>
+    <errorMessage>Fibre availability requires a positive maximum downstream speed.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Display_Name__c</fullName>
+    <description>Row label used by the 360 degree view.</description>
+    <formula>Product__r.Name &amp; IF(ISBLANK(MSISDN__c), "", " · " &amp; MSISDN__c) &amp; IF(ISBLANK(Line_Number__c), "", " · " &amp; Line_Number__c)</formula>
+    <formulaTreatBlanksAs>BlankAsBlank</formulaTreatBlanksAs>
+    <label>Display Name</label>
+    <type>Text</type>
+</CustomField>

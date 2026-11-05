@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Min_Penalty__c</fullName>
+    <label>Min Penalty</label>
+    <inlineHelpText>Floor amount. Blank = no floor. Stored as a plain number because custom metadata types do not support Currency fields; the org is single-currency.</inlineHelpText>
+    <precision>12</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <type>Number</type>
+</CustomField>

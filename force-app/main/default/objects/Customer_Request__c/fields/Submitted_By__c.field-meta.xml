@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Submitted_By__c</fullName>
+    <description>Blank for API submissions. User lookups cannot be mandatory at the field level.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Submitted By</label>
+    <referenceTo>User</referenceTo>
+    <relationshipLabel>Submitted Requests</relationshipLabel>
+    <relationshipName>Submitted_Requests</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

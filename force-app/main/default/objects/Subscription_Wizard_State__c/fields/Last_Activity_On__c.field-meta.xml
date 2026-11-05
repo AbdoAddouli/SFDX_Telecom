@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Last_Activity_On__c</fullName>
+    <description>Drives the abandoned-wizard cleanup.</description>
+    <label>Last Activity On</label>
+    <required>true</required>
+    <type>DateTime</type>
+</CustomField>

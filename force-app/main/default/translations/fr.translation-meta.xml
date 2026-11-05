@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Translations xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customLabels>
+        <label>Client abonné</label>
+        <name>LBL_STATUS_SUBSCRIBED</name>
+    </customLabels>
+    <customLabels>
+        <label>Prospect</label>
+        <name>LBL_STATUS_PROSPECT</name>
+    </customLabels>
+    <customLabels>
+        <label>S'abonner</label>
+        <name>LBL_ACTION_SUBSCRIBE</name>
+    </customLabels>
+    <customLabels>
+        <label>Se désabonner</label>
+        <name>LBL_ACTION_UNSUBSCRIBE</name>
+    </customLabels>
+    <customLabels>
+        <label>Terminer et activer</label>
+        <name>LBL_ACTION_FINISH_ACTIVATE</name>
+    </customLabels>
+    <customLabels>
+        <label>Confirmez vos informations</label>
+        <name>LBL_WIZ_STEP1_TITLE</name>
+    </customLabels>
+    <customLabels>
+        <label>Choisissez une offre</label>
+        <name>LBL_WIZ_STEP2_TITLE</name>
+    </customLabels>
+    <customLabels>
+        <label>Sélectionnez un forfait</label>
+        <name>LBL_WIZ_STEP3_TITLE</name>
+    </customLabels>
+    <customLabels>
+        <label>Ajoutez un téléphone</label>
+        <name>LBL_WIZ_STEP4_TITLE</name>
+    </customLabels>
+    <customLabels>
+        <label>Confirmez et créez le devis</label>
+        <name>LBL_WIZ_STEP5_TITLE</name>
+    </customLabels>
+    <customLabels>
+        <label>Les frais sont calculés au moment de la demande</label>
+        <name>LBL_FEE_DISCLAIMER</name>
+    </customLabels>
+    <customLabels>
+        <label>Cet abonnement est sous engagement</label>
+        <name>LBL_CANCEL_BLOCKED_ACTIVE_COMMITMENT</name>
+    </customLabels>
+</Translations>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Cache_Ttl_Seconds__c</fullName>
+    <label>Cache TTL (Seconds)</label>
+    <inlineHelpText>Cache lifetime in seconds. Default 3600. 0 = never cache, required for provisioning.</inlineHelpText>
+    <precision>8</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <type>Number</type>
+    <defaultValue>3600</defaultValue>
+</CustomField>

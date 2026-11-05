@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Cancellation_Notice_Period</fullName>
+    <active>true</active>
+    <description>Cancellation effective date must be at least 30 days out.</description>
+    <errorConditionFormula>AND(
+  ISPICKVAL(Request_Type__c, "Cancellation"),
+  NOT(ISBLANK(Cancellation_Effective_Date__c)),
+  Cancellation_Effective_Date__c &lt; DATEVALUE(TEXT(TODAY()+30))
+)</errorConditionFormula>
+    <errorDisplayField>Cancellation_Effective_Date__c</errorDisplayField>
+    <errorMessage>The cancellation effective date must be at least 30 days from today.</errorMessage>
+</ValidationRule>

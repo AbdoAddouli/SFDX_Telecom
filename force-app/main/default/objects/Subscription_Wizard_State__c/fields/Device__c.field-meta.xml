@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Device__c</fullName>
+    <description>Step 4.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Device</label>
+    <referenceTo>Product2</referenceTo>
+    <relationshipLabel>Device Wizard States</relationshipLabel>
+    <relationshipName>Device_Wizard_States</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

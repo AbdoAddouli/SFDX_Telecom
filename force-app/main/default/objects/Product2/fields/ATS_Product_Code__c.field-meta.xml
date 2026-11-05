@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ATS_Product_Code__c</fullName>
+    <caseSensitive>false</caseSensitive>
+    <description>Seed idempotency key for the ATS catalogue.</description>
+    <externalId>true</externalId>
+    <label>ATS Product Code</label>
+    <length>40</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>true</unique>
+</CustomField>

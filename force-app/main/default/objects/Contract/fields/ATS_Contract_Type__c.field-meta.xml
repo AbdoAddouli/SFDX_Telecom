@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ATS_Contract_Type__c</fullName>
+    <description>Determines which subscriptions terminate together.</description>
+    <label>ATS Contract Type</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Mobile</fullName>
+                <default>false</default>
+                <label>Mobile</label>
+            </value>
+            <value>
+                <fullName>Fiber</fullName>
+                <default>false</default>
+                <label>Fiber</label>
+            </value>
+            <value>
+                <fullName>Bundle</fullName>
+                <default>false</default>
+                <label>Bundle</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

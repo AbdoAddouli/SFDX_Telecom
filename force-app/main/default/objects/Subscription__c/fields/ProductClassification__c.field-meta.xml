@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ProductClassification__c</fullName>
+    <description>Revenue Core replacement for RCA ProductClassification. Drives 360 degree grouping.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Product Family</label>
+    <referenceTo>Product_Classification__c</referenceTo>
+    <relationshipLabel>Subscriptions</relationshipLabel>
+    <relationshipName>Subscriptions</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

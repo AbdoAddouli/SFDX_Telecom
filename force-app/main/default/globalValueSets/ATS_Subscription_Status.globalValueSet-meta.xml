@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Draft</fullName>
+        <default>true</default>
+        <label>Draft</label>
+    </customValue>
+    <customValue>
+        <fullName>PendingActivation</fullName>
+        <default>false</default>
+        <label>PendingActivation</label>
+    </customValue>
+    <customValue>
+        <fullName>Active</fullName>
+        <default>false</default>
+        <label>Active</label>
+    </customValue>
+    <customValue>
+        <fullName>Suspended</fullName>
+        <default>false</default>
+        <label>Suspended</label>
+    </customValue>
+    <customValue>
+        <fullName>PendingCancellation</fullName>
+        <default>false</default>
+        <label>PendingCancellation</label>
+    </customValue>
+    <customValue>
+        <fullName>Cancelled</fullName>
+        <default>false</default>
+        <label>Cancelled</label>
+    </customValue>
+    <customValue>
+        <fullName>Superseded</fullName>
+        <default>false</default>
+        <label>Superseded</label>
+    </customValue>
+    <masterLabel>ATS Subscription Status</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

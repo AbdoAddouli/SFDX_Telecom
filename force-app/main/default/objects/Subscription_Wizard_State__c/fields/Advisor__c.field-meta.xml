@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Advisor__c</fullName>
+    <description>One active state per advisor, enforced by trigger. User lookups cannot be mandatory at the field level.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Advisor</label>
+    <referenceTo>User</referenceTo>
+    <relationshipLabel>Wizard States</relationshipLabel>
+    <relationshipName>Wizard_States</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

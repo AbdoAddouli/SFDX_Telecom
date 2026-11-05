@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Active__c</fullName>
+    <label>Is Active</label>
+    <inlineHelpText>Inactive rules are retained for audit but never resolved.</inlineHelpText>
+    <required>false</required>
+    <type>Checkbox</type>
+    <defaultValue>true</defaultValue>
+</CustomField>

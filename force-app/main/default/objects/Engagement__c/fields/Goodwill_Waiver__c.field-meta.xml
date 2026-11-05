@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Goodwill_Waiver__c</fullName>
+    <description>Explains why the breach amount differs from the early termination fee.</description>
+    <defaultValue>false</defaultValue>
+    <label>Goodwill Waiver</label>
+    <type>Checkbox</type>
+</CustomField>

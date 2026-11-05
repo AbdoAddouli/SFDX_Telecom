@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Rate_Limit_Per_Minute__c</fullName>
+    <label>Rate Limit Per Minute</label>
+    <inlineHelpText>Client-side throttle. Blank = no client-side limit.</inlineHelpText>
+    <precision>6</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <type>Number</type>
+</CustomField>

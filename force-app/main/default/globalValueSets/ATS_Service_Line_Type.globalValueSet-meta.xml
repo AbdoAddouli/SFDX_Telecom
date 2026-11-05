@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Mobile</fullName>
+        <default>true</default>
+        <label>Mobile</label>
+    </customValue>
+    <customValue>
+        <fullName>Fiber</fullName>
+        <default>false</default>
+        <label>Fiber</label>
+    </customValue>
+    <customValue>
+        <fullName>Landline</fullName>
+        <default>false</default>
+        <label>Landline</label>
+    </customValue>
+    <customValue>
+        <fullName>Device</fullName>
+        <default>false</default>
+        <label>Device</label>
+    </customValue>
+    <masterLabel>ATS Service Line Type</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

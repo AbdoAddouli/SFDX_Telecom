@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Wizard_Session__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>Traces a quote back to the wizard session that created it.</description>
+    <label>Wizard Session</label>
+    <referenceTo>Subscription_Wizard_State__c</referenceTo>
+    <relationshipLabel>Wizard Session Quotes</relationshipLabel>
+    <relationshipName>Wizard_Session_Quotes</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

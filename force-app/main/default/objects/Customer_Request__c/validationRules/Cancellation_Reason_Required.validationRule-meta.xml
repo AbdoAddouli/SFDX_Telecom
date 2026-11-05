@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Cancellation_Reason_Required</fullName>
+    <active>true</active>
+    <description>Cancellation requests must capture a reason. Also fires when a request moves away from Cancellation while the reason is still blank.</description>
+    <errorConditionFormula>AND(
+  OR(ISPICKVAL(Request_Type__c, "Cancellation"),
+     AND(ISPICKVAL(PRIORVALUE(Request_Type__c), "Cancellation"),
+         ISCHANGED(Request_Type__c))),
+  ISPICKVAL(Cancellation_Reason__c, "")
+)</errorConditionFormula>
+    <errorDisplayField>Cancellation_Reason__c</errorDisplayField>
+    <errorMessage>Cancellation reason is required for cancellation requests (analyse des motifs de résiliation).</errorMessage>
+</ValidationRule>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Engagement Penalty</label>
+    <pluralLabel>Engagement Penalties</pluralLabel>
+    <visibility>Public</visibility>
+    <description>Early-termination penalty matrix. Configuration, not transactional data. Lowest Priority__c wins; resolved by EngagementPenaltyService from DATA_MODEL.md 9.1.</description>
+</CustomObject>

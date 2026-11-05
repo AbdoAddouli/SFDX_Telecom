@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>External API</label>
+    <pluralLabel>External APIs</pluralLabel>
+    <visibility>Public</visibility>
+    <description>Governed external API registry. Every outbound call resolves endpoint, auth, timeout, cache TTL and kill switch here; no URL or key is hardcoded in Apex (DATA_MODEL.md 9.2).</description>
+</CustomObject>

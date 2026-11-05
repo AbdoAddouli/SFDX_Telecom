@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Billing_End_Date__c</fullName>
+    <description>Snapshot denormalised from Engagement. Never recomputed.</description>
+    <label>Billing End Date</label>
+    <required>false</required>
+    <type>Date</type>
+</CustomField>

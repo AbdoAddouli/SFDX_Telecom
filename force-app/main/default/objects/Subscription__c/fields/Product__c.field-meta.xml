@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Product__c</fullName>
+    <description>Product2 lookups cannot be mandatory at the field level. Enforce in Flow.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Product</label>
+    <referenceTo>Product2</referenceTo>
+    <relationshipLabel>Subscriptions</relationshipLabel>
+    <relationshipName>Subscriptions</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

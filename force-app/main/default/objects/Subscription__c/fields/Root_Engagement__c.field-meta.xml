@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Root_Engagement__c</fullName>
+    <description>Shared commitment when plan and device are bundled. Drives the penalty once, not twice.</description>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Root Engagement</label>
+    <referenceTo>Engagement__c</referenceTo>
+    <relationshipLabel>Root Subscriptions</relationshipLabel>
+    <relationshipName>Root_Subscriptions</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

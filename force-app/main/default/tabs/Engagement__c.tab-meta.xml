@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customObject>true</customObject>
+    <description>Commitment period (12 or 24 months) with a penalty. Carries the snapshot fields that make an early termination fee reproducible.</description>
+    <label>Engagements</label>
+    <motif>Custom62: Handshake</motif>
+</CustomTab>

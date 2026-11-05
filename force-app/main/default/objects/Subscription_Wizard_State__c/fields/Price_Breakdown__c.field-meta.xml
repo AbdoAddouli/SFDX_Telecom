@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Price_Breakdown__c</fullName>
+    <description>Server computed. Never client supplied.</description>
+    <label>Price Breakdown</label>
+    <length>10068</length>
+    <required>false</required>
+    <type>LongTextArea</type>
+    <visibleLines>5</visibleLines>
+</CustomField>

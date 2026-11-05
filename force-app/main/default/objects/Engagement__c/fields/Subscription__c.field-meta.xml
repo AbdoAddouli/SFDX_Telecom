@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Subscription__c</fullName>
+    <description>The line this commitment is attached to.</description>
+    <deleteConstraint>Restrict</deleteConstraint>
+    <label>Subscription</label>
+    <referenceTo>Subscription__c</referenceTo>
+    <relationshipLabel>Engagements</relationshipLabel>
+    <relationshipName>Engagements</relationshipName>
+    <required>true</required>
+    <type>Lookup</type>
+</CustomField>

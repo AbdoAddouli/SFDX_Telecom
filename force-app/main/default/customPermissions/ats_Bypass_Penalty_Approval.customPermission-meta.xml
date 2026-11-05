@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ats_Bypass_Penalty_Approval</fullName>
+    <description>Manager override on a fee above the configured approval threshold.</description>
+    <isLicensed>false</isLicensed>
+    <label>Bypass Penalty Approval</label>
+</CustomPermission>
