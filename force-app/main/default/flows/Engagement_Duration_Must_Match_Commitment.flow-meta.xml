@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <description>Blocks an Engagement whose Duration_Months__c does not match the commitment option on the latest quote line for the related Subscription. Uses QuoteLineItem.Commitment_Option_Code__c via QuoteLineItem.Subscription_Key__c = Subscription.Name because RCA ProductSellingModelOption is unavailable. Implements DATA_MODEL.md section 11.2.</description>
+    <interviewLabel>Engagement Duration Must Match Commitment {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Engagement Duration Must Match Commitment</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Subscription</name>
+        <label>Get Subscription</label>
+        <locationX>176</locationX>
+        <locationY>158</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Quote_Line</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Subscription__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Subscription__c</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Quote_Line</name>
+        <label>Get Quote Line</label>
+        <locationX>176</locationX>
+        <locationY>338</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Check_Quote_Line_Found</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Subscription_Key__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Subscription.Name</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Commitment_Option_Code__c</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Commitment_Option_Code__c</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <stringValue></stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>QuoteLineItem</object>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <decisions>
+        <name>Check_Relevant_Change</name>
+        <label>Check Relevant Change</label>
+        <locationX>50</locationX>
+        <locationY>78</locationY>
+        <defaultConnectorLabel>No Relevant Change</defaultConnectorLabel>
+        <rules>
+            <name>Relevant_Change</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record__Prior.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Duration_Months__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record__Prior.Duration_Months__c</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Subscription__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record__Prior.Subscription__c</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Subscription</targetReference>
+            </connector>
+            <label>Relevant Change</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Quote_Line_Found</name>
+        <label>Check Quote Line Found</label>
+        <locationX>176</locationX>
+        <locationY>518</locationY>
+        <defaultConnector>
+            <targetReference>Check_Commitment_Code</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Quote Line Found</defaultConnectorLabel>
+        <rules>
+            <name>Quote_Line_Not_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Quote_Line.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <label>Quote Line Not Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Commitment_Code</name>
+        <label>Check Commitment Code</label>
+        <locationX>176</locationX>
+        <locationY>698</locationY>
+        <defaultConnectorLabel>Unknown Commitment</defaultConnectorLabel>
+        <rules>
+            <name>Commitment_12</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Quote_Line.Commitment_Option_Code__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>COMMIT12</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Quote_Line.Commitment_Option_Code__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>12M</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_Duration_12</targetReference>
+            </connector>
+            <label>Commitment 12</label>
+        </rules>
+        <rules>
+            <name>Commitment_24</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Quote_Line.Commitment_Option_Code__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>COMMIT24</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Quote_Line.Commitment_Option_Code__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>24M</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Check_Duration_24</targetReference>
+            </connector>
+            <label>Commitment 24</label>
+        </rules>
+        <rules>
+            <name>No_Commitment</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Quote_Line.Commitment_Option_Code__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>NOCOMMIT</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Raise_No_Commitment_Error</targetReference>
+            </connector>
+            <label>No Commitment</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Duration_12</name>
+        <label>Check Duration 12</label>
+        <locationX>50</locationX>
+        <locationY>878</locationY>
+        <defaultConnectorLabel>Duration Matches 12</defaultConnectorLabel>
+        <rules>
+            <name>Duration_Not_12</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Duration_Months__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <numberValue>12.0</numberValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Raise_Duration_Error</targetReference>
+            </connector>
+            <label>Duration Not 12</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_Duration_24</name>
+        <label>Check Duration 24</label>
+        <locationX>350</locationX>
+        <locationY>878</locationY>
+        <defaultConnectorLabel>Duration Matches 24</defaultConnectorLabel>
+        <rules>
+            <name>Duration_Not_24</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Duration_Months__c</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <numberValue>24.0</numberValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Raise_Duration_Error</targetReference>
+            </connector>
+            <label>Duration Not 24</label>
+        </rules>
+    </decisions>
+    <customErrors>
+        <name>Raise_Duration_Error</name>
+        <label>Raise Duration Error</label>
+        <locationX>176</locationX>
+        <locationY>1058</locationY>
+        <customErrorMessages>
+            <errorMessage>Engagement duration must match the commitment option on the originating quote line (12 or 24 months).</errorMessage>
+            <fieldSelection>Duration_Months__c</fieldSelection>
+            <isFieldError>true</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <customErrors>
+        <name>Raise_No_Commitment_Error</name>
+        <label>Raise No Commitment Error</label>
+        <locationX>350</locationX>
+        <locationY>1058</locationY>
+        <customErrorMessages>
+            <errorMessage>No Engagement can be created when the quote line commitment option is NOCOMMIT.</errorMessage>
+            <fieldSelection>Duration_Months__c</fieldSelection>
+            <isFieldError>true</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Check_Relevant_Change</targetReference>
+        </connector>
+        <object>Engagement__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>
