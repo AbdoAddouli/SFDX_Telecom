@@ -7,6 +7,7 @@
         <label>Wizard State Number</label>
         <type>AutoNumber</type>
     </nameField>
+    <compactLayoutAssignment>ATS_Subscription_Wizard_State_Compact</compactLayoutAssignment>
     <deploymentStatus>Deployed</deploymentStatus>
     <sharingModel>Private</sharingModel>
     <description>Resumable guided journey state, one active record per advisor. Hard deleted 7 days after last activity.</description>

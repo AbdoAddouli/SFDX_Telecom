@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ATS_Eligibility_Compact</fullName>
+    <fields>Name</fields>
+    <fields>Postal_Code__c</fields>
+    <fields>City__c</fields>
+    <fields>Region__c</fields>
+    <fields>Country__c</fields>
+    <fields>Fiber_Available__c</fields>
+    <fields>Max_Downstream_Mbps__c</fields>
+    <fields>Max_Upstream_Mbps__c</fields>
+    <fields>Earliest_Activation_Date__c</fields>
+    <fields>Is_Active__c</fields>
+    <label>ATS Eligibility Compact</label>
+</CompactLayout>

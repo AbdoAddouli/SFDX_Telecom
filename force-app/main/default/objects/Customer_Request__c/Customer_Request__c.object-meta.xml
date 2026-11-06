@@ -7,6 +7,7 @@
         <label>Request Number</label>
         <type>AutoNumber</type>
     </nameField>
+    <compactLayoutAssignment>ATS_Customer_Request_Compact</compactLayoutAssignment>
     <deploymentStatus>Deployed</deploymentStatus>
     <sharingModel>ReadWrite</sharingModel>
     <description>Controlled entry point for lifecycle changes: plan change, cancellation, equipment swap, suspension, portability.</description>

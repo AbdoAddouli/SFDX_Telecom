@@ -6,6 +6,7 @@
         <label>Locality</label>
         <type>Text</type>
     </nameField>
+    <compactLayoutAssignment>ATS_Eligibility_Compact</compactLayoutAssignment>
     <deploymentStatus>Deployed</deploymentStatus>
     <sharingModel>Read</sharingModel>
     <description>Geographic serviceability lookup, one record per locality. Batch loaded from network inventory.</description>

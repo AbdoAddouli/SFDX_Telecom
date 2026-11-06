@@ -7,6 +7,7 @@
         <label>Log Number</label>
         <type>AutoNumber</type>
     </nameField>
+    <compactLayoutAssignment>ATS_Integration_Log_Compact</compactLayoutAssignment>
     <deploymentStatus>Deployed</deploymentStatus>
     <sharingModel>Private</sharingModel>
     <description>Callout audit trail. Hard deleted after 13 months so the table does not grow without bound.</description>

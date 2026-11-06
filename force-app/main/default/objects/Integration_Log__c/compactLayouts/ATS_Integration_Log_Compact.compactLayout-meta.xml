@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CompactLayout xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ATS_Integration_Log_Compact</fullName>
+    <fields>Name</fields>
+    <fields>System__c</fields>
+    <fields>Operation__c</fields>
+    <fields>Direction__c</fields>
+    <fields>Status__c</fields>
+    <fields>Status_Code__c</fields>
+    <fields>Duration_Ms__c</fields>
+    <fields>Retry_Count__c</fields>
+    <fields>Correlation_Id__c</fields>
+    <fields>Subscription__c</fields>
+    <label>ATS Integration Log Compact</label>
+</CompactLayout>
