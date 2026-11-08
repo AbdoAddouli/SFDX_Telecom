@@ -1,0 +1,9 @@
+# UC-FND-01 - generated pricing exports are never deployed.
+pricing-export/**
+
+# Local scratch - never part of a deploy
+.sf/**
+.localdevserver/**
+node_modules/**
+**/jsconfig.json
+**/.eslintrc.json
