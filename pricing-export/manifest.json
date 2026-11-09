@@ -1,0 +1,43 @@
+﻿{
+    "formatVersion":  1,
+    "exportedAt":  "2026-11-08T12:57:02Z",
+    "targetOrg":  "abdo@telecom.com",
+    "source":  "sf data query --result-format json",
+    "algorithm":  "SHA-256",
+    "files":  [
+                  {
+                      "path":  "procedures/Five_Step_Standard.json",
+                      "recordCount":  5,
+                      "sha256":  "50edc19d267a02ecf9bf3cccd57ebf2d849db50ea3ae681e4761cd216fc5a95f"
+                  },
+                  {
+                      "path":  "rules/Commitment_Variant_12M.json",
+                      "recordCount":  1,
+                      "sha256":  "c0c682db7c343c1b0a58562056e363e43606cfbdd652dda5768993f944e405c9"
+                  },
+                  {
+                      "path":  "rules/Commitment_Variant_24M.json",
+                      "recordCount":  1,
+                      "sha256":  "57bf5d18dc5932dd891e470da482e32c53eaed0bc8b043a0e5d86182627fe3b8"
+                  },
+                  {
+                      "path":  "rules/Device_Bundle_30_Percent.json",
+                      "recordCount":  1,
+                      "sha256":  "f1a01dc1b1e260a7e11fe60fdd425c8ad6d0649b5f376a8b59cb7e60d5ce2464"
+                  },
+                  {
+                      "path":  "rules/Fiber_Mobile_Bundle_15_Percent.json",
+                      "recordCount":  1,
+                      "sha256":  "4da5e8ab53f6e6e18b40f59314b4388ed0756d8a9dfcde7c21a90968584acc8a"
+                  },
+                  {
+                      "path":  "config-rules/Requires_Commitment_Device.json",
+                      "recordCount":  1,
+                      "sha256":  "2b5a4267d61846353ba3b458369f3518829969e3a0efdb743a84d1c30ebbb016"
+                  }
+              ],
+    "totals":  {
+                   "files":  6,
+                   "records":  10
+               }
+}

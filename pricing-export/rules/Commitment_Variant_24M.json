@@ -1,0 +1,15 @@
+﻿{
+    "developerName":  "Commitment_Variant_24M",
+    "label":  "Commitment Variant 24M",
+    "ruleType":  "Commitment Variant",
+    "product":  "TELCO_RECURRING",
+    "requiresProduct":  null,
+    "commitmentCode":  "COMMIT24",
+    "segment":  null,
+    "adjustmentType":  "Percent",
+    "adjustmentValue":  20,
+    "priority":  20,
+    "effectiveFrom":  "2026-01-01",
+    "effectiveTo":  null,
+    "active":  true
+}

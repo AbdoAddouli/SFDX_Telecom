@@ -1,0 +1,52 @@
+﻿{
+    "formatVersion":  1,
+    "createdAt":  "2026-11-08T12:57:02Z",
+    "targetOrg":  "abdo@telecom.com",
+    "source":  "force-app/main/default/customMetadata",
+    "algorithm":  "SHA-256",
+    "files":  [
+                  {
+                      "path":  "customMetadata/Pricing_Procedure__mdt.Five_Step_Standard_01_Base_Price.md-meta.xml",
+                      "sha256":  "601a513ca7e08ae2e84a01ce1b8eb277410bf564d8f67fa35688f1291f60e277"
+                  },
+                  {
+                      "path":  "customMetadata/Pricing_Procedure__mdt.Five_Step_Standard_02_Commitment.md-meta.xml",
+                      "sha256":  "d6b8a339f46ed54c0d855a9e2ef7794b72e7ea7d64429fefc8a796787b7bd309"
+                  },
+                  {
+                      "path":  "customMetadata/Pricing_Procedure__mdt.Five_Step_Standard_03_Bundle_Adjust.md-meta.xml",
+                      "sha256":  "05af6239d21ee6b0640774daa488a17c8b46b296a43811765cf1aa4b8b688d58"
+                  },
+                  {
+                      "path":  "customMetadata/Pricing_Procedure__mdt.Five_Step_Standard_04_Constraints.md-meta.xml",
+                      "sha256":  "739161a2ade8614308575d325f8c8653e8f968b807ad399b0aaf301ae1e7117a"
+                  },
+                  {
+                      "path":  "customMetadata/Pricing_Procedure__mdt.Five_Step_Standard_05_Breakdown.md-meta.xml",
+                      "sha256":  "c6fc96e57fd51735ca493c2dcd7e31ce68ce378b8c4129ae9d63f0720394580e"
+                  },
+                  {
+                      "path":  "customMetadata/Pricing_Rule__mdt.Commitment_Variant_12M.md-meta.xml",
+                      "sha256":  "5ff839f42800ce396125e74f43afb49784949d0bb86c6fb119f4d651eff7ea0e"
+                  },
+                  {
+                      "path":  "customMetadata/Pricing_Rule__mdt.Commitment_Variant_24M.md-meta.xml",
+                      "sha256":  "d4b72f463b71c723f9d2a90f98c43d833fe36cd657eb4134a9819d31c8975894"
+                  },
+                  {
+                      "path":  "customMetadata/Pricing_Rule__mdt.Device_Bundle_30_Percent.md-meta.xml",
+                      "sha256":  "22720ef440ed022e36f593c0701c117e7f3b8bc97bf2efbe2caf641f60f25019"
+                  },
+                  {
+                      "path":  "customMetadata/Pricing_Rule__mdt.Fiber_Mobile_Bundle_15_Percent.md-meta.xml",
+                      "sha256":  "f6d4b1c953e6173e3f2871a389dd90bb818fb93099731c6da0c4726fecc04517"
+                  },
+                  {
+                      "path":  "customMetadata/Config_Rule__mdt.Requires_Commitment_Device.md-meta.xml",
+                      "sha256":  "b95a5e17bdc2e7d1fb1d74d6df8b629fc5e17bb64fea219951db4b18a69400ab"
+                  }
+              ],
+    "totals":  {
+                   "files":  10
+               }
+}

@@ -1,0 +1,55 @@
+﻿{
+    "procedure":  "Five_Step_Standard",
+    "steps":  [
+                  {
+                      "developerName":  "Five_Step_Standard_01_Base_Price",
+                      "label":  "Five Step Standard - 1 - Base price",
+                      "procedureName":  "Five_Step_Standard",
+                      "stepNumber":  1,
+                      "stepName":  "Resolve base price",
+                      "apexClass":  "PricingService",
+                      "onError":  "Abort",
+                      "active":  true
+                  },
+                  {
+                      "developerName":  "Five_Step_Standard_02_Commitment",
+                      "label":  "Five Step Standard - 2 - Commitment",
+                      "procedureName":  "Five_Step_Standard",
+                      "stepNumber":  2,
+                      "stepName":  "Apply commitment variant",
+                      "apexClass":  "PricingService",
+                      "onError":  "Abort",
+                      "active":  true
+                  },
+                  {
+                      "developerName":  "Five_Step_Standard_03_Bundle_Adjust",
+                      "label":  "Five Step Standard - 3 - Bundle adj.",
+                      "procedureName":  "Five_Step_Standard",
+                      "stepNumber":  3,
+                      "stepName":  "Apply bundle adjustments",
+                      "apexClass":  "PricingService",
+                      "onError":  "Log",
+                      "active":  true
+                  },
+                  {
+                      "developerName":  "Five_Step_Standard_04_Constraints",
+                      "label":  "Five Step Standard - 4 - Constraints",
+                      "procedureName":  "Five_Step_Standard",
+                      "stepNumber":  4,
+                      "stepName":  "Apply configuration constraints",
+                      "apexClass":  "PricingService",
+                      "onError":  "Continue",
+                      "active":  true
+                  },
+                  {
+                      "developerName":  "Five_Step_Standard_05_Breakdown",
+                      "label":  "Five Step Standard - 5 - Breakdown",
+                      "procedureName":  "Five_Step_Standard",
+                      "stepNumber":  5,
+                      "stepName":  "Return breakdown",
+                      "apexClass":  "PricingService",
+                      "onError":  "Abort",
+                      "active":  true
+                  }
+              ]
+}

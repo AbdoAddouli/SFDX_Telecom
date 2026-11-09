@@ -4,6 +4,3 @@
 .localdevserver/
 node_modules/
 *.log
-
-# Generated pricing export (regenerate with local tooling)
-pricing-export/

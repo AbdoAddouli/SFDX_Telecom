@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Fiber Mobile Bundle 15 Percent</label>
+    <protected>false</protected>
+    <values>
+        <field>Rule_Type__c</field>
+        <value xsi:type="xsd:string">Bundle Adjustment</value>
+    </values>
+    <values>
+        <field>Product__c</field>
+        <value xsi:type="xsd:string">TELCO_MOBILE</value>
+    </values>
+    <values>
+        <field>Requires_Product__c</field>
+        <value xsi:type="xsd:string">TELCO_FIBER</value>
+    </values>
+    <values>
+        <field>Adjustment_Type__c</field>
+        <value xsi:type="xsd:string">Percent</value>
+    </values>
+    <values>
+        <field>Adjustment_Value__c</field>
+        <value xsi:type="xsd:double">15</value>
+    </values>
+    <values>
+        <field>Priority__c</field>
+        <value xsi:type="xsd:double">40</value>
+    </values>
+    <values>
+        <field>Effective_From__c</field>
+        <value xsi:type="xsd:date">2026-01-01</value>
+    </values>
+    <values>
+        <field>Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+</CustomMetadata>

@@ -1,0 +1,15 @@
+﻿{
+    "developerName":  "Device_Bundle_30_Percent",
+    "label":  "Device Bundle 30 Percent",
+    "ruleType":  "Bundle Adjustment",
+    "product":  "TELCO_DEVICE",
+    "requiresProduct":  "TELCO_RECURRING",
+    "commitmentCode":  null,
+    "segment":  null,
+    "adjustmentType":  "Percent",
+    "adjustmentValue":  30,
+    "priority":  30,
+    "effectiveFrom":  "2026-01-01",
+    "effectiveTo":  null,
+    "active":  true
+}

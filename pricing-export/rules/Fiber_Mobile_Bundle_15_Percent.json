@@ -1,0 +1,15 @@
+﻿{
+    "developerName":  "Fiber_Mobile_Bundle_15_Percent",
+    "label":  "Fiber Mobile Bundle 15 Percent",
+    "ruleType":  "Bundle Adjustment",
+    "product":  "TELCO_MOBILE",
+    "requiresProduct":  "TELCO_FIBER",
+    "commitmentCode":  null,
+    "segment":  null,
+    "adjustmentType":  "Percent",
+    "adjustmentValue":  15,
+    "priority":  40,
+    "effectiveFrom":  "2026-01-01",
+    "effectiveTo":  null,
+    "active":  true
+}

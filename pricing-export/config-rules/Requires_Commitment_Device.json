@@ -1,0 +1,11 @@
+﻿{
+    "developerName":  "Requires_Commitment_Device",
+    "label":  "Requires Commitment Device",
+    "ruleKind":  "Requires Commitment",
+    "product":  "TELCO_DEVICE",
+    "companionProduct":  null,
+    "appliesWhenCommitment":  "NOCOMMIT",
+    "message":  "This device requires a 12 or 24 month commitment. Choose a commitment option, or remove the device from the quote.",
+    "severity":  "Block",
+    "active":  true
+}
