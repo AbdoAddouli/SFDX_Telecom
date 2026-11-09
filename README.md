@@ -1,6 +1,6 @@
 <div align="center">
 
-# ATS Telecom
+# SFDX Telecom
 
 ### Salesforce Revenue, Catalogue & Subscription Platform
 
@@ -18,7 +18,7 @@ Deployable Salesforce metadata for a telecom operator's product catalogue, prici
 
 ## Overview
 
-**ATS Telecom** is a Salesforce metadata project built around a simple idea: a telecom catalogue and pricing model should be **server-authoritative, auditable, and deployable**.
+**SFDX Telecom** is a Salesforce metadata project built around a simple idea: a telecom catalogue and pricing model should be **server-authoritative, auditable, and deployable**.
 
 The repository contains the deployable Salesforce source for:
 
