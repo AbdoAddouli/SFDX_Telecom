@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Commitment_Option_Immutable</fullName>
+    <active>true</active>
+    <description>Commitment Option Code is a quote-time snapshot. A later catalogue change must not alter an issued quote.</description>
+    <errorConditionFormula>AND(
+    NOT(ISNEW()),
+    NOT(ISBLANK(PRIORVALUE(Commitment_Option_Code__c))),
+    OR(
+        ISBLANK(Commitment_Option_Code__c),
+        Commitment_Option_Code__c &lt;&gt; PRIORVALUE(Commitment_Option_Code__c)
+    )
+)</errorConditionFormula>
+    <errorDisplayField>Commitment_Option_Code__c</errorDisplayField>
+    <errorMessage>Commitment Option Code is a quote-time snapshot and cannot be changed.</errorMessage>
+</ValidationRule>
