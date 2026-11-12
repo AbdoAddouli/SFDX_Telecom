@@ -80,7 +80,7 @@ private class PricingServiceTest {
 
     private static Product2 getProduct(String productCode) {
         return [
-            SELECT Id, Name, Family
+            SELECT Id, Name, Family, ATS_Product_Code__c
             FROM Product2
             WHERE ATS_Product_Code__c = :productCode
             LIMIT 1
@@ -294,6 +294,28 @@ private class PricingServiceTest {
             results[0].message.contains('requires a 12 or 24 month commitment'),
             'The advisor-facing message should come from Config_Rule__mdt.'
         );
+    }
+
+    @IsTest
+    static void evaluatesConfigurationsInBulk() {
+        Product2 device = getProduct('TEST_DEVICE');
+        Product2 mobile = getProduct('TEST_MOBILE');
+
+        Test.startTest();
+        Map<Id, List<PricingService.ConfigResult>> results =
+            PricingService.evaluateConfigurations(
+                new List<Product2>{ device, mobile },
+                'NOCOMMIT'
+            );
+        Test.stopTest();
+
+        System.assertEquals(2, results.size());
+        System.assertEquals(1, results.get(device.Id).size());
+        System.assert(
+            results.get(device.Id)[0].blocking,
+            'The NOCOMMIT device rule must block the device.'
+        );
+        System.assertEquals(0, results.get(mobile.Id).size());
     }
 
     @IsTest

@@ -8,6 +8,10 @@
         <apexClass>OfferBuilderService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>SubscriptionWizardController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <customSettingAccesses>
         <enabled>true</enabled>
         <name>ATS_Feature_Flags__c</name>

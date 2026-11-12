@@ -1,0 +1,488 @@
+<template>
+    <lightning-card title="Subscription Wizard" icon-name="standard:orders">
+        <template lwc:if={isLoading}>
+            <lightning-spinner
+                alternative-text="Loading wizard"
+                size="medium"
+            ></lightning-spinner>
+        </template>
+
+        <div class="slds-p-around_medium">
+            <template lwc:if={errorMessage}>
+                <div
+                    class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_medium"
+                    role="alert"
+                >
+                    <span class="slds-assistive-text">Error</span>
+                    <h2>{errorMessage}</h2>
+                </div>
+            </template>
+
+            <lightning-progress-indicator current-step={currentStep} type="base">
+                <lightning-progress-step
+                    label="Customer"
+                    value="1"
+                ></lightning-progress-step>
+                <lightning-progress-step
+                    label="Offer"
+                    value="2"
+                ></lightning-progress-step>
+                <lightning-progress-step
+                    label="Plan"
+                    value="3"
+                ></lightning-progress-step>
+                <lightning-progress-step
+                    label="Options"
+                    value="4"
+                ></lightning-progress-step>
+                <lightning-progress-step
+                    label="Review"
+                    value="5"
+                ></lightning-progress-step>
+            </lightning-progress-indicator>
+
+            <!-- Step 1: Customer -->
+            <template lwc:if={isStep1}>
+                <div class="slds-box slds-m-top_medium">
+                    <h2 class="slds-text-heading_small slds-m-bottom_small">
+                        Confirm the customer
+                    </h2>
+                    <dl class="slds-list_horizontal slds-wrap">
+                        <dt class="slds-item_label slds-text-color_weak">
+                            Account
+                        </dt>
+                        <dd class="slds-item_detail">{accountName}</dd>
+                        <dt class="slds-item_label slds-text-color_weak">
+                            Segment
+                        </dt>
+                        <dd class="slds-item_detail">
+                            {accountSegment}
+                        </dd>
+                    </dl>
+                    <template lwc:if={hasSegmentWarning}>
+                        <p class="slds-text-color_error slds-m-top_small">
+                            {segmentWarning}
+                        </p>
+                    </template>
+
+                    <template lwc:if={hasContacts}>
+                        <lightning-combobox
+                            class="slds-m-top_medium"
+                            label="Contact"
+                            options={contactOptions}
+                            value={contactId}
+                            placeholder="Select a contact"
+                            onchange={handleContactChange}
+                        ></lightning-combobox>
+
+                        <template lwc:if={contactId}>
+                            <div class="slds-grid slds-gutters slds-m-top_small">
+                                <div class="slds-col slds-size_1-of-2">
+                                    <lightning-input
+                                        label="Email"
+                                        type="email"
+                                        value={contactEmail}
+                                        disabled={isContactSyncDisabled}
+                                        onchange={handleContactEmailChange}
+                                    ></lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <lightning-input
+                                        label="Phone"
+                                        type="tel"
+                                        value={contactPhone}
+                                        disabled={isContactSyncDisabled}
+                                        onchange={handleContactPhoneChange}
+                                    ></lightning-input>
+                                </div>
+                            </div>
+                            <template lwc:if={contactSyncNote}>
+                                <p class={contactSyncNoteClass}>
+                                    {contactSyncNote}
+                                </p>
+                            </template>
+                        </template>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-color_error slds-m-top_medium">
+                            This Account has no Contacts. Add a Contact before
+                            starting the subscription journey.
+                        </p>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Step 2: Offer type -->
+            <template lwc:if={isStep2}>
+                <div class="slds-box slds-m-top_medium">
+                    <h2 class="slds-text-heading_small slds-m-bottom_small">
+                        Choose the offer type
+                    </h2>
+                    <lightning-radio-group
+                        label="Offer type"
+                        options={offerOptions}
+                        value={offerType}
+                        type="radio"
+                        onchange={handleOfferTypeChange}
+                    ></lightning-radio-group>
+                    <p class="slds-text-color_weak slds-m-top_small">
+                        Mobile uses the mobile catalogue. Fibre &amp; Landline
+                        uses the fixed-line catalogue and checks coverage.
+                    </p>
+                </div>
+            </template>
+
+            <!-- Step 3: Plan -->
+            <template lwc:if={isStep3}>
+                <div class="slds-box slds-m-top_medium">
+                    <h2 class="slds-text-heading_small slds-m-bottom_small">
+                        Select a plan
+                    </h2>
+
+                    <lightning-radio-group
+                        label="Commitment"
+                        options={commitmentOptions}
+                        value={commitmentCode}
+                        type="radio"
+                        onchange={handleCommitmentChange}
+                    ></lightning-radio-group>
+
+                    <template lwc:if={isFibre}>
+                        <div class="slds-grid slds-gutters slds-m-top_medium">
+                            <div class="slds-col slds-size_2-of-3">
+                                <lightning-input
+                                    label="Postal code"
+                                    value={postalCode}
+                                    maxlength="10"
+                                    onchange={handlePostalChange}
+                                ></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-3 slds-p-top_large">
+                                <lightning-button
+                                    label="Check coverage"
+                                    variant="neutral"
+                                    onclick={handleCheckCoverage}
+                                ></lightning-button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template lwc:if={planOptions.length}>
+                        <lightning-radio-group
+                            class="slds-m-top_medium"
+                            label="Available plans"
+                            options={planOptions}
+                            value={planProductId}
+                            type="radio"
+                            onchange={handlePlanChange}
+                        ></lightning-radio-group>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-color_weak slds-m-top_medium">
+                            No plans loaded. Adjust the commitment or check
+                            coverage.
+                        </p>
+                    </template>
+
+                    <template lwc:if={selectedPlan}>
+                        <div class="slds-box slds-theme_shade slds-m-top_medium">
+                            <h3 class="slds-text-heading_small">
+                                {selectedPlan.name}
+                            </h3>
+                            <p class="slds-text-color_weak">
+                                {selectedPlanSummary}
+                            </p>
+                            <template lwc:if={selectedPlan.requiresCommitment}>
+                                <span class="slds-badge slds-m-top_x-small">
+                                    Commitment required
+                                </span>
+                            </template>
+                            <template lwc:if={hasActivationBlock}>
+                                <p class="slds-text-color_error slds-m-top_small">
+                                    {activationBlockedText}
+                                </p>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template for:each={planConfigs} for:item="config">
+                        <div key={config.developerName} class="slds-m-top_small">
+                            <template lwc:if={config.blocking}>
+                                <p class="slds-text-color_error">
+                                    <lightning-icon
+                                        icon-name="utility:error"
+                                        size="xx-small"
+                                        variant="error"
+                                    ></lightning-icon>
+                                    {config.message}
+                                </p>
+                            </template>
+                            <template lwc:else>
+                                <p class="slds-text-color_weak">
+                                    {config.message}
+                                </p>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Step 4: Device and options -->
+            <template lwc:if={isStep4}>
+                <div class="slds-box slds-m-top_medium">
+                    <h2 class="slds-text-heading_small slds-m-bottom_small">
+                        Add a device
+                    </h2>
+                    <lightning-combobox
+                        label="Device"
+                        options={deviceOptions}
+                        value={deviceProductId}
+                        onchange={handleDeviceChange}
+                    ></lightning-combobox>
+
+                    <template lwc:if={selectedDevice}>
+                        <div class="slds-box slds-theme_shade slds-m-top_medium">
+                            <div class="slds-grid slds-gutters">
+                                <template lwc:if={hasDeviceImage}>
+                                    <div class="slds-col slds-size_2-of-12">
+                                        <img
+                                            class="device-image"
+                                            src={selectedDevice.deviceImageUrl}
+                                            alt={selectedDevice.name}
+                                        />
+                                    </div>
+                                </template>
+                                <div class="slds-col slds-size_10-of-12">
+                                    <h3 class="slds-text-heading_small">
+                                        {selectedDevice.name}
+                                    </h3>
+                                    <p class="slds-text-color_weak">
+                                        {selectedDevice.specs}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template for:each={deviceConfigs} for:item="config">
+                        <div key={config.developerName} class="slds-m-top_small">
+                            <template lwc:if={config.blocking}>
+                                <p class="slds-text-color_error">
+                                    <lightning-icon
+                                        icon-name="utility:error"
+                                        size="xx-small"
+                                        variant="error"
+                                    ></lightning-icon>
+                                    {config.message}
+                                </p>
+                            </template>
+                            <template lwc:else>
+                                <p class="slds-text-color_weak">
+                                    {config.message}
+                                </p>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Step 5: Review and create quote -->
+            <template lwc:if={isStep5}>
+                <div class="slds-box slds-m-top_medium">
+                    <h2 class="slds-text-heading_small slds-m-bottom_small">
+                        Review the offer
+                    </h2>
+
+                    <template lwc:if={quoteCreated}>
+                        <div class="slds-box slds-theme_success">
+                            <h3 class="slds-text-heading_small">
+                                Quote created
+                            </h3>
+                            <p class="slds-m-top_small">
+                                {quoteResult.quoteNumber}
+                            </p>
+                            <template lwc:if={hasQuoteWarnings}>
+                                <p class="slds-text-color_weak slds-m-top_small">
+                                    {quoteWarningText}
+                                </p>
+                            </template>
+                            <template lwc:if={quoteResult.totalPrice}>
+                                <p class="slds-m-top_small">
+                                    Total:
+                                    <lightning-formatted-number
+                                        value={quoteResult.totalPrice}
+                                        format-style="currency"
+                                        currency-code="EUR"
+                                    ></lightning-formatted-number>
+                                </p>
+                            </template>
+                            <lightning-button
+                                class="slds-m-top_medium"
+                                label="View Quote"
+                                variant="brand"
+                                onclick={handleViewQuote}
+                            ></lightning-button>
+                        </div>
+                    </template>
+
+                    <template lwc:else>
+                        <dl class="slds-list_horizontal slds-wrap">
+                            <dt class="slds-item_label slds-text-color_weak">
+                                Account
+                            </dt>
+                            <dd class="slds-item_detail">{accountName}</dd>
+                            <dt class="slds-item_label slds-text-color_weak">
+                                Contact
+                            </dt>
+                            <dd class="slds-item_detail">
+                                {selectedContactLabel}
+                            </dd>
+                            <dt class="slds-item_label slds-text-color_weak">
+                                Offer
+                            </dt>
+                            <dd class="slds-item_detail">{offerTypeLabel}</dd>
+                            <dt class="slds-item_label slds-text-color_weak">
+                                Plan
+                            </dt>
+                            <dd class="slds-item_detail">
+                                {selectedPlanName}
+                            </dd>
+                            <dt class="slds-item_label slds-text-color_weak">
+                                Device
+                            </dt>
+                            <dd class="slds-item_detail">
+                                {selectedDeviceName}
+                            </dd>
+                            <dt class="slds-item_label slds-text-color_weak">
+                                Commitment
+                            </dt>
+                            <dd class="slds-item_detail">{commitmentCode}</dd>
+                        </dl>
+
+                        <template lwc:if={hasOfferMissing}>
+                            <div
+                                class="slds-notify slds-notify_alert slds-alert_warning slds-m-top_medium"
+                                role="alert"
+                            >
+                                <h2>
+                                    Select an offer before creating the quote.
+                                </h2>
+                                <lightning-button
+                                    class="slds-m-top_small"
+                                    label="Go to Offer"
+                                    onclick={handleGoToOffer}
+                                ></lightning-button>
+                            </div>
+                        </template>
+
+                        <div class="slds-grid slds-gutters slds-m-top_medium">
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input
+                                    type="date"
+                                    label="Effective date"
+                                    value={effectiveDate}
+                                    onchange={handleEffectiveDateChange}
+                                ></lightning-input>
+                            </div>
+                        </div>
+
+                        <template for:each={pricing} for:item="line">
+                            <div
+                                key={line.productId}
+                                class="slds-box slds-m-top_medium"
+                            >
+                                <div
+                                    class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center"
+                                >
+                                    <h3 class="slds-text-heading_small">
+                                        {line.productName}
+                                    </h3>
+                                    <lightning-formatted-number
+                                        value={line.finalPrice}
+                                        format-style="currency"
+                                        currency-code="EUR"
+                                    ></lightning-formatted-number>
+                                </div>
+
+                                <template for:each={line.appliedRules} for:item="rule">
+                                    <p
+                                        key={rule.developerName}
+                                        class="slds-text-color_weak slds-m-top_x-small"
+                                    >
+                                        {rule.label}:
+                                        <lightning-formatted-number
+                                            value={rule.amount}
+                                            format-style="currency"
+                                            currency-code="EUR"
+                                        ></lightning-formatted-number>
+                                    </p>
+                                </template>
+
+                                <template lwc:if={line.hasBlockingReasons}>
+                                    <p class="slds-text-color_error slds-m-top_small">
+                                        {line.blockingText}
+                                    </p>
+                                </template>
+                                <template lwc:if={line.hasWarningReasons}>
+                                    <p class="slds-text-color_weak slds-m-top_small">
+                                        {line.warningText}
+                                    </p>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template lwc:if={hasPricingBlocking}>
+                            <p class="slds-text-color_error slds-m-top_medium">
+                                {pricingBlockingText}
+                            </p>
+                        </template>
+                        <template lwc:if={hasActivationBlock}>
+                            <p class="slds-text-color_error slds-m-top_medium">
+                                {activationBlockedText}
+                            </p>
+                        </template>
+
+                        <div
+                            class="slds-grid slds-grid_align-end slds-m-top_medium"
+                        >
+                            <lightning-formatted-number
+                                value={pricingTotal}
+                                format-style="currency"
+                                currency-code="EUR"
+                            ></lightning-formatted-number>
+                        </div>
+
+                        <lightning-button
+                            class="slds-m-top_medium"
+                            label="Create Quote"
+                            variant="brand"
+                            disabled={isCreateDisabled}
+                            onclick={handleCreateQuote}
+                        ></lightning-button>
+                    </template>
+                </div>
+            </template>
+
+            <div class="slds-grid slds-grid_align-spread slds-m-top_medium">
+                <template lwc:if={showBack}>
+                    <lightning-button
+                        label="Back"
+                        variant="neutral"
+                        onclick={handleBack}
+                    ></lightning-button>
+                </template>
+                <template lwc:else>
+                    <span></span>
+                </template>
+                <template lwc:if={showNext}>
+                    <lightning-button
+                        label={nextLabel}
+                        variant="brand"
+                        disabled={isLoading}
+                        onclick={handleNext}
+                    ></lightning-button>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>

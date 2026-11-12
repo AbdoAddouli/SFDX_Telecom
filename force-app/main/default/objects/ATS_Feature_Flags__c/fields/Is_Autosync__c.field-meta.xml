@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Autosync__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>When enabled, Step 1 of the subscription wizard writes Contact email and phone changes back after a short debounce.</description>
+    <label>Is Autosync</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

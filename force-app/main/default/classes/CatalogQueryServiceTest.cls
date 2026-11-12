@@ -545,19 +545,19 @@ private class CatalogQueryServiceTest {
         Test.stopTest();
 
         System.assertEquals(
-            1,
+            2,
             afterPlans,
-            'getPlans must issue one product query, not one per product.'
+            'getPlans must issue one product query and one configuration-rule query, not one per product.'
         );
         System.assertEquals(
-            2,
+            3,
             afterDevices,
             'getDevices must issue one additional product query.'
         );
         System.assertEquals(
-            4,
+            6,
             afterEligibility,
-            'A fibre filter must add one plan query and one eligibility query.'
+            'A fibre filter must add one plan query, one configuration-rule query, and one eligibility query.'
         );
     }
 

@@ -268,6 +268,42 @@ public with sharing class PricingService {
         );
     }
 
+    /**
+     * Bulk configuration evaluation for catalogue filtering. Loads the config
+     * rules once and evaluates each product against the same commitment, so
+     * the catalogue never queries inside the plan loop.
+     */
+    public static Map<Id, List<ConfigResult>> evaluateConfigurations(
+        List<Product2> products,
+        String commitmentCode
+    ) {
+        Map<Id, List<ConfigResult>> results =
+            new Map<Id, List<ConfigResult>>();
+        if (products == null || products.isEmpty()) {
+            return results;
+        }
+
+        List<Config_Rule__mdt> rules = PricingBatchRepository.loadConfigRules();
+        for (Product2 product : products) {
+            if (product == null || product.Id == null) {
+                continue;
+            }
+            PricingContext context = new PricingContext(
+                product.Id,
+                commitmentCode,
+                null,
+                null,
+                new Set<String>()
+            );
+            context.product = product;
+            results.put(
+                product.Id,
+                ConfigurationRuleEvaluator.evaluate(context, rules)
+            );
+        }
+        return results;
+    }
+
     private static PriceBreakdown buildBreakdown(
         PricingContext context,
         PricingBatchRepository batch

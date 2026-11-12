@@ -1,0 +1,13 @@
+.device-image {
+    max-width: 6rem;
+    max-height: 6rem;
+    object-fit: contain;
+}
+
+.slds-item_label {
+    min-width: 8rem;
+}
+
+.slds-item_detail {
+    margin-bottom: 0.25rem;
+}

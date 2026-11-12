@@ -8,6 +8,10 @@
 public with sharing class OfferBuilderService {
     public class OfferException extends Exception {}
 
+    /**
+     * Flow/invocable DTO. Aura callers use SubscriptionWizardController.createQuote
+     * because Aura does not bind plain public fields on a custom class parameter.
+     */
     public class Selection {
         @AuraEnabled @InvocableVariable public Id accountId;
         @AuraEnabled @InvocableVariable public Id contactId;

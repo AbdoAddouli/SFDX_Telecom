@@ -20,21 +20,21 @@ public with sharing class CatalogQueryService {
     public class CatalogException extends Exception {}
 
     public class ProductView {
-        @AuraEnabled public Id productId;
-        @AuraEnabled public String productCode;
-        @AuraEnabled public String name;
-        @AuraEnabled public String family;
-        @AuraEnabled public String planType;
-        @AuraEnabled public Decimal dataGb;
-        @AuraEnabled public Decimal speedMbps;
-        @AuraEnabled public Boolean unlimitedCalls;
-        @AuraEnabled public Boolean unlimitedSms;
-        @AuraEnabled public Boolean recurring;
-        @AuraEnabled public Boolean requiresCommitment;
-        @AuraEnabled public String deviceImageUrl;
-        @AuraEnabled public String specs;
-        @AuraEnabled public Date earliestActivationDate;
-        @AuraEnabled public Boolean activationBlocked;
+        @AuraEnabled public Id productId { get; set; }
+        @AuraEnabled public String productCode { get; set; }
+        @AuraEnabled public String name { get; set; }
+        @AuraEnabled public String family { get; set; }
+        @AuraEnabled public String planType { get; set; }
+        @AuraEnabled public Decimal dataGb { get; set; }
+        @AuraEnabled public Decimal speedMbps { get; set; }
+        @AuraEnabled public Boolean unlimitedCalls { get; set; }
+        @AuraEnabled public Boolean unlimitedSms { get; set; }
+        @AuraEnabled public Boolean recurring { get; set; }
+        @AuraEnabled public Boolean requiresCommitment { get; set; }
+        @AuraEnabled public String deviceImageUrl { get; set; }
+        @AuraEnabled public String specs { get; set; }
+        @AuraEnabled public Date earliestActivationDate { get; set; }
+        @AuraEnabled public Boolean activationBlocked { get; set; }
 
         public ProductView() {
             this.unlimitedCalls = false;
@@ -68,15 +68,25 @@ public with sharing class CatalogQueryService {
     /**
      * Returns active plans for the requested offer type. A blank commitment is
      * treated as NOCOMMIT, which excludes plans that require a commitment.
+     * Configuration rules are evaluated once for the full plan list, so plans
+     * with blocking option rules never reach the picker.
      */
     @AuraEnabled(cacheable=true)
     public static List<ProductView> getPlans(String offerType, String commitmentCode) {
         String normalizedType = normalizeOfferType(offerType);
         String normalizedCommitment = PricingScope.normalizeCommitment(commitmentCode);
-        return toViews(
-            CatalogQueryRepository.findPlans(normalizedType),
-            normalizedCommitment
-        );
+        List<Product2> products = CatalogQueryRepository.findPlans(normalizedType);
+        List<ProductView> views = toViews(products, normalizedCommitment);
+        Map<Id, List<PricingService.ConfigResult>> configs =
+            PricingService.evaluateConfigurations(products, normalizedCommitment);
+
+        List<ProductView> compatible = new List<ProductView>();
+        for (ProductView view : views) {
+            if (!hasBlockingConfig(configs.get(view.productId))) {
+                compatible.add(view);
+            }
+        }
+        return compatible;
     }
 
     /**
@@ -146,6 +156,20 @@ public with sharing class CatalogQueryService {
             postalCode.trim()
         );
         return CatalogEligibilityFilter.filter(plans, eligibility);
+    }
+
+    private static Boolean hasBlockingConfig(
+        List<PricingService.ConfigResult> configs
+    ) {
+        if (configs == null) {
+            return false;
+        }
+        for (PricingService.ConfigResult config : configs) {
+            if (config.blocking) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void requireProductId(Id productId) {

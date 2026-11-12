@@ -14,6 +14,10 @@
                 <label>Mobile</label>
             </value>
             <value>
+                <fullName>Fiber</fullName>
+                <label>Fibre &amp; Landline</label>
+            </value>
+            <value>
                 <fullName>Landline</fullName>
                 <label>Landline</label>
             </value>
