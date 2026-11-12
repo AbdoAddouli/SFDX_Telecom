@@ -143,6 +143,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Engagement__c.Engagement_Key__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>Engagement__c.Early_Termination_Fee__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -674,6 +679,11 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>OrderItem.Subscription_Number__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>OrderItem.Commitment_Option_Code__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

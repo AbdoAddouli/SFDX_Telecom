@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-11-12  
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)  
-**Current step:** E5 advisor-wizard gaps are closed. Step 1 now writes Contact email/phone back through `SubscriptionWizardController.saveContactDetails()` after a 700 ms debounce, gated by the `ATS_Feature_Flags__c.Is_Autosync__c` hierarchy flag; the controller validates the wizard session and account, uses `WITH USER_MODE`/`AccessLevel.USER_MODE`, and rolls back on DML failure. `CatalogQueryService.getPlans()` now filters plans with blocking configuration rules using a new bulk `PricingService.evaluateConfigurations()`, so option-aware filtering runs in one config-rule query. A real fibre bug was also fixed: `CatalogQueryService.ProductView` now uses `{ get; set; }` Aura properties, so LWC-to-Apex `filterByEligibility()` round-trips keep plan names and IDs intact. Targeted Apex tests pass 48/48 (`SubscriptionWizardControllerTest`, `PricingServiceTest`, `CatalogQueryServiceTest`), and the full local Apex suite passes 120/120. Browser verification: Step 1 debounce saved Contact changes; full fibre `75001` → `Fiber 100 Mb + Landline` → €39.99 → quote created on a temporary account; future `OFB13001` → “Activation is blocked until 2026-12-15.” and Create Quote disabled; 20 Mbps cap `OFB69001` exposed only the 20 Mbps plan and kept Create Quote enabled. Next: wire the Activate hand-off once `ActivationService` is unblocked; E6/E8 jobs remain.
+**Current step:** E4 UC-COM-03 activation, the wizard “Finish & Activate” hand-off, and UC-COM-04 subscription state machine are complete. `SubscriptionWizardController.finishAndActivate()` locks the wizard session, converts the wizard Quote into one Order plus OrderItems, marks the Quote Accepted, and delegates to `ActivationService`. Activation is savepoint-guarded, idempotent, and BSS-backed; on BSS failure the Order returns to Ready for retry while the wizard session stays active. The Step 5 LWC now exposes Finish & Activate, Retry Activation, and View Order. `SubscriptionStateMachine` and `SubscriptionTriggerHandler` now enforce the allowed Subscription status moves from every DML path and block hard deletes. Targeted activation/wizard tests pass 41/41; the state machine plus MSISDN tests pass 18/18; the full local Apex suite passes 157/157. E5 remains closed. Next: UC-COM-05 Activation Flow / “Validate the Order” custom action; Q1/BQ1 ContractLineItem semantics and E6/E8 jobs remain.
 
 ---
 
@@ -156,6 +156,94 @@ with no SOQL or DML. The facade is `with sharing` and performs no DML.
 - **Targeted Apex tests:** 48/48 across `SubscriptionWizardControllerTest`,
   `PricingServiceTest`, and `CatalogQueryServiceTest`. The full local Apex
   suite passes 120/120.
+
+### E4 activation and wizard hand-off (complete 2026-11-12)
+
+`ActivationService` implements UC-COM-03 as a bulk-safe, idempotent transaction.
+`SubscriptionWizardController.finishAndActivate()` supplies the missing
+quote-to-order hand-off.
+
+- `ActivationService.activateOrder()` caps one invocable call at 80 orders so
+  the savepoint limit stays safe; the bulk test covers 200 OrderItems in one
+  order. It locks the Order row, requires `Activation_State__c = Ready`, and
+  uses `Activation_State__c` (`Not_Eligible`, `Ready`, `Activating`,
+  `Activated`, `Failed`) because standard `Order.Status` only has `Draft` and
+  `Activated`.
+- Contract binding is isolated in `ActivationContractWriter`. The current
+  default is amend: reuse `Order.ContractId` when present, otherwise create a
+  minimal Draft Contract, then activate it after BSS success. No
+  `ContractLineItem` is written because standard `ContractLineItem` belongs to
+  `ServiceContract`, not `Contract`; Q1/BQ1 remains unresolved.
+- BSS access is behind `BssProvisioningGateway`.
+  `SimulatedBssProvisioningGateway` returns `SIM-{SubscriptionNumber}` and uses
+  `Subscription__c.Name` for idempotency.
+  `External_Api__mdt.Bss_Provisioning` is active, but the `BSS_Api` Named
+  Credential does not exist yet, so the real callout stays in E8.
+- Activation creates Asset → Subscription → Engagement for each recurring plan
+  line. Device lines inherit the nearest preceding plan engagement, or the
+  first plan engagement. `Engagement_Key__c` is `ENG-{OrderItemId}`,
+  `Subscription__c.External_Reference__c` is unique,
+  `OrderItem.Subscription_Number__c` is the reconciliation back-link, and
+  `OrderItem.Commitment_Option_Code__c` snapshots the accepted commitment.
+- `ActivationPenaltyPolicy` resolves the metadata penalty. Verified examples:
+  Consumer Fiber 12M stores `Consumer_Fiber_12M` / `25`; Business Mobile 12M
+  stores `Business_Any` / `15`. `NOCOMMIT` creates no Engagement and leaves
+  `ContractTerm` null because `Contract` rejects a zero term.
+- Success and failure write `Integration_Log__c`; success stores the BSS
+  correlation in `Order.BSS_Order_Key__c`. BSS failure rolls local DML back,
+  returns the Order to `Ready`, records the failure reason, and leaves no
+  orphan Asset, Subscription, Engagement, or Contract.
+- `finishAndActivate(sessionId, quoteId)` locks the wizard session row with
+  `FOR UPDATE` so a double-click cannot create two orders, validates the Quote
+  against the session Account/Contact, loads QuoteLineItems, and finds an
+  existing order by `Name = Quote.QuoteNumber`. The Order description carries
+  the Quote Id as a linkage marker because standard `Order` has no Quote
+  lookup.
+- On first call it creates one Order (`Draft`, `Activation_State__c = Ready`,
+  `EffectiveDate = today`) and copies product, pricebook entry, quantity,
+  price, description, service date, and commitment from each QuoteLineItem.
+  It marks the Quote `Accepted`, then calls `ActivationService`.
+- The wizard session is deactivated only after successful activation or a
+  no-op retry. On failure it stays active and `State_Json__c` stores
+  `orderId`, `orderNumber`, `activationStatus`, and the failure message so the
+  user can retry from Step 5 or after a refresh.
+- The Step 5 LWC now shows **Finish & Activate**, **Retry Activation** after a
+  failure, and **View Order** plus the activation summary on success.
+- Tests: targeted `ActivationServiceTest` and `SubscriptionWizardControllerTest`
+  pass 41/41; the full local Apex suite passes 157/157 after the UC-COM-04
+  state-machine tests. The wizard tests cover success, double-call idempotency,
+  BSS failure followed by retry, missing quote lines, and missing session.
+- Activation DML is user-mode. Every current human user holds System
+  Administrator, so the wizard path works in this org today. `ats_Advisor` and
+  `ats_AdvisorManager` remain read-only on Order, OrderItem, Asset, Contract,
+  Subscription__c, and Engagement__c. Before either set is assigned to a
+  non-admin user, E9 must grant the activation object/field CRUD/FLS or route
+  the hand-off through an ops-owned service. This is tracked as E9 FLS
+  hardening, not silently widened in the persona matrix.
+
+### E4 subscription state machine (UC-COM-04, complete 2026-11-12)
+
+`SubscriptionStateMachine` owns the explicit allowed-transition map.
+`SubscriptionTriggerHandler` is called from the single `Subscription__c`
+trigger; the existing `SubscriptionMSISDNTrigger` name is retained to avoid a
+destructive trigger rename, and the same trigger still delegates MSISDN
+uniqueness to `SubscriptionMSISDNDuplicateHandler`.
+
+- Allowed moves: `Draft → PendingActivation → Active`; `Active ⇄ Suspended`;
+  `Active → PendingCancellation → Cancelled`; `Active → Superseded`.
+  `Cancelled` and `Superseded` are terminal.
+- Inserts must start in `Draft` or `PendingActivation`; a blank start status
+  defaults to `Draft`. Direct `Active` inserts, `Active → Cancelled`, attempts
+  to reopen a terminal state, and every out-of-map move add a field-level error
+  through the trigger, including data loads, API, Flow, and integration DML.
+- Same-status updates are allowed so unrelated edits are not blocked.
+- `before delete` adds an error for every subscription. Hard delete is blocked;
+  records must be soft-closed through `Cancelled` or `Superseded`.
+- `ActivationService` remains compatible: it inserts `PendingActivation` and
+  moves each subscription to `Active` only after BSS success.
+- Tests: `SubscriptionTriggerHandlerTest` 11/11 and the existing MSISDN tests
+  7/7; targeted state-machine coverage 18/18. The full local Apex suite passes
+  157/157.
 
 ### Quote creation service (UC-COM-01, complete 2026-11-09)
 

@@ -10,6 +10,7 @@ import getPriceBreakdown from '@salesforce/apex/CatalogQueryService.getPriceBrea
 import filterByEligibility from '@salesforce/apex/CatalogQueryService.filterByEligibility';
 import createQuote from '@salesforce/apex/SubscriptionWizardController.createQuote';
 import saveContactDetails from '@salesforce/apex/SubscriptionWizardController.saveContactDetails';
+import finishAndActivate from '@salesforce/apex/SubscriptionWizardController.finishAndActivate';
 
 const DEFAULT_COMMITMENT = 'NOCOMMIT';
 const TODAY = localDate();
@@ -59,6 +60,7 @@ export default class SubscriptionWizard extends NavigationMixin(LightningElement
     pricingTotal = 0;
     quoteCreated = false;
     quoteResult;
+    activationResult = null;
 
     connectedCallback() {
         this.bootstrap();
@@ -147,6 +149,19 @@ export default class SubscriptionWizard extends NavigationMixin(LightningElement
                 quoteId: state.quoteId,
                 quoteNumber: state.quoteNumber,
                 totalPrice: null
+            };
+        }
+
+        if (extra.orderId) {
+            this.activationResult = {
+                quoteId: extra.quoteId || state.quoteId,
+                orderId: extra.orderId,
+                orderNumber: extra.orderNumber,
+                status: extra.activationStatus,
+                message: extra.activationMessage,
+                assetCount: extra.assetCount,
+                subscriptionCount: extra.subscriptionCount,
+                engagementCount: extra.engagementCount
             };
         }
     }
@@ -373,6 +388,58 @@ export default class SubscriptionWizard extends NavigationMixin(LightningElement
 
     get hasQuoteWarnings() {
         return Boolean(this.quoteWarningText);
+    }
+
+    get isActivated() {
+        return Boolean(
+            this.activationResult &&
+                this.activationResult.status === 'Activated'
+        );
+    }
+
+    get activationFailed() {
+        return Boolean(
+            this.activationResult &&
+                this.activationResult.status === 'Failed'
+        );
+    }
+
+    get finishButtonLabel() {
+        return this.activationFailed ? 'Retry Activation' : 'Finish & Activate';
+    }
+
+    get activationFailureText() {
+        if (!this.activationFailed) {
+            return '';
+        }
+        return (
+            (this.activationResult && this.activationResult.message) ||
+            'Activation failed. Please retry.'
+        );
+    }
+
+    get activationSummary() {
+        if (!this.isActivated || !this.activationResult) {
+            return '';
+        }
+        const parts = [];
+        if (this.activationResult.subscriptionCount) {
+            parts.push(
+                `${this.activationResult.subscriptionCount} subscription(s)`
+            );
+        }
+        if (this.activationResult.engagementCount) {
+            parts.push(
+                `${this.activationResult.engagementCount} engagement(s)`
+            );
+        }
+        return parts.join(' · ');
+    }
+
+    get activatedOrderNumber() {
+        return this.isActivated && this.activationResult
+            ? this.activationResult.orderNumber || ''
+            : '';
     }
 
     handleContactChange(event) {
@@ -805,11 +872,60 @@ export default class SubscriptionWizard extends NavigationMixin(LightningElement
             });
             this.quoteResult = result;
             this.quoteCreated = true;
+            this.activationResult = null;
         } catch (error) {
             this.errorMessage = reduceError(error);
         } finally {
             this.isLoading = false;
         }
+    }
+
+    async handleFinishAndActivate() {
+        if (!this.sessionId || !this.quoteResult || !this.quoteResult.quoteId) {
+            this.errorMessage =
+                'Create the quote before finishing and activating.';
+            return;
+        }
+
+        this.errorMessage = '';
+        this.isLoading = true;
+        try {
+            const result = await finishAndActivate({
+                sessionId: this.sessionId,
+                quoteId: this.quoteResult.quoteId
+            });
+            this.activationResult = result;
+            if (result && result.status === 'Activated') {
+                this.quoteResult = {
+                    ...this.quoteResult,
+                    orderId: result.orderId,
+                    orderNumber: result.orderNumber
+                };
+            } else if (result && result.message) {
+                this.errorMessage = result.message;
+            }
+        } catch (error) {
+            this.errorMessage = reduceError(error);
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    handleViewOrder() {
+        const orderId =
+            (this.activationResult && this.activationResult.orderId) ||
+            (this.quoteResult && this.quoteResult.orderId);
+        if (!orderId) {
+            return;
+        }
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: orderId,
+                objectApiName: 'Order',
+                actionName: 'view'
+            }
+        });
     }
 
     async handleGoToOffer() {

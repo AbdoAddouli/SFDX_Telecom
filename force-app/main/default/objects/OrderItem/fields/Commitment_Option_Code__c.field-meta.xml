@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Commitment_Option_Code__c</fullName>
+    <caseSensitive>false</caseSensitive>
+    <description>Snapshot of the commitment option code from the accepted quote.</description>
+    <externalId>false</externalId>
+    <label>Commitment Option Code</label>
+    <length>20</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

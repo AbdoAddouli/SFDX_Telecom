@@ -14,6 +14,41 @@ private class SubscriptionWizardControllerTest {
             Phone = '020 7000 0000',
             AccountId = account.Id
         );
+
+        Pricebook2 pricebook = new Pricebook2(
+            Name = 'Wizard Test Pricebook',
+            IsActive = true
+        );
+        insert pricebook;
+        Product2 product = new Product2(
+            Name = 'Wizard Fiber 100',
+            Family = 'TELCO_FIBER',
+            Plan_Type__c = 'Fiber',
+            Speed_Mbps__c = 100,
+            Recurring__c = true,
+            Requires_Commitment__c = true,
+            IsActive = true,
+            Is_Active__c = true,
+            ATS_Product_Code__c = 'WIZ_FIBER'
+        );
+        insert product;
+
+        insert new List<PricebookEntry>{
+            new PricebookEntry(
+                Pricebook2Id = Test.getStandardPricebookId(),
+                Product2Id = product.Id,
+                UnitPrice = 39.99,
+                IsActive = true,
+                UseStandardPrice = false
+            ),
+            new PricebookEntry(
+                Pricebook2Id = pricebook.Id,
+                Product2Id = product.Id,
+                UnitPrice = 39.99,
+                IsActive = true,
+                UseStandardPrice = false
+            )
+        };
     }
 
     @isTest
@@ -384,6 +419,372 @@ private class SubscriptionWizardControllerTest {
         }
     }
 
+    @isTest
+    static void finishAndActivateCreatesOrderAndActivates() {
+        setBssFlag(true);
+        Account account = testAccount();
+        Contact contact = testContact();
+        SubscriptionWizardController.WizardState state =
+            SubscriptionWizardController.start(
+                account.Id,
+                contact.Id,
+                null,
+                null
+            );
+        Quote quote = wizardQuote(account, contact, state.sessionId, true);
+
+        Test.startTest();
+        SubscriptionWizardController.ActivationHandoff handoff =
+            SubscriptionWizardController.finishAndActivate(
+                state.sessionId,
+                quote.Id
+            );
+        Test.stopTest();
+
+        System.assertEquals('Activated', handoff.status, handoff.message);
+        System.assertNotEquals(null, handoff.orderId);
+        System.assertNotEquals(null, handoff.orderNumber);
+        System.assertEquals(1, handoff.assetCount);
+        System.assertEquals(1, handoff.subscriptionCount);
+        System.assertEquals(1, handoff.engagementCount);
+        System.assertNotEquals(null, handoff.contractId);
+
+        Order order = [
+            SELECT
+                Id,
+                Name,
+                OrderNumber,
+                AccountId,
+                BillToContactId,
+                Pricebook2Id,
+                Status,
+                Activation_State__c,
+                ContractId
+            FROM Order
+            WHERE Id = :handoff.orderId
+        ];
+        Quote activatedQuote = [
+            SELECT QuoteNumber, Status
+            FROM Quote
+            WHERE Id = :quote.Id
+        ];
+        System.assertEquals(activatedQuote.QuoteNumber, order.Name);
+        System.assertEquals(account.Id, order.AccountId);
+        System.assertEquals(contact.Id, order.BillToContactId);
+        System.assertEquals(pricebook().Id, order.Pricebook2Id);
+        System.assertEquals('Activated', order.Status);
+        System.assertEquals('Activated', order.Activation_State__c);
+        System.assertEquals(handoff.contractId, order.ContractId);
+
+        OrderItem item = [
+            SELECT
+                Id,
+                Product2Id,
+                Commitment_Option_Code__c,
+                Subscription_Number__c
+            FROM OrderItem
+            WHERE OrderId = :order.Id
+        ];
+        System.assertEquals('COMMIT12', item.Commitment_Option_Code__c);
+        System.assertNotEquals(null, item.Subscription_Number__c);
+
+        System.assertEquals('Accepted', activatedQuote.Status);
+
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Asset
+                WHERE AccountId = :account.Id
+            ]
+        );
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Subscription__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Engagement__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+
+        Subscription_Wizard_State__c session = wizardRow(state.sessionId);
+        System.assertEquals(false, session.Is_Active__c);
+        System.assertEquals(quote.Id, session.Quote__c);
+        System.assert(
+            session.State_Json__c.contains(String.valueOf(order.Id)),
+            session.State_Json__c
+        );
+        System.assert(
+            session.State_Json__c.contains('"activationStatus":"Activated"'),
+            session.State_Json__c
+        );
+    }
+
+    @isTest
+    static void finishAndActivateIsIdempotent() {
+        setBssFlag(true);
+        Account account = testAccount();
+        Contact contact = testContact();
+        SubscriptionWizardController.WizardState state =
+            SubscriptionWizardController.start(
+                account.Id,
+                contact.Id,
+                null,
+                null
+            );
+        Quote quote = wizardQuote(account, contact, state.sessionId, true);
+
+        Test.startTest();
+        SubscriptionWizardController.ActivationHandoff first =
+            SubscriptionWizardController.finishAndActivate(
+                state.sessionId,
+                quote.Id
+            );
+        SubscriptionWizardController.ActivationHandoff second =
+            SubscriptionWizardController.finishAndActivate(
+                state.sessionId,
+                quote.Id
+            );
+        Test.stopTest();
+
+        System.assertEquals('Activated', first.status, first.message);
+        System.assertEquals('Activated', second.status, second.message);
+        System.assertEquals(first.orderId, second.orderId);
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Order
+                WHERE AccountId = :account.Id
+            ]
+        );
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Asset
+                WHERE AccountId = :account.Id
+            ]
+        );
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Subscription__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Engagement__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+    }
+
+    @isTest
+    static void finishAndActivateFailureKeepsRetryableReadyOrder() {
+        setBssFlag(true);
+        Account account = testAccount();
+        Contact contact = testContact();
+        SubscriptionWizardController.WizardState state =
+            SubscriptionWizardController.start(
+                account.Id,
+                contact.Id,
+                null,
+                null
+            );
+        Quote quote = wizardQuote(account, contact, state.sessionId, true);
+
+        ActivationService.setBssGateway(new FailingGateway());
+        Test.startTest();
+        SubscriptionWizardController.ActivationHandoff failed =
+            SubscriptionWizardController.finishAndActivate(
+                state.sessionId,
+                quote.Id
+            );
+        Test.stopTest();
+        ActivationService.setBssGateway(
+            new SimulatedBssProvisioningGateway()
+        );
+
+        System.assertEquals('Failed', failed.status);
+        System.assert(
+            failed.message.contains('BSS unavailable'),
+            failed.message
+        );
+        System.assertNotEquals(null, failed.orderId);
+
+        Order pending = [
+            SELECT
+                Id,
+                Status,
+                Activation_State__c,
+                Failure_Reason__c
+            FROM Order
+            WHERE Id = :failed.orderId
+        ];
+        System.assertEquals('Draft', pending.Status);
+        System.assertEquals('Ready', pending.Activation_State__c);
+        System.assert(pending.Failure_Reason__c.contains('BSS unavailable'));
+        System.assertEquals(
+            0,
+            [
+                SELECT COUNT()
+                FROM Asset
+                WHERE AccountId = :account.Id
+            ]
+        );
+        System.assertEquals(
+            0,
+            [
+                SELECT COUNT()
+                FROM Subscription__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+        System.assertEquals(
+            0,
+            [
+                SELECT COUNT()
+                FROM Engagement__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+        System.assertEquals(
+            0,
+            [
+                SELECT COUNT()
+                FROM Contract
+                WHERE AccountId = :account.Id
+            ]
+        );
+
+        Subscription_Wizard_State__c failedSession = wizardRow(state.sessionId);
+        System.assertEquals(true, failedSession.Is_Active__c);
+        System.assert(
+            failedSession.State_Json__c.contains('"activationStatus":"Failed"')
+        );
+
+        SubscriptionWizardController.ActivationHandoff retried =
+            SubscriptionWizardController.finishAndActivate(
+                state.sessionId,
+                quote.Id
+            );
+
+        System.assertEquals('Activated', retried.status, retried.message);
+        System.assertEquals(failed.orderId, retried.orderId);
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Asset
+                WHERE AccountId = :account.Id
+            ]
+        );
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Subscription__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+        System.assertEquals(
+            false,
+            wizardRow(state.sessionId).Is_Active__c
+        );
+    }
+
+    @isTest
+    static void finishAndActivateRequiresQuoteLines() {
+        setBssFlag(true);
+        Account account = testAccount();
+        Contact contact = testContact();
+        SubscriptionWizardController.WizardState state =
+            SubscriptionWizardController.start(
+                account.Id,
+                contact.Id,
+                null,
+                null
+            );
+        Quote quote = wizardQuote(account, contact, state.sessionId, false);
+
+        try {
+            SubscriptionWizardController.finishAndActivate(
+                state.sessionId,
+                quote.Id
+            );
+            System.assert(false, 'Expected a quote-line validation error.');
+        } catch (AuraHandledException error) {
+            System.assert(error.getMessage().contains('no line items'));
+        }
+
+        System.assertEquals(
+            0,
+            [
+                SELECT COUNT()
+                FROM Order
+                WHERE AccountId = :account.Id
+            ]
+        );
+        System.assertEquals(
+            true,
+            wizardRow(state.sessionId).Is_Active__c
+        );
+    }
+
+    @isTest
+    static void finishAndActivateRequiresSession() {
+        try {
+            SubscriptionWizardController.finishAndActivate(null, null);
+            System.assert(false, 'Expected a session validation error.');
+        } catch (AuraHandledException error) {
+            System.assert(
+                error.getMessage().contains('Wizard session is required')
+            );
+        }
+    }
+
+    private class FailingGateway implements BssProvisioningGateway {
+        public List<BssProvisioningResponse> provision(
+            List<BssProvisioningRequest> requests
+        ) {
+            List<BssProvisioningResponse> responses =
+                new List<BssProvisioningResponse>();
+            for (BssProvisioningRequest request : requests) {
+                BssProvisioningResponse response =
+                    new BssProvisioningResponse();
+                response.subscriptionId = request.subscriptionId;
+                response.success = false;
+                response.statusCode = '503';
+                response.message = 'BSS unavailable';
+                responses.add(response);
+            }
+            return responses;
+        }
+    }
+
+    private static void setBssFlag(Boolean enabled) {
+        ATS_Feature_Flags__c flags = ATS_Feature_Flags__c.getOrgDefaults();
+        if (flags == null) {
+            flags = new ATS_Feature_Flags__c();
+        }
+        flags.SetupOwnerId = UserInfo.getOrganizationId();
+        flags.BSS_Provisioning_Enabled__c = enabled;
+        upsert flags;
+    }
+
     private static void setAutosync(Boolean enabled) {
         ATS_Feature_Flags__c flags = ATS_Feature_Flags__c.getOrgDefaults();
         if (flags == null) {
@@ -392,6 +793,86 @@ private class SubscriptionWizardControllerTest {
         flags.SetupOwnerId = UserInfo.getOrganizationId();
         flags.Is_Autosync__c = enabled;
         upsert flags;
+    }
+
+    private static Pricebook2 pricebook() {
+        return [
+            SELECT Id, Name
+            FROM Pricebook2
+            WHERE Name = 'Wizard Test Pricebook'
+            LIMIT 1
+        ];
+    }
+
+    private static Product2 wizardProduct() {
+        return [
+            SELECT
+                Id,
+                Name,
+                Family,
+                Plan_Type__c,
+                Recurring__c,
+                ATS_Product_Code__c
+            FROM Product2
+            WHERE ATS_Product_Code__c = 'WIZ_FIBER'
+            LIMIT 1
+        ];
+    }
+
+    private static PricebookEntry wizardEntry() {
+        Pricebook2 book = pricebook();
+        Product2 product = wizardProduct();
+        return [
+            SELECT Id, UnitPrice, Product2Id
+            FROM PricebookEntry
+            WHERE Pricebook2Id = :book.Id AND Product2Id = :product.Id
+            LIMIT 1
+        ];
+    }
+
+    private static Quote wizardQuote(
+        Account account,
+        Contact contact,
+        Id sessionId,
+        Boolean withLine
+    ) {
+        Pricebook2 book = pricebook();
+        Opportunity opportunity = new Opportunity(
+            Name = 'Wizard Activation Opportunity',
+            AccountId = account.Id,
+            Primary_Contact__c = contact.Id,
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30),
+            Pricebook2Id = book.Id
+        );
+        insert opportunity;
+
+        Quote quote = new Quote(
+            Name = 'Wizard Activation Quote',
+            OpportunityId = opportunity.Id,
+            Pricebook2Id = book.Id,
+            ContactId = contact.Id,
+            Status = 'Draft',
+            ExpirationDate = Date.today().addDays(30),
+            Wizard_Session__c = sessionId
+        );
+        insert quote;
+
+        if (withLine == true) {
+            Product2 product = wizardProduct();
+            PricebookEntry entry = wizardEntry();
+            insert new QuoteLineItem(
+                QuoteId = quote.Id,
+                PricebookEntryId = entry.Id,
+                Product2Id = product.Id,
+                Quantity = 1,
+                UnitPrice = entry.UnitPrice,
+                Description = 'Wizard Fiber line',
+                ServiceDate = Date.today(),
+                Commitment_Option_Code__c = 'COMMIT12'
+            );
+        }
+        return quote;
     }
 
     private static Account testAccount() {
@@ -416,7 +897,7 @@ private class SubscriptionWizardControllerTest {
         return [
             SELECT Id, Account__c, Contact__c, Advisor__c, Offer_Type__c,
                 Commitment_Code__c, Step__c, State_Json__c, Is_Active__c,
-                Last_Activity_On__c, Expires_On__c
+                Quote__c, Last_Activity_On__c, Expires_On__c
             FROM Subscription_Wizard_State__c
             WHERE Id = :sessionId
         ];

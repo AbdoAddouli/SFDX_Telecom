@@ -66,6 +66,23 @@ public with sharing class SubscriptionWizardController {
         @AuraEnabled public Boolean portalSubmitted { get; set; }
     }
 
+    /**
+     * Aura-facing result for the quote-to-order hand-off. The order is created
+     * before activation so a BSS failure leaves a retryable Ready order.
+     */
+    public class ActivationHandoff {
+        @AuraEnabled public Id quoteId { get; set; }
+        @AuraEnabled public Id orderId { get; set; }
+        @AuraEnabled public String orderNumber { get; set; }
+        @AuraEnabled public String status { get; set; }
+        @AuraEnabled public String message { get; set; }
+        @AuraEnabled public String correlationId { get; set; }
+        @AuraEnabled public Integer assetCount { get; set; }
+        @AuraEnabled public Integer subscriptionCount { get; set; }
+        @AuraEnabled public Integer engagementCount { get; set; }
+        @AuraEnabled public Id contractId { get; set; }
+    }
+
     @AuraEnabled
     public static WizardState start(
         Id accountId,
@@ -182,6 +199,104 @@ public with sharing class SubscriptionWizardController {
         return OfferBuilderService.createQuote(selection);
     }
 
+    /**
+     * "Finish & Activate" hand-off. Creates one order from the wizard quote,
+     * then delegates the atomic activation transaction to ActivationService.
+     * The session row is locked so a double-click cannot create two orders.
+     */
+    @AuraEnabled
+    public static ActivationHandoff finishAndActivate(
+        Id sessionId,
+        Id quoteId
+    ) {
+        if (sessionId == null) {
+            throw error('Wizard session is required.');
+        }
+
+        Subscription_Wizard_State__c session = lockSession(sessionId);
+        if (session == null) {
+            throw error('Wizard session not found: ' + sessionId);
+        }
+
+        Id effectiveQuoteId = session.Quote__c == null
+            ? quoteId
+            : session.Quote__c;
+        if (effectiveQuoteId == null) {
+            throw error('Create a quote before activating.');
+        }
+        if (quoteId != null && quoteId != effectiveQuoteId) {
+            throw error(
+                'The quote does not belong to this wizard session.'
+            );
+        }
+
+        Quote quote = loadQuote(effectiveQuoteId);
+        if (quote == null) {
+            throw error('Quote not found: ' + effectiveQuoteId);
+        }
+        if (quote.AccountId != session.Account__c) {
+            throw error('The quote does not belong to the wizard account.');
+        }
+        if (
+            session.Contact__c != null &&
+            quote.ContactId != null &&
+            quote.ContactId != session.Contact__c
+        ) {
+            throw error('The quote does not belong to the wizard contact.');
+        }
+        if (quote.Pricebook2Id == null) {
+            throw error('The quote has no price book and cannot be ordered.');
+        }
+
+        List<QuoteLineItem> quoteLines = loadQuoteLines(quote.Id);
+        if (quoteLines.isEmpty()) {
+            throw error(
+                'The quote has no line items and cannot be activated.'
+            );
+        }
+
+        Order order = findOrderForQuote(quote);
+        if (order == null) {
+            order = createOrderFromQuote(quote, quoteLines);
+        }
+
+        ActivationService.ActivationResult activation;
+        try {
+            activation = ActivationService.activateOrder(order.Id);
+        } catch (Exception unexpected) {
+            activation = new ActivationService.ActivationResult();
+            activation.orderId = order.Id;
+            activation.status = 'Failed';
+            activation.message = String.isBlank(unexpected.getMessage())
+                ? 'Activation failed.'
+                : unexpected.getMessage();
+        }
+
+        order = reloadOrder(order.Id);
+        Boolean activated =
+            activation.status == 'Activated' || activation.status == 'NoOp';
+        updateSessionAfterActivation(
+            session,
+            quote,
+            order,
+            activation,
+            activated
+        );
+
+        ActivationHandoff handoff = new ActivationHandoff();
+        handoff.quoteId = quote.Id;
+        handoff.orderId = order.Id;
+        handoff.orderNumber = order.OrderNumber;
+        handoff.status = activated ? 'Activated' : 'Failed';
+        handoff.message = activation.message;
+        handoff.correlationId = activation.correlationId;
+        handoff.assetCount = activation.assetCount;
+        handoff.subscriptionCount = activation.subscriptionCount;
+        handoff.engagementCount = activation.engagementCount;
+        handoff.contractId = activation.contractId;
+        return handoff;
+    }
+
     @AuraEnabled(cacheable=true)
     public static AccountContext getAccountContext(Id accountId) {
         if (accountId == null) {
@@ -279,6 +394,262 @@ public with sharing class SubscriptionWizardController {
         }
 
         return toContactOption(contact);
+    }
+
+    private static Subscription_Wizard_State__c lockSession(Id sessionId) {
+        Id advisorId = UserInfo.getUserId();
+        String query =
+            'SELECT Id, Account__c, Contact__c, Opportunity__c, Offer_Type__c, ' +
+            'Product__c, Device__c, Commitment_Code__c, Step__c, ' +
+            'State_Json__c, Quote__c, Is_Active__c ' +
+            'FROM Subscription_Wizard_State__c ' +
+            'WHERE Id = :sessionId AND Advisor__c = :advisorId ' +
+            'WITH USER_MODE FOR UPDATE';
+        List<Subscription_Wizard_State__c> rows = Database.query(query);
+        return rows.isEmpty() ? null : rows[0];
+    }
+
+    private static Quote loadQuote(Id quoteId) {
+        List<Quote> quotes = [
+            SELECT
+                Id,
+                Name,
+                QuoteNumber,
+                AccountId,
+                ContactId,
+                OpportunityId,
+                Pricebook2Id,
+                Status
+            FROM Quote
+            WHERE Id = :quoteId
+            WITH USER_MODE
+            LIMIT 1
+        ];
+        return quotes.isEmpty() ? null : quotes[0];
+    }
+
+    private static List<QuoteLineItem> loadQuoteLines(Id quoteId) {
+        return [
+            SELECT
+                Id,
+                PricebookEntryId,
+                Product2Id,
+                Quantity,
+                UnitPrice,
+                Description,
+                ServiceDate,
+                Commitment_Option_Code__c
+            FROM QuoteLineItem
+            WHERE QuoteId = :quoteId
+            WITH USER_MODE
+            ORDER BY CreatedDate
+        ];
+    }
+
+    private static Order findOrderForQuote(Quote quote) {
+        List<Order> orders = [
+            SELECT
+                Id,
+                Name,
+                OrderNumber,
+                Description,
+                Status,
+                Activation_State__c
+            FROM Order
+            WHERE AccountId = :quote.AccountId AND Name = :quote.QuoteNumber
+            WITH USER_MODE
+            LIMIT 1
+        ];
+        if (orders.isEmpty()) {
+            return null;
+        }
+
+        Order existing = orders[0];
+        String quoteMarker = String.valueOf(quote.Id);
+        if (
+            String.isBlank(existing.Description) ||
+            !existing.Description.contains(quoteMarker)
+        ) {
+            throw error(
+                'An order with this quote number already exists but is not linked to the quote.'
+            );
+        }
+
+        if (
+            existing.Activation_State__c == null &&
+            existing.Status != 'Activated'
+        ) {
+            existing.Activation_State__c = 'Ready';
+            try {
+                Database.update(existing, AccessLevel.USER_MODE);
+            } catch (DmlException dmlError) {
+                throw error(
+                    'Could not prepare the existing order: ' +
+                    dmlMessage(dmlError)
+                );
+            }
+        }
+        return existing;
+    }
+
+    private static Order createOrderFromQuote(
+        Quote quote,
+        List<QuoteLineItem> quoteLines
+    ) {
+        if (quote.Status == 'Denied' || quote.Status == 'Rejected') {
+            throw error('The quote is not accepted and cannot be ordered.');
+        }
+
+        Savepoint checkpoint = Database.setSavepoint();
+        try {
+            Order order = new Order(
+                Name = quote.QuoteNumber,
+                AccountId = quote.AccountId,
+                BillToContactId = quote.ContactId,
+                Pricebook2Id = quote.Pricebook2Id,
+                EffectiveDate = Date.today(),
+                Status = 'Draft',
+                Activation_State__c = 'Ready',
+                Description = (
+                    'Created from quote ' +
+                    quote.QuoteNumber +
+                    ' (' +
+                    quote.Id +
+                    ')'
+                ).left(32000)
+            );
+            Database.insert(order, AccessLevel.USER_MODE);
+
+            List<OrderItem> orderItems = new List<OrderItem>();
+            for (QuoteLineItem quoteLine : quoteLines) {
+                if (
+                    quoteLine.PricebookEntryId == null ||
+                    quoteLine.Product2Id == null
+                ) {
+                    throw error(
+                        'Every quote line must have a product and price book entry.'
+                    );
+                }
+                orderItems.add(
+                    new OrderItem(
+                        OrderId = order.Id,
+                        PricebookEntryId = quoteLine.PricebookEntryId,
+                        Product2Id = quoteLine.Product2Id,
+                        Quantity = quoteLine.Quantity,
+                        UnitPrice = quoteLine.UnitPrice,
+                        Description = quoteLine.Description,
+                        ServiceDate = quoteLine.ServiceDate == null
+                            ? order.EffectiveDate
+                            : quoteLine.ServiceDate,
+                        Commitment_Option_Code__c =
+                            quoteLine.Commitment_Option_Code__c,
+                        Creates_Asset__c = true
+                    )
+                );
+            }
+            Database.insert(orderItems, AccessLevel.USER_MODE);
+
+            if (quote.Status != 'Accepted') {
+                Database.update(
+                    new Quote(Id = quote.Id, Status = 'Accepted'),
+                    AccessLevel.USER_MODE
+                );
+            }
+            return order;
+        } catch (Exception failure) {
+            Database.rollback(checkpoint);
+            if (failure instanceof AuraHandledException) {
+                throw (AuraHandledException) failure;
+            }
+            throw error(
+                'Could not create the order from the quote: ' +
+                failureMessage(failure)
+            );
+        }
+    }
+
+    private static Order reloadOrder(Id orderId) {
+        List<Order> orders = [
+            SELECT
+                Id,
+                OrderNumber,
+                Status,
+                Activation_State__c,
+                ContractId
+            FROM Order
+            WHERE Id = :orderId
+            WITH USER_MODE
+            LIMIT 1
+        ];
+        if (orders.isEmpty()) {
+            throw error('The activated order could not be reloaded.');
+        }
+        return orders[0];
+    }
+
+    private static void updateSessionAfterActivation(
+        Subscription_Wizard_State__c session,
+        Quote quote,
+        Order order,
+        ActivationService.ActivationResult activation,
+        Boolean activated
+    ) {
+        try {
+            session.Quote__c = quote.Id;
+            session.Step__c = 5;
+            session.Is_Active__c = !activated;
+            session.Last_Activity_On__c = DateTime.now();
+            session.Expires_On__c = Date.today().addDays(SESSION_DAYS);
+            session.State_Json__c = mergeActivationState(
+                session.State_Json__c,
+                quote,
+                order,
+                activation,
+                activated
+            );
+            Database.update(session, AccessLevel.USER_MODE);
+        } catch (Exception ignored) {
+            // Activation is already committed; a state write failure must not
+            // turn a successful activation into a user-visible failure.
+        }
+    }
+
+    private static String mergeActivationState(
+        String rawState,
+        Quote quote,
+        Order order,
+        ActivationService.ActivationResult activation,
+        Boolean activated
+    ) {
+        Map<String, Object> state = new Map<String, Object>();
+        if (String.isNotBlank(rawState)) {
+            try {
+                state = (Map<String, Object>) JSON.deserializeUntyped(
+                    rawState
+                );
+            } catch (Exception ignored) {
+                state = new Map<String, Object>();
+            }
+        }
+
+        state.put('quoteId', String.valueOf(quote.Id));
+        state.put('orderId', String.valueOf(order.Id));
+        state.put('orderNumber', order.OrderNumber);
+        state.put('activationStatus', activated ? 'Activated' : 'Failed');
+        state.put('activationMessage', activation.message);
+        state.put('assetCount', activation.assetCount);
+        state.put('subscriptionCount', activation.subscriptionCount);
+        state.put('engagementCount', activation.engagementCount);
+        return JSON.serialize(state);
+    }
+
+    private static String failureMessage(Exception failure) {
+        if (failure instanceof DmlException) {
+            return dmlMessage((DmlException) failure);
+        }
+        return String.isBlank(failure.getMessage())
+            ? 'Unexpected error.'
+            : failure.getMessage();
     }
 
     private static Subscription_Wizard_State__c findSession(Id sessionId) {

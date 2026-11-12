@@ -28,7 +28,7 @@ private class SubscriptionMSISDNDuplicateHandlerTest {
             Account__c = s.account.Id,
             Asset__c = s.asset.Id,
             Service_Line_Type__c = 'Mobile',
-            Status__c = 'Active',
+            Status__c = 'Draft',
             MSISDN__c = msisdn
         );
     }
@@ -106,7 +106,7 @@ private class SubscriptionMSISDNDuplicateHandlerTest {
         Subscription__c first = sub(s, MSISDN_A);
         insert first;
 
-        first.Status__c = 'Suspended';
+        first.Line_Number__c = 'LINE-1';
         Database.SaveResult result = Database.update(first, false);
         Test.startTest();
         Test.stopTest();

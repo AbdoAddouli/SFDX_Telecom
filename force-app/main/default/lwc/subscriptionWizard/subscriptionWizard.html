@@ -316,12 +316,63 @@
                                     ></lightning-formatted-number>
                                 </p>
                             </template>
-                            <lightning-button
-                                class="slds-m-top_medium"
-                                label="View Quote"
-                                variant="brand"
-                                onclick={handleViewQuote}
-                            ></lightning-button>
+
+                            <div class="slds-grid slds-gutters slds-m-top_medium">
+                                <div class="slds-col">
+                                    <lightning-button
+                                        label="View Quote"
+                                        variant="neutral"
+                                        onclick={handleViewQuote}
+                                    ></lightning-button>
+                                </div>
+                                <template lwc:if={isActivated}>
+                                    <div class="slds-col">
+                                        <lightning-button
+                                            label="View Order"
+                                            variant="brand"
+                                            onclick={handleViewOrder}
+                                        ></lightning-button>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <template lwc:if={isActivated}>
+                                <div
+                                    class="slds-box slds-theme_shade slds-m-top_medium"
+                                >
+                                    <h3 class="slds-text-heading_small">
+                                        Subscription activated
+                                    </h3>
+                                    <p class="slds-m-top_small">
+                                        Order {activatedOrderNumber} is active.
+                                    </p>
+                                    <template lwc:if={activationSummary}>
+                                        <p class="slds-text-color_weak">
+                                            {activationSummary}
+                                        </p>
+                                    </template>
+                                </div>
+                            </template>
+                            <template lwc:else>
+                                <template lwc:if={activationFailed}>
+                                    <div
+                                        class="slds-notify slds-notify_alert slds-alert_warning slds-m-top_medium"
+                                        role="alert"
+                                    >
+                                        <h2>Activation failed</h2>
+                                        <p class="slds-m-top_x-small">
+                                            {activationFailureText}
+                                        </p>
+                                    </div>
+                                </template>
+                                <lightning-button
+                                    class="slds-m-top_medium"
+                                    label={finishButtonLabel}
+                                    variant="brand"
+                                    disabled={isLoading}
+                                    onclick={handleFinishAndActivate}
+                                ></lightning-button>
+                            </template>
                         </div>
                     </template>
 
