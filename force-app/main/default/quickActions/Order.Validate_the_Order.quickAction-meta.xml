@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QuickAction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Validates and activates a Ready order through ActivationService.</description>
+    <flowDefinition>Order_Activation_Validate</flowDefinition>
+    <label>Validate the Order</label>
+    <optionsCreateFeedItem>false</optionsCreateFeedItem>
+    <type>Flow</type>
+</QuickAction>

@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+  <actionCalls>
+    <name>Activate_Order</name>
+    <label>Activate Order</label>
+    <locationX>1600</locationX>
+    <locationY>450</locationY>
+    <actionName>ActivationService</actionName>
+    <actionType>apex</actionType>
+    <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+    <connector>
+      <targetReference>Get_Updated_Order</targetReference>
+    </connector>
+    <faultConnector>
+      <targetReference>Screen_Unexpected_Error</targetReference>
+    </faultConnector>
+    <inputParameters>
+      <name>orderIds</name>
+      <value>
+        <elementReference>recordId</elementReference>
+      </value>
+    </inputParameters>
+    <storeOutputAutomatically>true</storeOutputAutomatically>
+  </actionCalls>
+  <apiVersion>68.0</apiVersion>
+  <decisions>
+    <name>Check_Order_Found</name>
+    <label>Order Found?</label>
+    <locationX>400</locationX>
+    <locationY>300</locationY>
+    <defaultConnector>
+      <targetReference>Check_Already_Activated</targetReference>
+    </defaultConnector>
+    <defaultConnectorLabel>Order Found</defaultConnectorLabel>
+    <rules>
+      <name>Order_Not_Found</name>
+      <conditionLogic>and</conditionLogic>
+      <conditions>
+        <leftValueReference>Get_Order.Id</leftValueReference>
+        <operator>IsNull</operator>
+        <rightValue>
+          <booleanValue>true</booleanValue>
+        </rightValue>
+      </conditions>
+      <connector>
+        <targetReference>Screen_Order_Not_Found</targetReference>
+      </connector>
+      <label>Order Not Found</label>
+    </rules>
+  </decisions>
+  <decisions>
+    <name>Check_Already_Activated</name>
+    <label>Already Activated?</label>
+    <locationX>600</locationX>
+    <locationY>300</locationY>
+    <defaultConnector>
+      <targetReference>Check_Ready</targetReference>
+    </defaultConnector>
+    <defaultConnectorLabel>Not Activated</defaultConnectorLabel>
+    <rules>
+      <name>Already_Activated</name>
+      <conditionLogic>or</conditionLogic>
+      <conditions>
+        <leftValueReference>Get_Order.Activation_State__c</leftValueReference>
+        <operator>EqualTo</operator>
+        <rightValue>
+          <stringValue>Activated</stringValue>
+        </rightValue>
+      </conditions>
+      <conditions>
+        <leftValueReference>Get_Order.Status</leftValueReference>
+        <operator>EqualTo</operator>
+        <rightValue>
+          <stringValue>Activated</stringValue>
+        </rightValue>
+      </conditions>
+      <connector>
+        <targetReference>Screen_Already_Activated</targetReference>
+      </connector>
+      <label>Already Activated</label>
+    </rules>
+  </decisions>
+  <decisions>
+    <name>Check_Ready</name>
+    <label>Ready to Activate?</label>
+    <locationX>800</locationX>
+    <locationY>300</locationY>
+    <defaultConnector>
+      <targetReference>Check_Wizard_Flag</targetReference>
+    </defaultConnector>
+    <defaultConnectorLabel>Ready</defaultConnectorLabel>
+    <rules>
+      <name>Not_Ready</name>
+      <conditionLogic>and</conditionLogic>
+      <conditions>
+        <leftValueReference>Get_Order.Activation_State__c</leftValueReference>
+        <operator>NotEqualTo</operator>
+        <rightValue>
+          <stringValue>Ready</stringValue>
+        </rightValue>
+      </conditions>
+      <connector>
+        <targetReference>Screen_Not_Ready</targetReference>
+      </connector>
+      <label>Not Ready</label>
+    </rules>
+  </decisions>
+  <decisions>
+    <name>Check_Wizard_Flag</name>
+    <label>Wizard Enabled?</label>
+    <locationX>1000</locationX>
+    <locationY>300</locationY>
+    <defaultConnector>
+      <targetReference>Check_BSS_Flag</targetReference>
+    </defaultConnector>
+    <defaultConnectorLabel>Wizard Enabled</defaultConnectorLabel>
+    <rules>
+      <name>Wizard_Disabled</name>
+      <conditionLogic>and</conditionLogic>
+      <conditions>
+        <leftValueReference>$Setup.ATS_Feature_Flags__c.Wizard_Enabled__c</leftValueReference>
+        <operator>EqualTo</operator>
+        <rightValue>
+          <booleanValue>false</booleanValue>
+        </rightValue>
+      </conditions>
+      <connector>
+        <targetReference>Screen_Wizard_Disabled</targetReference>
+      </connector>
+      <label>Wizard Disabled</label>
+    </rules>
+  </decisions>
+  <decisions>
+    <name>Check_BSS_Flag</name>
+    <label>BSS Provisioning Enabled?</label>
+    <locationX>1200</locationX>
+    <locationY>300</locationY>
+    <defaultConnector>
+      <targetReference>Screen_Confirm</targetReference>
+    </defaultConnector>
+    <defaultConnectorLabel>BSS Enabled</defaultConnectorLabel>
+    <rules>
+      <name>BSS_Disabled</name>
+      <conditionLogic>and</conditionLogic>
+      <conditions>
+        <leftValueReference>$Setup.ATS_Feature_Flags__c.BSS_Provisioning_Enabled__c</leftValueReference>
+        <operator>EqualTo</operator>
+        <rightValue>
+          <booleanValue>false</booleanValue>
+        </rightValue>
+      </conditions>
+      <connector>
+        <targetReference>Screen_Confirm_BSS_Disabled</targetReference>
+      </connector>
+      <label>BSS Disabled</label>
+    </rules>
+  </decisions>
+  <decisions>
+    <name>Check_Activation_Succeeded</name>
+    <label>Activation Succeeded?</label>
+    <locationX>2000</locationX>
+    <locationY>450</locationY>
+    <defaultConnector>
+      <targetReference>Screen_Activation_Failed</targetReference>
+    </defaultConnector>
+    <defaultConnectorLabel>Activation Failed</defaultConnectorLabel>
+    <rules>
+      <name>Activation_Succeeded</name>
+      <conditionLogic>or</conditionLogic>
+      <conditions>
+        <leftValueReference>Get_Updated_Order.Activation_State__c</leftValueReference>
+        <operator>EqualTo</operator>
+        <rightValue>
+          <stringValue>Activated</stringValue>
+        </rightValue>
+      </conditions>
+      <conditions>
+        <leftValueReference>Get_Updated_Order.Status</leftValueReference>
+        <operator>EqualTo</operator>
+        <rightValue>
+          <stringValue>Activated</stringValue>
+        </rightValue>
+      </conditions>
+      <connector>
+        <targetReference>Screen_Activation_Succeeded</targetReference>
+      </connector>
+      <label>Activation Succeeded</label>
+    </rules>
+  </decisions>
+  <description>UC-COM-05 entry point for order activation. The Flow provides confirmation and a friendly error surface; ActivationService keeps the transaction atomic, idempotent and BSS-aware. A BSS-off action still calls ActivationService so the order stays Ready with an operations-visible Failure Reason.</description>
+  <interviewLabel>Validate the Order {!$Flow.CurrentDateTime}</interviewLabel>
+  <label>Validate the Order</label>
+  <processMetadataValues>
+    <name>BuilderType</name>
+    <value>
+      <stringValue>LightningFlowBuilder</stringValue>
+    </value>
+  </processMetadataValues>
+  <processType>Flow</processType>
+  <recordLookups>
+    <name>Get_Order</name>
+    <label>Get Order</label>
+    <locationX>176</locationX>
+    <locationY>150</locationY>
+    <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+    <connector>
+      <targetReference>Check_Order_Found</targetReference>
+    </connector>
+    <filterLogic>and</filterLogic>
+    <filters>
+      <field>Id</field>
+      <operator>EqualTo</operator>
+      <value>
+        <elementReference>recordId</elementReference>
+      </value>
+    </filters>
+    <getFirstRecordOnly>true</getFirstRecordOnly>
+    <object>Order</object>
+    <storeOutputAutomatically>true</storeOutputAutomatically>
+  </recordLookups>
+  <recordLookups>
+    <name>Get_Updated_Order</name>
+    <label>Get Updated Order</label>
+    <locationX>1800</locationX>
+    <locationY>450</locationY>
+    <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+    <connector>
+      <targetReference>Check_Activation_Succeeded</targetReference>
+    </connector>
+    <filterLogic>and</filterLogic>
+    <filters>
+      <field>Id</field>
+      <operator>EqualTo</operator>
+      <value>
+        <elementReference>recordId</elementReference>
+      </value>
+    </filters>
+    <getFirstRecordOnly>true</getFirstRecordOnly>
+    <object>Order</object>
+    <storeOutputAutomatically>true</storeOutputAutomatically>
+  </recordLookups>
+  <screens>
+    <name>Screen_Confirm</name>
+    <label>Validate the Order</label>
+    <locationX>1200</locationX>
+    <locationY>450</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <connector>
+      <targetReference>Activate_Order</targetReference>
+    </connector>
+    <fields>
+      <name>Confirm_Order_Number</name>
+      <fieldText>Order: {!Get_Order.OrderNumber}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Order_Status</name>
+      <fieldText>Status: {!Get_Order.Status}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Activation_State</name>
+      <fieldText>Activation State: {!Get_Order.Activation_State__c}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Confirmation</name>
+      <fieldText>Next Step: Validate this order and start activation. Assets, subscriptions and engagements are created atomically. If BSS cannot confirm provisioning, no partial activation is committed and the order returns to Ready.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Confirm_BSS_Disabled</name>
+    <label>BSS Provisioning Disabled</label>
+    <locationX>1200</locationX>
+    <locationY>600</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <connector>
+      <targetReference>Activate_Order</targetReference>
+    </connector>
+    <fields>
+      <name>BSS_Order_Number</name>
+      <fieldText>Order: {!Get_Order.OrderNumber}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>BSS_Warning</name>
+      <fieldText>Operations Notice: BSS provisioning is disabled. Continue to record the validation result; the order will remain in Ready and carry an operations-visible failure reason. No assets, subscriptions or engagements will be activated.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Order_Not_Found</name>
+    <label>Order Not Found</label>
+    <locationX>400</locationX>
+    <locationY>600</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Not_Found_Message</name>
+      <fieldText>Result: The order could not be loaded. Open the order record and try again.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Already_Activated</name>
+    <label>Order Already Activated</label>
+    <locationX>600</locationX>
+    <locationY>600</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Already_Activated_Message</name>
+      <fieldText>Result: This order is already activated. No additional provisioning or billing records were created.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Not_Ready</name>
+    <label>Order Not Ready</label>
+    <locationX>800</locationX>
+    <locationY>600</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Not_Ready_Message</name>
+      <fieldText>Result: Only orders in Ready state can be activated. Review the order activation state and failure reason before retrying.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Current_Activation_State</name>
+      <fieldText>Current Activation State: {!Get_Order.Activation_State__c}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Current_Failure_Reason</name>
+      <fieldText>Failure Reason: {!Get_Order.Failure_Reason__c}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Wizard_Disabled</name>
+    <label>Activation Disabled</label>
+    <locationX>1000</locationX>
+    <locationY>600</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Wizard_Disabled_Message</name>
+      <fieldText>Result: Activation is temporarily disabled by the Wizard Enabled feature flag. No changes were made to this order. Contact operations if activation is required.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Activation_Succeeded</name>
+    <label>Order Activated</label>
+    <locationX>2200</locationX>
+    <locationY>450</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Success_Message</name>
+      <fieldText>Result: The order is activated. Assets, subscriptions and engagements are in place.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Success_Order_Number</name>
+      <fieldText>Order: {!Get_Updated_Order.OrderNumber}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Success_BSS_Order_Key</name>
+      <fieldText>BSS Order Key: {!Get_Updated_Order.BSS_Order_Key__c}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Activation_Failed</name>
+    <label>Activation Not Completed</label>
+    <locationX>2200</locationX>
+    <locationY>600</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Failure_Message</name>
+      <fieldText>Result: {!Get_Updated_Order.Failure_Reason__c}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Failure_Guidance</name>
+      <fieldText>Next Step: The order was not activated and no partial activation was committed. If the result above is blank, retry once and then contact operations with the order number.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Failure_Order_Number</name>
+      <fieldText>Order: {!Get_Updated_Order.OrderNumber}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Unexpected_Error</name>
+    <label>Activation Error</label>
+    <locationX>1600</locationX>
+    <locationY>600</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Unexpected_Error_Message</name>
+      <fieldText>Result: The activation request could not be completed. No changes were committed. Retry once, then contact operations with the order number.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <start>
+    <locationX>50</locationX>
+    <locationY>0</locationY>
+    <connector>
+      <targetReference>Get_Order</targetReference>
+    </connector>
+  </start>
+  <status>Active</status>
+  <variables>
+    <name>recordId</name>
+    <dataType>String</dataType>
+    <isCollection>false</isCollection>
+    <isInput>true</isInput>
+    <isOutput>false</isOutput>
+  </variables>
+</Flow>

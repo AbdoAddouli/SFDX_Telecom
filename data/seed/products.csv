@@ -1,0 +1,10 @@
+ATS_Product_Code__c,Name,Family,Plan_Type__c,Data_GB__c,Speed_Mbps__c,Unlimited_Calls__c,Unlimited_SMS__c,Recurring__c,Requires_Commitment__c,IsActive,Is_Active__c
+MOBILE_5,Mobile 5 GB,TELCO_MOBILE,Mobile,5,,true,true,true,false,true,true
+MOBILE_20,Mobile 20 GB,TELCO_MOBILE,Mobile,20,,true,true,true,false,true,true
+MOBILE_50,Mobile 50 GB,TELCO_MOBILE,Mobile,50,,true,true,true,false,true,true
+MOBILE_100,Mobile 100 GB,TELCO_MOBILE,Mobile,100,,true,true,true,false,true,true
+FIBER_20,Fiber 20 Mb + Landline,TELCO_FIBER,Fiber,,20,false,false,true,false,true,true
+FIBER_100,Fiber 100 Mb + Landline,TELCO_FIBER,Fiber,,100,false,false,true,false,true,true
+PHONE_IPHONE_15_PRO,iPhone 15 Pro,TELCO_DEVICE,,,,false,false,false,true,true,true
+PHONE_IPHONE_13,iPhone 13,TELCO_DEVICE,,,,false,false,false,true,true,true
+PHONE_SAMSUNG_S22,Samsung S22,TELCO_DEVICE,,,,false,false,false,true,true,true

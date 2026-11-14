@@ -817,7 +817,7 @@ private class ActivationServiceTest {
     }
 
     @IsTest
-    static void rejectsMoreThanEightyOrdersPerCall() {
+    static void rejectsMoreThanTenOrdersPerCall() {
         Account account = consumerAccount();
         Order order = newOrder(
             account,
@@ -825,7 +825,11 @@ private class ActivationServiceTest {
             'Activation Oversized Batch Order'
         );
         List<Id> orderIds = new List<Id>();
-        for (Integer index = 0; index < 81; index++) {
+        for (
+            Integer index = 0;
+            index < ActivationService.MAX_ORDERS_PER_CALL + 1;
+            index++
+        ) {
             orderIds.add(order.Id);
         }
 
@@ -836,7 +840,7 @@ private class ActivationServiceTest {
 
         System.assertEquals(1, results.size());
         System.assertEquals('Failed', results[0].status);
-        System.assert(results[0].message.contains('at most 80 orders'));
+        System.assert(results[0].message.contains('at most 10 orders'));
         System.assertEquals(
             0,
             [SELECT COUNT() FROM Asset WHERE AccountId = :account.Id]
@@ -986,6 +990,393 @@ private class ActivationServiceTest {
                     AND Subscription_Number__c != null
             ]
         );
+    }
+
+    @IsTest
+    static void tenOrdersInOneCallStayWithinLimits() {
+        Account account = consumerAccount();
+        Contact contact = consumerContact();
+        List<Order> orders = createReadyOrders(
+            account,
+            contact,
+            'Activation Ten Order',
+            10
+        );
+        insertLines(orders, FIBER_CODE, 'COMMIT12');
+        List<Id> orderIds = idsOf(orders);
+
+        Test.startTest();
+        List<ActivationService.ActivationResult> results =
+            ActivationService.activate(orderIds);
+        System.assert(
+            Limits.getQueries() <= 100,
+            'A 10-order chunk must stay inside the 100 SOQL limit.'
+        );
+        System.assert(
+            Limits.getDmlStatements() <= 150,
+            'A 10-order chunk must stay inside the 150 DML limit.'
+        );
+        System.assert(
+            Limits.getCpuTime() <= 10000,
+            'A 10-order chunk must stay inside the 10,000 ms CPU limit.'
+        );
+        Test.stopTest();
+
+        System.assertEquals(10, results.size());
+        for (ActivationService.ActivationResult result : results) {
+            System.assertEquals('Activated', result.status, result.message);
+        }
+        System.assertEquals(
+            10,
+            [SELECT COUNT() FROM Asset WHERE AccountId = :account.Id]
+        );
+        System.assertEquals(
+            10,
+            [
+                SELECT COUNT()
+                FROM Subscription__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+        System.assertEquals(
+            10,
+            [SELECT COUNT() FROM Engagement__c WHERE Account__c = :account.Id]
+        );
+
+        Set<String> correlationIds = new Set<String>();
+        for (Integration_Log__c log : [
+            SELECT Correlation_Id__c
+            FROM Integration_Log__c
+            WHERE Order__c IN :orderIds AND Status__c = 'Success'
+        ]) {
+            correlationIds.add(log.Correlation_Id__c);
+        }
+        System.assertEquals(1, correlationIds.size());
+    }
+
+    @IsTest
+    static void doubleClickInOneCallIsIdempotent() {
+        Account account = consumerAccount();
+        Order order = newOrder(
+            account,
+            consumerContact(),
+            'Activation Double Click Order'
+        );
+        insertLine(order, FIBER_CODE, 'COMMIT12');
+        CountingGateway gateway = new CountingGateway();
+        ActivationService.setBssGateway(gateway);
+
+        Test.startTest();
+        List<ActivationService.ActivationResult> results =
+            ActivationService.activate(
+                new List<Id>{ order.Id, order.Id }
+            );
+        Test.stopTest();
+        ActivationService.setBssGateway(
+            new SimulatedBssProvisioningGateway()
+        );
+
+        System.assertEquals(2, results.size());
+        System.assertEquals('Activated', results[0].status, results[0].message);
+        System.assertEquals('NoOp', results[1].status);
+        System.assertEquals(1, gateway.callCount);
+        System.assertEquals(1, gateway.requestCount);
+        System.assertEquals(
+            1,
+            [SELECT COUNT() FROM Asset WHERE AccountId = :account.Id]
+        );
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Subscription__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+        System.assertEquals(
+            1,
+            [
+                SELECT COUNT()
+                FROM Integration_Log__c
+                WHERE Order__c = :order.Id AND Status__c = 'Success'
+            ]
+        );
+    }
+
+    @IsTest
+    static void batchActivatesTwoHundredOrdersWithSharedCorrelation() {
+        Account account = consumerAccount();
+        Contact contact = consumerContact();
+        List<Order> orders = createReadyOrders(
+            account,
+            contact,
+            'Activation Batch 200',
+            200
+        );
+        insertLines(orders, FIBER_CODE, 'NOCOMMIT');
+        Set<Id> orderIds = new Set<Id>(idsOf(orders));
+
+        Test.startTest();
+        ActivationBatchJob.enqueue(orderIds);
+        Test.stopTest();
+
+        System.assertEquals(
+            200,
+            [
+                SELECT COUNT()
+                FROM Order
+                WHERE
+                    Id IN :orderIds
+                    AND Activation_State__c = 'Activated'
+                    AND Status = 'Activated'
+            ]
+        );
+        System.assertEquals(
+            200,
+            [SELECT COUNT() FROM Asset WHERE AccountId = :account.Id]
+        );
+        System.assertEquals(
+            200,
+            [
+                SELECT COUNT()
+                FROM Subscription__c
+                WHERE Account__c = :account.Id
+            ]
+        );
+        System.assertEquals(
+            200,
+            [SELECT COUNT() FROM Contract WHERE AccountId = :account.Id]
+        );
+
+        List<Integration_Log__c> orderLogs = [
+            SELECT Correlation_Id__c, Status__c
+            FROM Integration_Log__c
+            WHERE Order__c IN :orderIds AND Operation__c = 'activateOrder'
+        ];
+        System.assertEquals(200, orderLogs.size());
+        Set<String> correlationIds = new Set<String>();
+        for (Integration_Log__c log : orderLogs) {
+            System.assertEquals('Success', log.Status__c);
+            correlationIds.add(log.Correlation_Id__c);
+        }
+        System.assertEquals(1, correlationIds.size());
+
+        List<Integration_Log__c> summaries = [
+            SELECT
+                Correlation_Id__c,
+                Status__c,
+                Status_Code__c,
+                Payload_Summary__c
+            FROM Integration_Log__c
+            WHERE Operation__c = 'activationBatch'
+        ];
+        System.assertEquals(20, summaries.size());
+        for (Integration_Log__c summary : summaries) {
+            System.assertEquals('Success', summary.Status__c);
+            System.assertEquals('200', summary.Status_Code__c);
+            System.assert(
+                summary.Payload_Summary__c.contains('of 200 order(s)')
+            );
+            System.assertEquals(
+                true,
+                correlationIds.contains(summary.Correlation_Id__c)
+            );
+        }
+    }
+
+    @IsTest
+    static void batchPlansFiveHundredOrdersAcrossFiftyChunks() {
+        List<List<Id>> twoHundred = ActivationBatchJob.planChunks(
+            fakeOrderIds(200)
+        );
+        System.assertEquals(20, twoHundred.size());
+        for (List<Id> chunk : twoHundred) {
+            System.assertEquals(
+                ActivationService.MAX_ORDERS_PER_CALL,
+                chunk.size()
+            );
+        }
+
+        List<List<Id>> fiveHundred = ActivationBatchJob.planChunks(
+            fakeOrderIds(500)
+        );
+        System.assertEquals(50, fiveHundred.size());
+        for (List<Id> chunk : fiveHundred) {
+            System.assertEquals(
+                ActivationService.MAX_ORDERS_PER_CALL,
+                chunk.size()
+            );
+        }
+        System.assertEquals(
+            500,
+            ActivationBatchJob.MAX_ORDERS_PER_BATCH
+        );
+    }
+
+    @IsTest
+    static void batchExecutesFiveHundredOrdersAcrossFiftyChunks() {
+        Account account = consumerAccount();
+        List<Order> orders = createReadyOrders(
+            account,
+            consumerContact(),
+            'Activation Batch 500',
+            500
+        );
+        Set<Id> orderIds = new Set<Id>(idsOf(orders));
+
+        Test.startTest();
+        ActivationBatchJob.enqueue(orderIds);
+        Test.stopTest();
+
+        System.assertEquals(
+            500,
+            [
+                SELECT COUNT()
+                FROM Order
+                WHERE
+                    Id IN :orderIds
+                    AND Activation_State__c = 'Ready'
+                    AND Failure_Reason__c != null
+            ]
+        );
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM Asset WHERE AccountId = :account.Id]
+        );
+
+        List<Integration_Log__c> orderLogs = [
+            SELECT Correlation_Id__c, Status__c
+            FROM Integration_Log__c
+            WHERE Order__c IN :orderIds AND Operation__c = 'activateOrder'
+        ];
+        System.assertEquals(500, orderLogs.size());
+        Set<String> correlationIds = new Set<String>();
+        for (Integration_Log__c log : orderLogs) {
+            System.assertEquals('Failure', log.Status__c);
+            correlationIds.add(log.Correlation_Id__c);
+        }
+        System.assertEquals(1, correlationIds.size());
+
+        List<Integration_Log__c> summaries = [
+            SELECT
+                Correlation_Id__c,
+                Status__c,
+                Status_Code__c,
+                Payload_Summary__c
+            FROM Integration_Log__c
+            WHERE Operation__c = 'activationBatch'
+        ];
+        System.assertEquals(50, summaries.size());
+        for (Integration_Log__c summary : summaries) {
+            System.assertEquals('Failure', summary.Status__c);
+            System.assertEquals('207', summary.Status_Code__c);
+            System.assert(
+                summary.Payload_Summary__c.contains('of 500 order(s)')
+            );
+            System.assertEquals(
+                true,
+                correlationIds.contains(summary.Correlation_Id__c)
+            );
+        }
+    }
+
+    @IsTest
+    static void batchRejectsMoreThanFiveHundredOrders() {
+        try {
+            ActivationBatchJob.enqueue(
+                new Set<Id>(fakeOrderIds(501))
+            );
+            System.assert(false, 'Expected the 500-order ceiling to fail.');
+        } catch (ActivationBatchJob.ActivationBatchException error) {
+            System.assert(error.getMessage().contains('at most 500'));
+        }
+    }
+
+    private static List<Order> createReadyOrders(
+        Account account,
+        Contact contact,
+        String prefix,
+        Integer count
+    ) {
+        Pricebook2 book = pricebook();
+        List<Order> orders = new List<Order>();
+        for (Integer index = 0; index < count; index++) {
+            orders.add(
+                new Order(
+                    Name = prefix + ' ' + index,
+                    AccountId = account.Id,
+                    BillToContactId = contact.Id,
+                    Pricebook2Id = book.Id,
+                    EffectiveDate = Date.today(),
+                    Status = 'Draft',
+                    Activation_State__c = 'Ready'
+                )
+            );
+        }
+        insert orders;
+        return orders;
+    }
+
+    private static void insertLines(
+        List<Order> orders,
+        String productCode,
+        String commitmentCode
+    ) {
+        Product2 product = product(productCode);
+        PricebookEntry entry = pricebookEntry(productCode);
+        List<OrderItem> items = new List<OrderItem>();
+        for (Order order : orders) {
+            items.add(
+                new OrderItem(
+                    OrderId = order.Id,
+                    PricebookEntryId = entry.Id,
+                    Product2Id = product.Id,
+                    Quantity = 1,
+                    UnitPrice = entry.UnitPrice,
+                    ServiceDate = Date.today(),
+                    Description = product.Name,
+                    Commitment_Option_Code__c = commitmentCode
+                )
+            );
+        }
+        insert items;
+    }
+
+    private static List<Id> idsOf(List<Order> orders) {
+        List<Id> ids = new List<Id>();
+        for (Order order : orders) {
+            ids.add(order.Id);
+        }
+        return ids;
+    }
+
+    private static List<Id> fakeOrderIds(Integer count) {
+        List<Id> ids = new List<Id>();
+        for (Integer index = 1; index <= count; index++) {
+            ids.add(
+                Id.valueOf(
+                    '801' +
+                    String.valueOf(index).leftPad(12, '0') +
+                    'AAA'
+                )
+            );
+        }
+        return ids;
+    }
+
+    private class CountingGateway implements BssProvisioningGateway {
+        public Integer callCount = 0;
+        public Integer requestCount = 0;
+        private SimulatedBssProvisioningGateway delegate =
+            new SimulatedBssProvisioningGateway();
+
+        public List<BssProvisioningResponse> provision(
+            List<BssProvisioningRequest> requests
+        ) {
+            callCount++;
+            requestCount += requests == null ? 0 : requests.size();
+            return delegate.provision(requests);
+        }
     }
 
     private class FailingGateway implements BssProvisioningGateway {

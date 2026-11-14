@@ -1,8 +1,8 @@
 # ATS Telecom Build Checkpoint
 
-**Last updated:** 2026-11-12  
-**Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)  
-**Current step:** E4 UC-COM-03 activation, the wizard “Finish & Activate” hand-off, and UC-COM-04 subscription state machine are complete. `SubscriptionWizardController.finishAndActivate()` locks the wizard session, converts the wizard Quote into one Order plus OrderItems, marks the Quote Accepted, and delegates to `ActivationService`. Activation is savepoint-guarded, idempotent, and BSS-backed; on BSS failure the Order returns to Ready for retry while the wizard session stays active. The Step 5 LWC now exposes Finish & Activate, Retry Activation, and View Order. `SubscriptionStateMachine` and `SubscriptionTriggerHandler` now enforce the allowed Subscription status moves from every DML path and block hard deletes. Targeted activation/wizard tests pass 41/41; the state machine plus MSISDN tests pass 18/18; the full local Apex suite passes 157/157. E5 remains closed. Next: UC-COM-05 Activation Flow / “Validate the Order” custom action; Q1/BQ1 ContractLineItem semantics and E6/E8 jobs remain.
+**Last updated:** 2026-11-14
+**Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
+**Current step:** E4 is complete through UC-COM-06. The `Order_Activation_Validate` screen Flow and `Order.Validate_the_Order` Flow quick action provide the activation entry point and friendly error surface. Activation is idempotent and bulk-safe: a synchronous call is capped at 10 orders, and `ActivationBatchJob` fans 200/500-order requests into independent 10-order queueable chunks with a shared correlation ID. The 200-order test activated 200 subscriptions/assets/contracts across 20 chunks; the 500-order test executed 50 chunks with 500 isolated failures and 50 summaries. The activation service is now a 240-line transaction facade over focused reader, provisioner, BSS, writer, and context classes. `ActivationServiceTest` passes 26/26 and the full local Apex suite passes 163/163. Next: Q1/BQ1 ContractLineItem semantics and the E6/E8 jobs remain blocked.
 
 ---
 
@@ -157,15 +157,27 @@ with no SOQL or DML. The facade is `with sharing` and performs no DML.
   `PricingServiceTest`, and `CatalogQueryServiceTest`. The full local Apex
   suite passes 120/120.
 
-### E4 activation and wizard hand-off (complete 2026-11-12)
+### E4 activation and wizard hand-off (complete 2026-11-12; split 2026-11-14)
 
 `ActivationService` implements UC-COM-03 as a bulk-safe, idempotent transaction.
 `SubscriptionWizardController.finishAndActivate()` supplies the missing
 quote-to-order hand-off.
 
-- `ActivationService.activateOrder()` caps one invocable call at 80 orders so
-  the savepoint limit stays safe; the bulk test covers 200 OrderItems in one
-  order. It locks the Order row, requires `Activation_State__c = Ready`, and
+- The original 1,200-line service is split by responsibility: `ActivationService`
+  (transaction facade), `ActivationReader` (SOQL and per-line context),
+  `ActivationProvisioner` (Asset/Subscription/Engagement DML),
+  `ActivationBssClient` (BSS boundary), `ActivationWriter` (Order lifecycle and
+  audit), `ActivationContext` (pure rules and the working context), and
+  `ActivationException` (user-safe failure message). The public entry points
+  remain `ActivationService` and `ActivationBatchJob`; the extracted classes are
+  internal collaborators. The split keeps the same query and DML order, so the
+  governor-limit profile is unchanged.
+- `ActivationService.activate(List<Id>)` caps one synchronous call at 10 orders.
+  Each order owns a savepoint and roughly seven SOQL/DML statements; the old
+  80-order ceiling was not safe because 20 orders hit `Too many DML statements:
+  151` in `updateSubscriptionLinks`. The bulk test still covers 200 OrderItems
+  in one order, and the 10-order test asserts the 100 SOQL / 150 DML / 10,000 ms
+  budget. It locks the Order row, requires `Activation_State__c = Ready`, and
   uses `Activation_State__c` (`Not_Eligible`, `Ready`, `Activating`,
   `Activated`, `Failed`) because standard `Order.Status` only has `Draft` and
   `Activated`.
@@ -189,10 +201,11 @@ quote-to-order hand-off.
   Consumer Fiber 12M stores `Consumer_Fiber_12M` / `25`; Business Mobile 12M
   stores `Business_Any` / `15`. `NOCOMMIT` creates no Engagement and leaves
   `ContractTerm` null because `Contract` rejects a zero term.
-- Success and failure write `Integration_Log__c`; success stores the BSS
-  correlation in `Order.BSS_Order_Key__c`. BSS failure rolls local DML back,
-  returns the Order to `Ready`, records the failure reason, and leaves no
-  orphan Asset, Subscription, Engagement, or Contract.
+- Success and failure write `Integration_Log__c`; success stores a unique BSS
+  key (shared correlation plus `OrderNumber`) in `Order.BSS_Order_Key__c`. BSS
+  failure rolls local DML back, returns the Order to `Ready`, records the
+  failure reason, and leaves no orphan Asset, Subscription, Engagement, or
+  Contract.
 - `finishAndActivate(sessionId, quoteId)` locks the wizard session row with
   `FOR UPDATE` so a double-click cannot create two orders, validates the Quote
   against the session Account/Contact, loads QuoteLineItems, and finds an
@@ -209,10 +222,11 @@ quote-to-order hand-off.
   user can retry from Step 5 or after a refresh.
 - The Step 5 LWC now shows **Finish & Activate**, **Retry Activation** after a
   failure, and **View Order** plus the activation summary on success.
-- Tests: targeted `ActivationServiceTest` and `SubscriptionWizardControllerTest`
-  pass 41/41; the full local Apex suite passes 157/157 after the UC-COM-04
-  state-machine tests. The wizard tests cover success, double-call idempotency,
-  BSS failure followed by retry, missing quote lines, and missing session.
+- Tests: `ActivationServiceTest` passes 26/26 and
+  `SubscriptionWizardControllerTest` passes 21/21; the full local Apex suite
+  passes 163/163 after UC-COM-06. The wizard tests cover success, double-call
+  idempotency, BSS failure followed by retry, missing quote lines, and missing
+  session.
 - Activation DML is user-mode. Every current human user holds System
   Administrator, so the wizard path works in this org today. `ats_Advisor` and
   `ats_AdvisorManager` remain read-only on Order, OrderItem, Asset, Contract,
@@ -220,6 +234,63 @@ quote-to-order hand-off.
   non-admin user, E9 must grant the activation object/field CRUD/FLS or route
   the hand-off through an ops-owned service. This is tracked as E9 FLS
   hardening, not silently widened in the persona matrix.
+
+### E4 activation Flow and "Validate the Order" action (UC-COM-05, complete 2026-11-13)
+
+`Order_Activation_Validate` is an active screen Flow that takes the standard
+`recordId` input and provides confirmation, result, and error screens. It calls
+`ActivationService` only after the Order is confirmed `Ready`; the Apex action
+remains the transaction owner.
+
+- The Flow loads the Order, treats an already-`Activated` Order as a no-op, and
+  blocks non-`Ready` states with the current activation state and failure reason.
+- `$Setup.ATS_Feature_Flags__c.Wizard_Enabled__c = false` stops before any
+  mutation. `BSS_Provisioning_Enabled__c = false` routes to an operations notice,
+  but still calls `ActivationService` so the Order stays `Ready` and receives an
+  ops-visible `Failure_Reason__c`; provisioning is never silently skipped.
+- After the Apex action, the Flow re-queries the Order. Success shows the BSS
+  order key; failure shows `Order.Failure_Reason__c` plus generic next-step
+  guidance. The Apex fault connector shows a generic message, never a stack trace.
+- The Flow quick action is `Order.Validate_the_Order`
+  (`flows/Order_Activation_Validate.flow-meta.xml`,
+  `quickActions/Order.Validate_the_Order.quickAction-meta.xml`). Salesforce
+  rejects Flow quick actions in a page layout's `quickActionList`; the action is
+  therefore deployed in the Order layout's `platformActionList` for the Lightning
+  and mobile action bar, alongside Edit, Delete, Clone, and Change Owner.
+- Apex class access for `ActivationService` was added to `ats_Admin` and
+  `ats_OpsAdmin`. `ats_Advisor` and `ats_AdvisorManager` remain read-only on the
+  activation objects, so the E9 non-admin hardening caveat still applies.
+- Browser verification on 2026-11-13: the action appeared on the Order action
+  bar; the already-activated path showed the no-op screen; a Ready Order with no
+  items showed "The order has no order items and cannot be activated." and was
+  left `Ready`; Wizard-off showed the kill-switch message with no mutation; BSS-off
+  showed the operations notice, left the Order `Ready`, and wrote
+  "BSS provisioning is disabled. The order remains Ready for operations."
+  Temporary Orders and Integration Logs were deleted and both feature flags were
+  restored to `true`.
+
+### E4 activation idempotency and bulk safety (UC-COM-06, complete 2026-11-14)
+
+- `ActivationService.activate(List<Id>)` caps a synchronous call at 10 orders.
+  Each order uses its own savepoint. The 10-order test asserts 100 SOQL / 150
+  DML / 10,000 ms; a 20-order probe exceeded 150 DML at
+  `updateSubscriptionLinks`.
+- `ActivationBatchJob.enqueue(Set<Id>)` plans chunks of 10, enqueues one
+  independent queueable job per chunk, and shares one correlation ID across
+  every order log and every chunk summary. 200 orders use 20 jobs; 500 orders
+  use 50 jobs, the per-transaction queueable ceiling. More than 500 orders are
+  rejected with a friendly batch-size error.
+- The BSS key is `(correlationId + ':' + Order.OrderNumber).left(64)` so a
+  shared batch correlation does not violate unique `Order.BSS_Order_Key__c`.
+- Evidence: `ActivationServiceTest` passes 26/26. The 200-order test activated
+  200 subscriptions/assets/contracts across 20 chunks, wrote 20 batch summaries,
+  and all order and batch logs shared one correlation ID. The 500-order test
+  executed 50 chunks, left 500 orders `Ready` with failure reasons, wrote 500
+  isolated failure logs and 50 summaries, and shared one correlation ID. The
+  planner test proves the 50-chunk math and the 501-order rejection covers the
+  ceiling. The full local Apex suite passes 163/163. The 200- and 500-order
+  execution tests add roughly 4.5 minutes to the suite; that cost is accepted
+  because they prove both the fan-out and the 50-job queueable limit.
 
 ### E4 subscription state machine (UC-COM-04, complete 2026-11-12)
 
@@ -243,7 +314,7 @@ uniqueness to `SubscriptionMSISDNDuplicateHandler`.
   moves each subscription to `Active` only after BSS success.
 - Tests: `SubscriptionTriggerHandlerTest` 11/11 and the existing MSISDN tests
   7/7; targeted state-machine coverage 18/18. The full local Apex suite passes
-  157/157.
+  163/163.
 
 ### Quote creation service (UC-COM-01, complete 2026-11-09)
 

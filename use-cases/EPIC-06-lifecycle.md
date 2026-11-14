@@ -1,0 +1,512 @@
+# E6 — Lifecycle (Phase 6)
+
+**Objective:** implement in-life service management — plan change, suspension, equipment swap, portability, cancellation, and renewal — all through the shared request intake with one penalty engine.
+**Exit gate:** *Both paths produce correct fees* (`ARCHITECTURE.md` §13).
+**Source:** `BUSINESS_PROCESS.md` §8 (Process 06), §9 (Process 07), §10 (Process 08), §11 (Process 09); `ARCHITECTURE.md` §7.2, §7.4; `DATA_MODEL.md` §4, §5, §9.1.
+
+| ID | Title | Priority | Owner | Status |
+|---|---|---|---|---|
+| UC-LIF-01 | `EngagementPenaltyService` + penalty-matrix resolution | Must | Salesforce Developer (Apex) | 🔴 |
+| UC-LIF-02 | Plan change Flow (amend path) | Must | Salesforce Developer + Admin | 🔴 |
+| UC-LIF-03 | Cancellation Flow (intake → fee → approval → fulfilment) | Must | Salesforce Developer + Admin | 🔴 |
+| UC-LIF-04 | Suspension / unfreeze | Must | Salesforce Admin (Flow) | 🔴 |
+| UC-LIF-05 | Equipment swap | Should | Salesforce Admin (Flow) | 🔲 |
+| UC-LIF-06 | Renewal management (T−60/30/7) | Must | Salesforce Admin (Flow) | 🔴 |
+| UC-LIF-07 | Number portability (inbound/outbound) | Should | Salesforce Developer | 🔴 |
+| UC-LIF-08 | Shared request intake, Case traceability, approval gate | Must | Salesforce Admin (Flow) | 🔴 |
+
+---
+
+### UC-LIF-01 — `EngagementPenaltyService` + penalty-matrix resolution
+
+| Field | Value |
+|---|---|
+| Priority | Must |
+| Phase | 6 |
+| Actor(s) | A4, A8 |
+| Suggested owner | Salesforce Developer (Apex) |
+| Depends on | UC-DM-03, UC-DM-08 |
+| Blocks | UC-LIF-03, UC-LIF-02 |
+| Business process | 08 |
+| Architecture ref | §7.2 #8 |
+| Data model ref | §4.5, §9.1 |
+| Status | 🔴 Blocked — BQ11 (device window), BQ9 (waiver threshold) |
+
+**Goal.** Compute early-termination fees server-side and reproducibly, from inception snapshots and a configurable matrix.
+
+**Preconditions** — `Engagement_Penalty__mdt` seeded and signed off by Finance.
+
+**Main flow**
+1. Resolve the `Engagement_Penalty__mdt` row by (segment, category, duration, activity date); **lowest `Priority__c` wins**.
+2. If within the penalty-free window (`Penalty_Applicable_After_Months__c`) → fee = 0.
+3. Else `fee = MIN(Months_Remaining × Monthly_Amount × Penalty_Rate, Max_Penalty_Cap × contract value)`.
+4. Stamp `Penalty_Rule__c`, `Penalty_Calculated_On__c`; write plain-language `Penalty_Breakdown__c`.
+5. Write `Calculated_Fee__c` (server-computed only).
+6. If the engagement has already **expired** → fee 0 and `Status = Expired` (not `Breached`).
+7. If no metadata row matches → apply a **default rule**, never throw (E9).
+
+**Alternate / exception flows**
+- E1: Missing metadata row → default rule applied, no exception surfaced to the customer.
+- E2: Cancelling month 1 of a 12-month contract (window 1) → fee 0.
+- E3: Fee disputed → `Penalty_Breakdown__c` + snapshots make the figure reproducible (E10).
+
+**Business rules**
+
+| Rule | Source |
+|---|---|
+| Penalty amounts reproducible from inception snapshots | X4, BR-08.4 |
+| Penalty-free window respected | BR-08.5 |
+| Expired engagement → `Expired`, not `Breached` | BR-08.9 |
+| Missing metadata → default rule, never an exception | E9 |
+
+**Acceptance criteria**
+- [ ] Fee correct and reproducible years later (invoice-time snapshot test).
+- [ ] Lowest priority wins; device rate 50% applies.
+- [ ] Fee = 0 within the penalty-free window.
+- [ ] No rule → default, not an exception.
+
+**Test scenarios**
+
+| # | Given | When | Then |
+|---|---|---|---|
+| TS-1 | Consumer Mobile 24, 6 months remaining | Calculate | Matches formula |
+| TS-2 | Missing metadata row | Calculate | Default applied |
+| TS-3 | Expired engagement | Cancel | Fee 0, status Expired |
+| TS-4 | Historical price change in year 2 | Recompute year-1 fee | Identical |
+
+**Definition of done**
+- [ ] ≥80% coverage; Finance sign-off on the numbers.
+
+**Open questions / risks** — BQ11 (device window), BQ9 (waiver threshold).
+
+---
+
+### UC-LIF-02 — Plan change Flow (amend path)
+
+| Field | Value |
+|---|---|
+| Priority | Must |
+| Phase | 6 |
+| Actor(s) | A3, A4, A5 |
+| Suggested owner | Salesforce Developer + Admin |
+| Depends on | UC-LIF-01, UC-COM-01, UC-LIF-08 |
+| Blocks | E6 exit gate |
+| Business process | 06 |
+| Architecture ref | §7.2 #9 |
+| Data model ref | §5.2, §5.6 |
+| Status | 🔴 Blocked — Q1/BQ1 |
+
+**Goal.** Let a customer upgrade/downgrade mid-term while correctly repricing the contract, superseding the old instance, and preserving commitment integrity.
+
+**Preconditions** — Q1 default (amend) confirmed; penalty-free plan-change rule agreed.
+
+**Main flow**
+1. **Intake** — resolve `Subscription__c` (mandatory) and `Impacted_Engagement__c`; re-check fibre eligibility if involved.
+2. **Eligibility** — fail → rejected with reason + alternative offer.
+3. **Re-quote** — `CatalogQueryService` + RCA pricing → new `Quote` linked to the request.
+4. **Decision (Q1, default AMEND):**
+   - Amend: adjust `ContractLineItem` rate; old `Subscription__c → Superseded` (terminal); new `Subscription__c → Active` with `Parent_Subscription__c` set; **engagement unchanged** (same term continues).
+5. **Approval** — no fee/no term change → auto-approved; fee above `Cancellation_Approval_Threshold__c` → `Awaiting_Approval` (Manager).
+6. **Fulfilment** — Order → `ActivationService` (reused).
+7. Notify customer; close Case; request `Completed`.
+
+**Alternate / exception flows**
+- A1: Q1 = new contract → close old, open new, restart the penalty clock (opposite branch).
+- E1: Engagement not `Active` or past `End_Date__c` → request non-compliant (`Is_Compliant_Request__c`).
+- E2: Device-only line → cannot change independently; the root engagement governs penalty once (`Root_Engagement__c`).
+
+**Business rules**
+
+| Rule | Source |
+|---|---|
+| Engagement does not restart on upgrade by default | BR-06.1 |
+| Old line superseded, never deleted | BR-06.2 |
+| Target subscription mandatory | BR-06.3 |
+| Root engagement governs penalty once, not twice | BR-06.4 |
+| Every plan change carries a Case | BR-06.7 |
+
+**Acceptance criteria**
+- [ ] Upgrade supersedes the old line and keeps the same term.
+- [ ] New price is server-computed; request fee display-only.
+- [ ] Approval gate triggers above threshold.
+
+**Test scenarios**
+
+| # | Given | When | Then |
+|---|---|---|---|
+| TS-1 | Active 24-month line | Upgrade plan | Rate changes, term unchanged, old line Superseded |
+| TS-2 | Fee above threshold | Submit | `Awaiting_Approval` |
+| TS-3 | Expired engagement | Submit | Rejected as non-compliant |
+
+**Definition of done**
+- [ ] Both OM paths (change) verified; Q1 decision recorded.
+
+**Open questions / risks** — `R3` wrong Q1 choice forces historical repricing.
+
+---
+
+### UC-LIF-03 — Cancellation Flow (intake → fee → approval → fulfilment)
+
+| Field | Value |
+|---|---|
+| Priority | Must |
+| Phase | 6 |
+| Actor(s) | A2, A3, A4, A5 |
+| Suggested owner | Salesforce Developer + Admin |
+| Depends on | UC-LIF-01, UC-LIF-08, UC-COM-04 |
+| Blocks | E6 exit gate, E7 |
+| Business process | 08 |
+| Architecture ref | §7.2 #10 |
+| Data model ref | §5, §11.2 |
+| Status | 🔴 Blocked — BQ2 (notice), BQ12 (churn derivation) |
+
+**Goal.** Terminate a service legally compliant (notice period), financially correct (penalty), fully traceable (case + reason), and operationally clean (network released, no orphans).
+
+**Preconditions** — notice period confirmed; penalty matrix signed off.
+
+**Main flow**
+1. **Intake** — always a `Customer_Request__c` + `Case`, never a direct status edit; capture `Channel__c`, **mandatory** `Cancellation_Reason__c`, `Cancellation_Effective_Date__c` ≥ today + 30, customer comment.
+2. **Fee calculation** — `EngagementPenaltyService` (server-side); snapshots + breakdown written.
+3. **Approval gate:**
+   - fee = 0 → auto-proceed;
+   - fee ≤ threshold → advisor may proceed;
+   - fee > threshold → `Awaiting_Approval` → Advisor Manager;
+   - `Goodwill_Waiver__c` → manager approval + mandatory `Goodwill_Justification__c`.
+4. **Decision** — Approved → fulfilment; Rejected → mandatory `Rejection_Reason__c`, customer informed.
+5. **Fulfilment** (effective on the effective date):
+   - today → effective date: `Subscription__c = PendingCancellation` (service continues);
+   - on effective date (scheduled job): subscription `Cancelled` (terminal), asset `Retired`, contract `Terminated`, engagement `Breached` with `Early_Termination_Fee__c`/`Breach_Amount__c`, `Account.Customer_Status__c = Churned` if no other lines;
+   - BSS de-provision callout (rollback on failure);
+   - platform event after commit.
+6. Close — `Resolution_Summary__c`, `Completed_On__c`, close Case; reason feeds churn analytics.
+
+**Alternate / exception flows**
+- E1: Reason blank → validation rule blocks (non-bypassable).
+- E2: Effective date < today+30 → blocked.
+- E3: Goodwill waiver without justification → blocked.
+- E4: BSS de-provision fails → rollback; never a one-way Salesforce-only cancel (E7/BR-08.11).
+- E5: Duplicate in-flight cancellation for same line → suppressed (`Is_Compliant_Request__c`).
+
+**Business rules**
+
+| Rule | Source |
+|---|---|
+| Reason always mandatory | BR-08.1 |
+| 30-day notice | BR-08.2 |
+| No direct cancel from 360 view | BR-08.3 |
+| Waiver requires justification | BR-08.6 |
+| `PendingCancellation` while waiting; service continues | BR-08.8 |
+| Duplicate in-flight requests blocked | BR-08.10 |
+| BSS failure rolls back | BR-08.11 |
+
+**Acceptance criteria**
+- [ ] Cancellation cannot be created without a reason, a Case, and a compliant effective date.
+- [ ] Correct fee; `PendingCancellation` until the effective date.
+- [ ] On the effective date all four records transition correctly.
+- [ ] Failed de-provision leaves no cancelled-with-live-network state.
+
+**Test scenarios**
+
+| # | Given | When | Then |
+|---|---|---|---|
+| TS-1 | Active committed line | Submit cancellation | Reason mandatory; fee computed |
+| TS-2 | Fee above threshold | Submit | Awaiting approval |
+| TS-3 | Effective date reached | Scheduled job | Subscription Cancelled, Asset Retired, Engagement Breached |
+| TS-4 | BSS de-provision 500 | Fulfil | Rollback, retry logged |
+| TS-5 | Second in-flight cancellation | Submit | Blocked |
+
+**Definition of done**
+- [ ] E6 exit gate; both paths produce correct fees; BQ2/BQ12 resolved.
+
+**Open questions / risks** — BQ2, BQ12, `R10`.
+
+---
+
+### UC-LIF-04 — Suspension / unfreeze
+
+| Field | Value |
+|---|---|
+| Priority | Must |
+| Phase | 6 |
+| Actor(s) | A3, A4 |
+| Suggested owner | Salesforce Admin (Flow) |
+| Depends on | UC-COM-04, UC-LIF-08 |
+| Blocks | — |
+| Business process | 07 |
+| Architecture ref | §7.2 #10 (hybrid) |
+| Data model ref | §3.3 |
+| Status | 🔴 Blocked — BQ3 (does the clock pause?) |
+
+**Goal.** Freeze and unfreeze a line via a reversible transition without touching the commercial term.
+
+**Preconditions** — BQ3 resolved (commitment clock behaviour).
+
+**Main flow**
+1. Request (`Suspension`) + Case; `Subscription__c` required.
+2. `Active → Suspended` (reversible) via the state machine.
+3. `Contract` **unchanged**; `Engagement__c` **unchanged** (default: freeze does not stop the clock — confirm BQ3).
+4. BSS suspend callout; failure rolls back the status change.
+5. Exit: `Suspended → Active` via a reverse request.
+
+**Alternate / exception flows**
+- E1: BSS suspend fails → status rolls back to `Active`.
+- E2: Billing while suspended → out of scope pending Q2/Q3.
+
+**Business rules**
+
+| Rule | Source |
+|---|---|
+| `Active ⇄ Suspended` is reversible | §3.3 |
+| Contract unchanged; term continues to run | §9.2 |
+| BSS failure rolls back the status change | §9.2 |
+
+**Acceptance criteria**
+- [ ] Freeze and unfreeze both work through requests.
+- [ ] Contract and engagement untouched by a freeze.
+
+**Test scenarios**
+
+| # | Given | When | Then |
+|---|---|---|---|
+| TS-1 | Active line | Suspend | Status Suspended, contract unchanged |
+| TS-2 | Suspended line | Unfreeze | Status Active |
+| TS-3 | BSS suspend 500 | Suspend | Rollback to Active |
+
+**Definition of done**
+- [ ] Deployed; BQ3 recorded.
+
+**Open questions / risks** — BQ3.
+
+---
+
+### UC-LIF-05 — Equipment swap
+
+| Field | Value |
+|---|---|
+| Priority | Should |
+| Phase | 6 |
+| Actor(s) | A3, A4 |
+| Suggested owner | Salesforce Admin (Flow) |
+| Depends on | UC-LIF-08, UC-DM-10 |
+| Blocks | — |
+| Business process | 07 |
+| Architecture ref | §7.2 #10 |
+| Data model ref | §10.9 |
+| Status | 🔲 Not started |
+
+**Goal.** Replace a customer's device while preserving the service instance and commitment.
+
+**Preconditions** — `Asset` extensions deployed.
+
+**Main flow**
+1. Request (`EquipmentSwap`) + Case; `Subscription__c` required.
+2. Old `Asset → Retired`; new `Asset` created with parent relationship preserved.
+3. `Subscription__c` **unchanged** — the service instance survives.
+4. `Engagement__c` **unchanged** unless the device tier changes.
+5. BSS IMEI swap callout; new asset records serial, colour, image; lineage via `OrderItem`.
+
+**Alternate / exception flows**
+- E1: Swap changes commitment tier → engagement handling per BQ (may create a new engagement).
+- E2: Restocking fee on return → BQ5/Q7 (may need a second fee line).
+
+**Business rules**
+
+| Rule | Source |
+|---|---|
+| Subscription survives a swap | §9.3 |
+| Old asset retired, new asset created, parent preserved | §9.3 |
+| Engagement unchanged unless the device tier changes | §9.3 |
+
+**Acceptance criteria**
+- [ ] Swap retires the old asset and creates the new one behind the same subscription.
+- [ ] No change to subscription status or contract.
+
+**Test scenarios**
+
+| # | Given | When | Then |
+|---|---|---|---|
+| TS-1 | Active line + device | Swap device | Old Retired, new created, subscription unchanged |
+
+**Definition of done**
+- [ ] Deployed; BQ5/Q7 noted.
+
+**Open questions / risks** — BQ5/Q7 restocking fee.
+
+---
+
+### UC-LIF-06 — Renewal management (T−60/30/7)
+
+| Field | Value |
+|---|---|
+| Priority | Must |
+| Phase | 6 |
+| Actor(s) | A3, A4 |
+| Suggested owner | Salesforce Admin (Flow) |
+| Depends on | UC-DM-14, UC-LIF-02, UC-LIF-03 |
+| Blocks | KPI: renewal coverage 100% |
+| Business process | 09 |
+| Architecture ref | §7.2 #12 |
+| Data model ref | §4.2, §13.2 |
+| Status | 🔴 Blocked — BQ4 (roll/lapse/re-price) |
+
+**Goal.** Turn the natural end of a commitment into a deliberate commercial event — renew, re-price, or let lapse — before the customer drifts away uncontacted.
+
+**Preconditions** — BQ4 resolved (expiry behaviour).
+
+**Main flow**
+1. Daily scheduled job scans `Subscription__c.Next_Renewal_Date__c` (formula over `Billing_End_Date__c`) using the compound index and `Database.QueryLocator`.
+2. T−60 → outreach task #1 (if `Renewal_Contacted__c = false`).
+3. T−30 → outreach #2 + renewal offer prepared.
+4. T−7 → final outreach + escalation to the advisor queue.
+5. Customer decision:
+   - renew same terms → contract `Auto_Renew__c` path, engagement extended;
+   - renew new plan → Process 06 with renewal context;
+   - do nothing → engagement `Expired`; subscription follows policy (BQ4);
+   - cancel early → Process 08.
+6. Set `Renewal_Contacted__c = TRUE` + `Renewal_Contacted_On__c` (idempotency).
+
+**Alternate / exception flows**
+- E1: Daily job re-runs → `Renewal_Contacted__c` prevents duplicate outreach (BR-09.1, E13).
+- E2: DNC customer → no phone outreach (BR-09.2).
+
+**Business rules**
+
+| Rule | Source |
+|---|---|
+| No duplicate outreach | BR-09.1 |
+| DNC suppresses phone contact | BR-09.2 |
+| `Months_Remaining__c` / `Is_Committed__c` are formulas | BR-09.3, X5 |
+| Expired engagement terminal; renewal creates a **new** engagement | BR-09.4 |
+| Renewal uses the same server-side pricing path | BR-09.5 |
+
+**Acceptance criteria**
+- [ ] Outreach at T−60/30/7, once each per engagement.
+- [ ] Renewal pricing identical to new-sale pricing for the same input.
+- [ ] Coverage KPI = 100%.
+
+**Test scenarios**
+
+| # | Given | When | Then |
+|---|---|---|---|
+| TS-1 | Engagement at T−60 | Run job | One task created |
+| TS-2 | Same engagement next day | Run job | No duplicate task |
+| TS-3 | DNC customer at T−30 | Run job | No phone task |
+
+**Definition of done**
+- [ ] Deployed; BQ4 recorded; coverage KPI measurable.
+
+**Open questions / risks** — BQ4.
+
+---
+
+### UC-LIF-07 — Number portability (inbound/outbound)
+
+| Field | Value |
+|---|---|
+| Priority | Should |
+| Phase | 6 |
+| Actor(s) | A3, A4 |
+| Suggested owner | Salesforce Developer |
+| Depends on | UC-LIF-08, UC-DM-13 |
+| Blocks | — |
+| Business process | 07 |
+| Architecture ref | §7.2 #10 |
+| Data model ref | §3.2, §13.1 |
+| Status | 🔲 Not started — Q6 resolved org-wide |
+
+**Goal.** Transfer a number in or out with **two-phase** discipline — never optimistically overwriting the number.
+
+**Preconditions** — Q6 resolved 2026-11-06: `MSISDN__c` is org-wide unique.
+
+**Main flow**
+1. Request (`Portability`) + Case; `Subscription__c` required.
+2. Phase 1 — request the port; wait for donor-network confirmation.
+3. Phase 2 — on confirmation, update `Subscription__c.MSISDN__c`.
+4. Enforce uniqueness (duplicate rule + trigger) with idempotency key = subscription number.
+
+**Alternate / exception flows**
+- E1: Donor rejects → MSISDN unchanged; request rejected with reason.
+- E2: Duplicate MSISDN → duplicate rule/trigger blocks.
+
+**Business rules**
+
+| Rule | Source |
+|---|---|
+| Two-phase: request → confirm → apply | §9.4 |
+| Never optimistically overwrite the number | §9.4 |
+| `MSISDN__c` unique when populated | §9.4, §13.1 |
+
+**Acceptance criteria**
+- [ ] Number updated only after confirmation.
+- [ ] Duplicate MSISDN impossible within the agreed scope.
+
+**Test scenarios**
+
+| # | Given | When | Then |
+|---|---|---|---|
+| TS-1 | Port requested | Before confirmation | MSISDN unchanged |
+| TS-2 | Confirmation received | Apply | MSISDN updated once |
+
+**Definition of done**
+- [ ] Deployed; Q6 resolution recorded.
+
+**Open questions / risks** — None on duplicate scope; Q6 is resolved (org-wide).
+
+---
+
+### UC-LIF-08 — Shared request intake, Case traceability, approval gate
+
+| Field | Value |
+|---|---|
+| Priority | Must |
+| Phase | 6 |
+| Actor(s) | A2, A3, A4, A5 |
+| Suggested owner | Salesforce Admin (Flow) |
+| Depends on | UC-DM-04, UC-DM-12 |
+| Blocks | UC-LIF-02…07, E7 |
+| Business process | 06, 07, 08, 10 |
+| Architecture ref | §7.2 |
+| Data model ref | §5.5, §10.11 |
+| Status | 🔴 Blocked — BQ9 (approval vs waiver threshold) |
+
+**Goal.** Provide one intake skeleton that every lifecycle process reuses, guaranteeing traceability and approval routing.
+
+**Preconditions** — `Customer_Request__c` + `Case` extensions deployed.
+
+**Main flow**
+1. Intake flow creates `Customer_Request__c` + `Case` (except `Info`) with `Channel__c` stamped.
+2. Require `Subscription__c` for all actionable types except `NewSubscription`.
+3. Populate `Impacted_Engagement__c` at intake (not at approval).
+4. Approval gate shared by plan change and cancellation: fee 0 auto-approve; ≤ threshold advisor; > threshold manager; goodwill waiver mandates justification.
+5. Write reciprocal `Case.Request_Link__c`.
+
+**Alternate / exception flows**
+- A1: `Info` request → no Case (documented exception, BR-10.7).
+- E1: Duplicate in-flight request → suppressed via `Is_Compliant_Request__c`.
+
+**Business rules**
+
+| Rule | Source |
+|---|---|
+| No service state change outside a request + Case | X1 |
+| Impacted engagement resolved at intake | §5.2 |
+| `Info` creates no Case | BR-10.7 |
+| Fees above threshold require manager approval | X10 |
+
+**Acceptance criteria**
+- [ ] Every actionable request has a Case and a target subscription.
+- [ ] Approval routing behaves per threshold.
+- [ ] `Info` saves without a Case.
+
+**Test scenarios**
+
+| # | Given | When | Then |
+|---|---|---|---|
+| TS-1 | Any actionable request | Create | Case linked |
+| TS-2 | Fee > threshold | Create | Awaiting approval |
+| TS-3 | Info request | Create | No Case |
+
+**Definition of done**
+- [ ] Reused by all E6 flows; BQ9 recorded.
+
+**Open questions / risks** — BQ9.

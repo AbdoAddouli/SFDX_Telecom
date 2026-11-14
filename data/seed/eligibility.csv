@@ -1,0 +1,8 @@
+Postal_Code__c,Name,City__c,Country__c,Region__c,Fiber_Available__c,Max_Downstream_Mbps__c,Max_Upstream_Mbps__c,Technologies__c,Is_Active__c,Source_System__c
+75001,75001 - Paris 1er,Paris 1er,FR,,true,1000,1000,FTTH,true,Manual
+75002,75002 - Paris 2e,Paris 2e,FR,,true,1000,1000,FTTH,true,Manual
+69001,69001 - Lyon 1er,Lyon 1er,FR,,true,500,500,FTTH,true,Manual
+13001,13001 - Marseille 1er,Marseille 1er,FR,,true,500,200,FTTH,true,Manual
+33000,33000 - Bordeaux,Bordeaux,FR,,true,500,500,FTTC,true,Manual
+59000,59000 - Lille,Lille,FR,,false,,,DSL,true,Manual
+75099,75099 - Paris - decommissioned,Paris - decommissioned,FR,,false,,,,false,Manual
