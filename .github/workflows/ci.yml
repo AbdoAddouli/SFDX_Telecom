@@ -27,13 +27,13 @@ concurrency:
 jobs:
   metadata:
     name: Validate metadata structure
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.x"
 
@@ -68,7 +68,7 @@ jobs:
 
   credential_check:
     name: Check org credentials
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       has_auth: ${{ steps.check.outputs.has_auth }}
     steps:
@@ -90,14 +90,14 @@ jobs:
       - metadata
       - credential_check
     if: needs.credential_check.outputs.has_auth == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "20"
 
