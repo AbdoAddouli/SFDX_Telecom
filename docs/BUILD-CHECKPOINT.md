@@ -18,7 +18,7 @@
 - `ActivationPermissionSetTest` (5/5) creates two Standard User test personas, assigns `ats_Advisor`/`ats_AdvisorManager`, asserts object/field permissions and class access, and runs a complete user-mode activation for each persona.
 - Full local Apex suite: 168/168 passing (run `707bm00001WGPr6`). No custom profiles or roles and no persistent org users were created; the runtime proof uses ephemeral Apex test users.
 
-### Data model (earlier work)
+### CI workflow (2026-11-14)\n\n- Added `.github/workflows/ci.yml` to validate XML/JSON structure on metadata changes.\n- When the `SFDX_AUTH_URL` repository secret is configured, CI also runs `sf project deploy start --dry-run --test-level RunLocalTests` against the authenticated org.\n- Without the secret, the org-validation job is skipped so pull requests and metadata-only pushes still get the static validation gate.\n- CI run `43610666415` passed the metadata job; org validation is currently skipped because the secret is not configured.\n\n### Data model (earlier work)
 
 - 6 custom objects deployed.
 - 53 custom fields on standard objects deployed.
