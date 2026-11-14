@@ -1,0 +1,125 @@
+name: Salesforce CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "force-app/**"
+      - "sfdx-project.json"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "force-app/**"
+      - "sfdx-project.json"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salesforce-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  metadata:
+    name: Validate metadata structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Validate XML and JSON syntax
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import sys
+          import xml.etree.ElementTree as ET
+
+          errors = []
+          for path in Path("force-app").rglob("*"):
+              if path.suffix == ".xml":
+                  try:
+                      ET.parse(path)
+                  except Exception as exc:
+                      errors.append(f"{path}: {exc}")
+              elif path.suffix == ".json":
+                  try:
+                      json.loads(path.read_text(encoding="utf-8"))
+                  except Exception as exc:
+                      errors.append(f"{path}: {exc}")
+
+          if errors:
+              print("\n".join(errors))
+              sys.exit(1)
+
+          print("XML/JSON structure OK")
+          PY
+
+  credential_check:
+    name: Check org credentials
+    runs-on: ubuntu-latest
+    outputs:
+      has_auth: ${{ steps.check.outputs.has_auth }}
+    steps:
+      - name: Check for SFDX_AUTH_URL
+        id: check
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          if [ -n "$SFDX_AUTH_URL" ]; then
+            echo "has_auth=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_auth=false" >> "$GITHUB_OUTPUT"
+            echo "SFDX_AUTH_URL is not configured; skipping org validation."
+          fi
+
+  org_validation:
+    name: Validate deployment and run Apex tests
+    needs:
+      - metadata
+      - credential_check
+    if: needs.credential_check.outputs.has_auth == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Salesforce CLI
+        run: npm install --global @salesforce/cli
+
+      - name: Authenticate to Salesforce
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          printf '%s' "$SFDX_AUTH_URL" > "$RUNNER_TEMP/sfdx_auth_url"
+          sf org login sfdx-url \
+            --sfdx-url-file "$RUNNER_TEMP/sfdx_auth_url" \
+            --alias ci \
+            --set-default
+          rm -f "$RUNNER_TEMP/sfdx_auth_url"
+
+      - name: Validate deployment and run local Apex tests
+        run: >
+          sf project deploy start
+          --source-dir force-app
+          --target-org ci
+          --dry-run
+          --test-level RunLocalTests
+          --wait 30

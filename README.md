@@ -461,7 +461,7 @@ A real-org smoke test also confirms:
 - [ ] E7 portal — deferred; Experience Cloud licence required
 - [ ] E8 real BSS callout, reconciliation, and named credentials
 - [x] E9 non-admin activation CRUD/FLS hardening
-- [ ] CI workflow for metadata validation and test gates
+- [x] CI workflow for metadata validation and test gates (org validation requires the `SFDX_AUTH_URL` repository secret)
 
 ---
 
@@ -469,6 +469,7 @@ A real-org smoke test also confirms:
 
 - The deployable contract is `force-app/main/default`.
 - The project targets Salesforce API **68.0**.
+- CI validates XML/JSON structure on metadata changes. Full org validation and Apex tests run automatically when the `SFDX_AUTH_URL` repository secret is configured; otherwise that job is skipped.
 - The pricing simulation is an intentional substitute for Revenue Cloud Advanced, which is not licensed in the target environment.
 - Contract binding currently uses the “amend” assumption: reuse or create a `Contract` and activate it after BSS success. No `ContractLineItem` is written because standard `ContractLineItem` belongs to `ServiceContract`, not `Contract`; Q1/BQ1 remains open.
 - The real BSS callout is pending the `BSS_Api` Named Credential in E8. `SimulatedBssProvisioningGateway` is the current implementation.
