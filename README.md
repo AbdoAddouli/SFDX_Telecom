@@ -7,8 +7,8 @@
 Deployable Salesforce metadata for a telecom operator's catalogue, server-side pricing, fibre eligibility, five-step subscription wizard, atomic order activation, and BSS integration boundary.
 
 [![Salesforce API](https://img.shields.io/badge/Salesforce%20API-68.0-00A1E0?logo=salesforce&logoColor=white)](https://developer.salesforce.com/)
-[![Apex](https://img.shields.io/badge/Apex-47%20classes-1798c1)](force-app/main/default/classes)
-[![Tests](https://img.shields.io/badge/tests-163%2F163-brightgreen)](force-app/main/default/classes)
+[![Apex](https://img.shields.io/badge/Apex-48%20classes-1798c1)](force-app/main/default/classes)
+[![Tests](https://img.shields.io/badge/tests-168%2F168-brightgreen)](force-app/main/default/classes)
 [![Metadata](https://img.shields.io/badge/metadata-deployable-blueviolet)](force-app/main/default)
 
 </div>
@@ -47,9 +47,9 @@ The pricing model is implemented **without a Revenue Cloud Advanced licence**. C
 | Renewal, cancellation, and remaining lifecycle jobs | Partially blocked on business decisions |
 | Real BSS callout and reconciliation batch | Partial: simulated gateway in use |
 | Portal experience | Deferred: no Experience Cloud licence |
-| Non-admin CRUD/FLS hardening | Remaining E9 hardening item |
+| Non-admin CRUD/FLS hardening | Complete: advisor and manager activation permissions verified |
 
-Latest verified local Apex suite: **163/163 passing**, including `ActivationServiceTest` **26/26** and `SubscriptionWizardControllerTest` **21/21**.
+Latest verified local Apex suite: **168/168 passing**, including `ActivationServiceTest` **26/26**, `SubscriptionWizardControllerTest` **21/21**, and `ActivationPermissionSetTest` **5/5**.
 
 ---
 
@@ -231,7 +231,7 @@ If activation fails, the Order remains visible and retryable, and the wizard sta
 
 ```text
 force-app/main/default/
-├── classes/              # 47 Apex classes, including 10 test classes
+├── classes/              # 48 Apex classes, including 11 test classes
 ├── customMetadata/       # 19 records across 5 metadata types
 ├── customPermissions/    # 4 custom permissions
 ├── duplicateRules/       # MSISDN duplicate protection
@@ -275,8 +275,8 @@ use-cases/                # 80-use-case delivery catalogue and status
 | Custom permissions | 4 |
 | Global value sets | 3 |
 | Custom labels | 12 |
-| Apex classes | 47 |
-| Test classes | 10 |
+| Apex classes | 48 |
+| Test classes | 11 |
 | Triggers | 1 |
 | Flows | 3 |
 | Quick actions | 1 |
@@ -308,11 +308,13 @@ Key controls:
 - pricing, catalogue, wizard, offer, and activation classes are `with sharing`;
 - the pricing engine performs no DML;
 - custom permissions gate force activation, penalty-approval bypass, margin visibility, and BSS batch execution;
-- `ActivationService` Apex class access is granted to `ats_Admin` and `ats_OpsAdmin`;
+- `ActivationService` Apex class access is granted to `ats_Admin`, `ats_OpsAdmin`, `ats_Advisor`, and `ats_AdvisorManager`;
+- advisor and manager activation grants are intentionally narrow: Order/OrderItem, Asset, Contract, `Subscription__c`, `Engagement__c`, and `Integration_Log__c` are create/read or create/read/edit as required, with Delete disabled;
+- `ActivateContract` and `ActivateOrder` are granted because contract and order activation require those user permissions;
 - no custom profiles are required;
 - the integration user is deliberately excluded from human-facing UI class access.
 
-**Known hardening gap:** `ats_Advisor` and `ats_AdvisorManager` remain read-only on Order, OrderItem, Asset, Contract, `Subscription__c`, and `Engagement__c`. Non-admin activation CRUD/FLS must be granted in E9, or activation must be routed through an ops-owned service.
+**Persona verification:** `ActivationPermissionSetTest` creates low-privilege Standard User test personas, assigns the advisor/manager permission sets, and runs a complete user-mode activation. It asserts the required object/field permissions and proves that both personas can activate an order without falling back to admin mode. The org still uses the shared System Administrator profile for human users, so assigning these permission sets to real non-admin users remains an org administration step.
 
 ---
 
@@ -392,7 +394,8 @@ Latest verified local org run:
 | `CatalogQueryServiceTest` | **16/16 passing** |
 | `ActivationServiceTest` | **26/26 passing** |
 | `SubscriptionWizardControllerTest` | **21/21 passing** |
-| Full local suite | **163/163 passing** |
+| `ActivationPermissionSetTest` | **5/5 passing** |
+| Full local suite | **168/168 passing** |
 
 The suite covers:
 
@@ -413,6 +416,7 @@ The suite covers:
 - BSS failure, rollback, and retry;
 - missing quote lines and missing wizard sessions;
 - the 10-order governor budget;
+- advisor/manager activation CRUD/FLS and user-mode execution;
 - 200-order success across 20 chunks;
 - 500-order fan-out across 50 chunks with isolated failures and shared correlation.
 
@@ -456,7 +460,7 @@ A real-org smoke test also confirms:
 - [ ] E6 renewal, cancellation, and remaining lifecycle jobs — partially blocked on Q1/BQ1, BQ4, BQ9, and BQ11
 - [ ] E7 portal — deferred; Experience Cloud licence required
 - [ ] E8 real BSS callout, reconciliation, and named credentials
-- [ ] E9 non-admin activation CRUD/FLS hardening
+- [x] E9 non-admin activation CRUD/FLS hardening
 - [ ] CI workflow for metadata validation and test gates
 
 ---

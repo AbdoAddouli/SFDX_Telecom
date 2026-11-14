@@ -7,7 +7,7 @@
 | ID | Title | Priority | Owner | Status |
 |---|---|---|---|---|
 | UC-HRD-01 | Apex test suite to coverage targets | Must | QA Engineer + Developers | 🔲 |
-| UC-HRD-02 | FLS / CRUD / IDOR security regression | Must | Security Engineer | 🔲 |
+| UC-HRD-02 | FLS / CRUD / IDOR security regression | Must | Security Engineer | Partial: advisor/manager activation verified |
 | UC-HRD-03 | Translation (apply agreed scope) | Should | Salesforce Admin | 🔲 |
 | UC-HRD-04 | Performance and bulk hardening | Must | Salesforce Developer | 🔲 |
 | UC-HRD-05 | Observability, reconciliation, and runbooks | Must | Ops Admin | 🔲 |
@@ -83,7 +83,7 @@
 | Business process | 10 |
 | Architecture ref | §10, §12 |
 | Data model ref | §17 |
-| Status | 🔲 Not started |
+| Status | Partial: advisor/manager activation verified |
 
 **Goal.** Prove the portal cannot leak, fees cannot be tampered with, and no persona can exceed its grant.
 
@@ -110,7 +110,9 @@
 **Acceptance criteria**
 - [ ] IDOR regression test passes in CI.
 - [ ] FLS tests per persona pass.
-- [ ] No delete grants exist.
+- [x] No delete grants exist on the activation objects.
+
+**Current evidence (2026-11-14).** `ats_Advisor` and `ats_AdvisorManager` now grant the minimum activation CRUD/FLS, `ActivationService` class access, and the `ActivateContract`/`ActivateOrder` user permissions. `ActivationPermissionSetTest` (5/5) proves both personas can activate an order under a Standard User test persona and asserts no Delete grant on the activation objects. Portal IDOR, mass-assignment, and fee-tampering scenarios remain deferred with E7.
 
 **Test scenarios**
 

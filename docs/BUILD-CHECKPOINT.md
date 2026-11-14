@@ -2,11 +2,21 @@
 
 **Last updated:** 2026-11-14
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
-**Current step:** E4 is complete through UC-COM-06. The `Order_Activation_Validate` screen Flow and `Order.Validate_the_Order` Flow quick action provide the activation entry point and friendly error surface. Activation is idempotent and bulk-safe: a synchronous call is capped at 10 orders, and `ActivationBatchJob` fans 200/500-order requests into independent 10-order queueable chunks with a shared correlation ID. The 200-order test activated 200 subscriptions/assets/contracts across 20 chunks; the 500-order test executed 50 chunks with 500 isolated failures and 50 summaries. The activation service is now a 240-line transaction facade over focused reader, provisioner, BSS, writer, and context classes. `ActivationServiceTest` passes 26/26 and the full local Apex suite passes 163/163. Next: Q1/BQ1 ContractLineItem semantics and the E6/E8 jobs remain blocked.
+**Current step:** E4 is complete through UC-COM-06 and E9 non-admin activation hardening is complete. The `Order_Activation_Validate` screen Flow and `Order.Validate_the_Order` Flow quick action provide the activation entry point and friendly error surface. Activation is idempotent and bulk-safe: a synchronous call is capped at 10 orders, and `ActivationBatchJob` fans 200/500-order requests into independent 10-order queueable chunks with a shared correlation ID. The 200-order test activated 200 subscriptions/assets/contracts across 20 chunks; the 500-order test executed 50 chunks with 500 isolated failures and 50 summaries. The activation service is now a 240-line transaction facade over focused reader, provisioner, BSS, writer, and context classes. `ActivationServiceTest` passes 26/26, `ActivationPermissionSetTest` passes 5/5, and the full local Apex suite passes 168/168. Next: Q1/BQ1 ContractLineItem semantics and the E6/E8 jobs remain blocked.
 
 ---
 
 ## What is complete
+
+### E9 non-admin activation hardening (complete 2026-11-14)
+
+- `ats_Advisor` and `ats_AdvisorManager` now have the minimum activation CRUD/FLS instead of read-only grants:
+  - Order: create/read/edit; Asset: create/read; Contract: create/read/edit; `Subscription__c`: create/read/edit; `Engagement__c`: create/read (manager also edit); `Integration_Log__c`: create/read; Delete remains false on every activation object.
+- OrderItem permissions are inherited from Order in this org; the source keeps the existing OrderItem block, but Salesforce does not expose a separate OrderItem row in `ObjectPermissions`.
+- Added editable FLS for the fields written by activation, including Order lifecycle/BSS fields, OrderItem numbering/commitment fields, Asset/Contract/Subscription/Engagement fields, and the non-required Integration Log fields. Required fields are governed by object access and do not receive explicit `fieldPermissions` rows.
+- Granted `ActivationService` Apex class access and the `ActivateContract`/`ActivateOrder` user permissions required to complete activation.
+- `ActivationPermissionSetTest` (5/5) creates two Standard User test personas, assigns `ats_Advisor`/`ats_AdvisorManager`, asserts object/field permissions and class access, and runs a complete user-mode activation for each persona.
+- Full local Apex suite: 168/168 passing (run `707bm00001WGPr6`). No custom profiles or roles and no persistent org users were created; the runtime proof uses ephemeral Apex test users.
 
 ### Data model (earlier work)
 
