@@ -7,8 +7,8 @@
 Deployable Salesforce metadata for a telecom operator's catalogue, server-side pricing, fibre eligibility, five-step subscription wizard, atomic order activation, and BSS integration boundary.
 
 [![Salesforce API](https://img.shields.io/badge/Salesforce%20API-68.0-00A1E0?logo=salesforce&logoColor=white)](https://developer.salesforce.com/)
-[![Apex](https://img.shields.io/badge/Apex-48%20classes-1798c1)](force-app/main/default/classes)
-[![Tests](https://img.shields.io/badge/tests-168%2F168-brightgreen)](force-app/main/default/classes)
+[![Apex](https://img.shields.io/badge/Apex-50%20classes-1798c1)](force-app/main/default/classes)
+[![Tests](https://img.shields.io/badge/tests-172%2F172-brightgreen)](force-app/main/default/classes)
 [![Metadata](https://img.shields.io/badge/metadata-deployable-blueviolet)](force-app/main/default)
 
 </div>
@@ -44,12 +44,12 @@ The pricing model is implemented **without a Revenue Cloud Advanced licence**. C
 | Quote builder and five-step subscription wizard | Complete |
 | Atomic activation, Flow entry point, idempotency, bulk proof | Complete |
 | Subscription state machine and MSISDN duplicate handling | Complete |
-| Renewal, cancellation, and remaining lifecycle jobs | Partially blocked on business decisions |
+| Renewal, cancellation, and remaining lifecycle jobs | In progress: E6 decisions resolved; penalty service complete |
 | Real BSS callout and reconciliation batch | Partial: simulated gateway in use |
 | Portal experience | Deferred: no Experience Cloud licence |
 | Non-admin CRUD/FLS hardening | Complete: advisor and manager activation permissions verified |
 
-Latest verified local Apex suite: **168/168 passing**, including `ActivationServiceTest` **26/26**, `SubscriptionWizardControllerTest` **21/21**, and `ActivationPermissionSetTest` **5/5**.
+Latest verified local Apex suite: **172/172 passing**, including `ActivationServiceTest` **26/26**, `SubscriptionWizardControllerTest` **21/21**, `ActivationPermissionSetTest` **5/5**, and `EngagementPenaltyServiceTest` **4/4**.
 
 ---
 
@@ -231,7 +231,7 @@ If activation fails, the Order remains visible and retryable, and the wizard sta
 
 ```text
 force-app/main/default/
-├── classes/              # 48 Apex classes, including 11 test classes
+├── classes/              # 50 Apex classes, including 12 test classes
 ├── customMetadata/       # 19 records across 5 metadata types
 ├── customPermissions/    # 4 custom permissions
 ├── duplicateRules/       # MSISDN duplicate protection
@@ -275,8 +275,8 @@ use-cases/                # 80-use-case delivery catalogue and status
 | Custom permissions | 4 |
 | Global value sets | 3 |
 | Custom labels | 12 |
-| Apex classes | 48 |
-| Test classes | 11 |
+| Apex classes | 50 |
+| Test classes | 12 |
 | Triggers | 1 |
 | Flows | 3 |
 | Quick actions | 1 |
@@ -395,7 +395,8 @@ Latest verified local org run:
 | `ActivationServiceTest` | **26/26 passing** |
 | `SubscriptionWizardControllerTest` | **21/21 passing** |
 | `ActivationPermissionSetTest` | **5/5 passing** |
-| Full local suite | **168/168 passing** |
+| `EngagementPenaltyServiceTest` | **4/4 passing** |
+| Full local suite | **172/172 passing** |
 
 The suite covers:
 
@@ -416,6 +417,7 @@ The suite covers:
 - BSS failure, rollback, and retry;
 - missing quote lines and missing wizard sessions;
 - the 10-order governor budget;
+- server-computed early-termination fees, expired commitments, default rules, and the 14-day device window;
 - advisor/manager activation CRUD/FLS and user-mode execution;
 - 200-order success across 20 chunks;
 - 500-order fan-out across 50 chunks with isolated failures and shared correlation.
@@ -457,7 +459,7 @@ A real-org smoke test also confirms:
 - [x] E4 activation and wizard hand-off (`UC-COM-03`/`UC-COM-05`)
 - [x] Activation idempotency and 200/500-order bulk proof (`UC-COM-06`)
 - [x] Activation service split into reader, context, provisioner, BSS, writer, and contract collaborators
-- [ ] E6 renewal, cancellation, and remaining lifecycle jobs — partially blocked on Q1/BQ1, BQ4, BQ9, and BQ11
+- [ ] E6 renewal, cancellation, and remaining lifecycle jobs — in progress; Q1/BQ1, BQ4, BQ9, and BQ11 resolved
 - [ ] E7 portal — deferred; Experience Cloud licence required
 - [ ] E8 real BSS callout, reconciliation, and named credentials
 - [x] E9 non-admin activation CRUD/FLS hardening
@@ -470,8 +472,9 @@ A real-org smoke test also confirms:
 - The deployable contract is `force-app/main/default`.
 - The project targets Salesforce API **68.0**.
 - CI validates XML/JSON structure on metadata changes. Full org validation and Apex tests run automatically when the `SFDX_AUTH_URL` repository secret is configured; otherwise that job is skipped.
+- Resolved lifecycle decisions: plan changes amend the existing contract, expired commitments roll over monthly, the goodwill waiver threshold equals the approval threshold, and the device penalty-free window is 14 days.
 - The pricing simulation is an intentional substitute for Revenue Cloud Advanced, which is not licensed in the target environment.
-- Contract binding currently uses the “amend” assumption: reuse or create a `Contract` and activate it after BSS success. No `ContractLineItem` is written because standard `ContractLineItem` belongs to `ServiceContract`, not `Contract`; Q1/BQ1 remains open.
+- Contract binding uses the confirmed amend model: reuse or create a `Contract` and activate it after BSS success. No `ContractLineItem` is written because standard `ContractLineItem` belongs to `ServiceContract`, not `Contract`.
 - The real BSS callout is pending the `BSS_Api` Named Credential in E8. `SimulatedBssProvisioningGateway` is the current implementation.
 - Generated artefacts, local scratch files, and org authentication state are excluded from the deployable metadata.
 

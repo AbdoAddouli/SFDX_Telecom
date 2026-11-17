@@ -15,6 +15,10 @@
         <value xsi:type="xsd:double">0</value>
     </values>
     <values>
+        <field>Penalty_Applicable_After_Days__c</field>
+        <value xsi:type="xsd:double">14</value>
+    </values>
+    <values>
         <field>Penalty_Rate__c</field>
         <value xsi:type="xsd:double">50</value>
     </values>

@@ -30,7 +30,7 @@
 | Business process | 08 |
 | Architecture ref | §7.2 #8 |
 | Data model ref | §4.5, §9.1 |
-| Status | 🔴 Blocked — BQ11 (device window), BQ9 (waiver threshold) |
+| Status | Complete - BQ11 = 14 days, BQ9 = same threshold |
 
 **Goal.** Compute early-termination fees server-side and reproducibly, from inception snapshots and a configurable matrix.
 
@@ -94,7 +94,7 @@
 | Business process | 06 |
 | Architecture ref | §7.2 #9 |
 | Data model ref | §5.2, §5.6 |
-| Status | 🔴 Blocked — Q1/BQ1 |
+| Status | Ready - Q1/BQ1 resolved: amend existing contract |
 
 **Goal.** Let a customer upgrade/downgrade mid-term while correctly repricing the contract, superseding the old instance, and preserving commitment integrity.
 
@@ -347,7 +347,7 @@
 | Business process | 09 |
 | Architecture ref | §7.2 #12 |
 | Data model ref | §4.2, §13.2 |
-| Status | 🔴 Blocked — BQ4 (roll/lapse/re-price) |
+| Status | Ready - BQ4 resolved: roll over monthly |
 
 **Goal.** Turn the natural end of a commitment into a deliberate commercial event — renew, re-price, or let lapse — before the customer drifts away uncontacted.
 
@@ -467,7 +467,7 @@
 | Business process | 06, 07, 08, 10 |
 | Architecture ref | §7.2 |
 | Data model ref | §5.5, §10.11 |
-| Status | 🔴 Blocked — BQ9 (approval vs waiver threshold) |
+| Status | Ready - BQ9 resolved: shared waiver/approval threshold |
 
 **Goal.** Provide one intake skeleton that every lifecycle process reuses, guaranteeing traceability and approval routing.
 

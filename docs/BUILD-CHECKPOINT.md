@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-11-17
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
-**Current step:** E4 is complete through UC-COM-06 and E9 non-admin activation hardening is complete. The `Order_Activation_Validate` screen Flow and `Order.Validate_the_Order` Flow quick action provide the activation entry point and friendly error surface. Activation is idempotent and bulk-safe: a synchronous call is capped at 10 orders, and `ActivationBatchJob` fans 200/500-order requests into independent 10-order queueable chunks with a shared correlation ID. The 200-order test activated 200 subscriptions/assets/contracts across 20 chunks; the 500-order test executed 50 chunks with 500 isolated failures and 50 summaries. The activation service is now a 240-line transaction facade over focused reader, provisioner, BSS, writer, and context classes. `ActivationServiceTest` passes 26/26, `ActivationPermissionSetTest` passes 5/5, and the full local Apex suite passes 168/168. Next: Q1/BQ1 ContractLineItem semantics and the E6/E8 jobs remain blocked.
+**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ4, BQ9, and BQ11 are resolved as amend, monthly rollover, shared waiver/approval threshold, and a 14-day device window. UC-LIF-01 `EngagementPenaltyService` is deployed with 4/4 tests. Full local Apex suite passes 172/172 (run `707bm00001X1TmF`). Next: UC-LIF-08 shared intake, then UC-LIF-02 plan change.
 
 ---
 
@@ -16,7 +16,7 @@
 - Added editable FLS for the fields written by activation, including Order lifecycle/BSS fields, OrderItem numbering/commitment fields, Asset/Contract/Subscription/Engagement fields, and the non-required Integration Log fields. Required fields are governed by object access and do not receive explicit `fieldPermissions` rows.
 - Granted `ActivationService` Apex class access and the `ActivateContract`/`ActivateOrder` user permissions required to complete activation.
 - `ActivationPermissionSetTest` (5/5) creates two Standard User test personas, assigns `ats_Advisor`/`ats_AdvisorManager`, asserts object/field permissions and class access, and runs a complete user-mode activation for each persona.
-- Full local Apex suite: 168/168 passing (run `707bm00001WGPr6`). No custom profiles or roles and no persistent org users were created; the runtime proof uses ephemeral Apex test users.
+- Full local Apex suite: 172/172 passing (run `707bm00001X1TmF`) after E6 penalty work. No custom profiles or roles and no persistent org users were created; the runtime proof uses ephemeral Apex test users.
 
 ### CI workflow (2026-11-14)
 
@@ -24,6 +24,14 @@
 - When the `SFDX_AUTH_URL` repository secret is configured, CI also runs `sf project deploy start --dry-run --test-level RunLocalTests` against the authenticated org.
 - Without the secret, the org-validation job is skipped so pull requests and metadata-only pushes still get the static validation gate.
 - CI run `43610666415` passed the metadata job; org validation is currently skipped because the secret is not configured.
+
+### E6 lifecycle decisions and penalty service (2026-11-17)
+
+- Resolved decisions: plan changes amend the existing contract, expired commitments roll over monthly, the goodwill waiver threshold equals the approval threshold, and the device penalty-free window is 14 days.
+- UC-LIF-01 `EngagementPenaltyService` computes early-termination fees from engagement snapshots without SOQL or DML. It reuses the active `Engagement_Penalty__mdt` matrix through `ActivationPenaltyPolicy`, applies expired and default-no-penalty rules, and reads the new `Penalty_Applicable_After_Days__c` field for the device window.
+- The service stamps `Penalty_Rule__c`, `Penalty_Calculated_On__c`, `Penalty_Breakdown__c`, and `Early_Termination_Fee__c` on the engagement and returns the server-computed fee for `Customer_Request__c.Calculated_Fee__c`.
+- `EngagementPenaltyServiceTest` passes 4/4; full local suite passes 172/172 (run `707bm00001X1TmF`).
+- The threshold relationship is resolved: goodwill waiver and approval use the same `Cancellation_Approval_Threshold__c` value. The numeric value remains the existing 0 placeholder until Finance supplies a signed-off amount.
 
 ### Data model (earlier work)
 

@@ -88,7 +88,7 @@
 | Business process | 04, 06, 08 |
 | Architecture ref | §5.2 |
 | Data model ref | §10.10 |
-| Status | 🔴 Blocked — Q1/BQ1 (plan-change semantics) |
+| Status | Ready - Q1/BQ1 resolved: amend existing contract |
 
 **Goal.** Hold the 12/24-month term of record, grouping plan and device under one commitment and carrying adjustments.
 

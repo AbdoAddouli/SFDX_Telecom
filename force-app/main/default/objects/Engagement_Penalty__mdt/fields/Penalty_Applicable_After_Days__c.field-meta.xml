@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Penalty_Applicable_After_Days__c</fullName>
+    <label>Penalty Applicable After Days</label>
+    <inlineHelpText>Penalty-free window in days after inception. Used for device commitments; blank means use the months window.</inlineHelpText>
+    <precision>2</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <type>Number</type>
+</CustomField>
