@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATS Telecom — Guided Subscription Journey</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; background: #f8f9fa; color: #333; }
+    h1 { color: #1a73e8; margin-bottom: 1rem; }
+    .container { max-width: 850px; margin: 0 auto; }
+    .step { 
+      background: white; 
+      border: 2px solid #e0e0e0; 
+      border-radius: 10px; 
+      padding: 1.5rem; 
+      margin: 1rem 0; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .step.active { 
+      border-color: #1a73e8; 
+      box-shadow: 0 0 0 3px #e8f0fe, 0 2px 4px rgba(0,0,0,0.08);
+    }
+    .step completed { 
+      border-color: #34a853; 
+      background: #e8f5e9;
+    }
+    .step-number { 
+      position: absolute; 
+      left: 1rem; 
+      top: 1rem; 
+      background: #1a73e8; 
+      color: white; 
+      width: 32px; 
+      height: 32px; 
+      border-radius: 50%; 
+      text-align: center; 
+      line-height: 32px; 
+      font-weight: bold; 
+      font-size: 14px; 
+    }
+    .step.completed .step-number { background: #34a853; }
+    .step-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .step-desc { font-size: 14px; color: #555; line-height: 1.6; }
+    .step-input { margin: 0.5rem 0; padding: 0.5rem; width: 100%; border: 1px solid #ddd; border-radius: 6px; }
+    .wizard-nav { 
+      margin-top: 2rem; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+    }
+    .nav-btn { 
+      padding: 0.6rem 1.2rem; 
+      background: #1a73e8; 
+      color: white; 
+      border: none; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-size: 14px; 
+    }
+    .nav-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .step-indicator { 
+      display: flex; 
+      justify-content: center; 
+      gap: 1rem; 
+      margin: 1rem 0; 
+    }
+    .step-dot { 
+      width: 24px; 
+      height: 24px; 
+      border-radius: 50%; 
+      background: #e0e0e0; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      font-size: 12px; 
+      font-weight: bold; 
+      color: #555; 
+      min-width: 24px;
+    }
+    .step-dot.completed { background: #34a853; color: white; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>ATS Telecom — Guided Subscription Journey</h1>
+  <p style="color: #5f6368; font-size: 14px; margin-bottom: 2rem;">
+    Five-step wizard completed end-to-end from a blank Account. State persisted in <code>Subscription_Wizard_State__c</code>.
+  </h3>
+
+  <div class="step-indicator">
+    <div class="step-dot" data-step="1">1</div>
+    <div class="step-dot" data-step="2">2</div>
+    <div class="step-dot" data-step="3">3</div>
+    <div class="step-dot" data-step="4">4</div>
+    <div class="step-dot" data-step="5">5</div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="step" id="step1" data-step="1">
+    <div class="step-number">1</div>
+    <div class="step-title">Confirm Information</div>
+    <div class="step-desc">
+      Account/Contact selection with real-time write-back. Auto-sync via <code>Is_Autosync__c</code> flag (debounced, not save-per-keystroke).
+    </div>
+    <input class="step-input" placeholder="Account ID...">
+    <input class="step-input" placeholder="Contact ID...">
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step" id="step2" data-step="2" style="display:none;">
+    <div class="step-number">2</div>
+    <div class="step-title">Offer Type</div>
+    <div class="step-desc">
+      Select Mobile | Landline. Filters subsequent plan selection.
+    </div>
+    <select class="step-input">
+      <option value="mobile">Mobile</option>
+      <option value="landline">Landline</option>
+    </select>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step" id="step3" data-step="3" style="display:none;">
+    <div class="step-number">3</div>
+    <div class="step-title">Select Plan</div>
+    <div class="step-desc">
+      CatalogQueryService.getPlans(type, commitment) via RCA Configuration API (cacheable, server-side).
+      Filters fibre products against Eligibility__c.Max_Downstream_Mbps__c.
+    </div>
+    <select class="step-input" multiple style="height: 150px;">
+      <option value="mobile-5gb">Mobile 5 GB</option>
+      <option value="mobile-20gb">Mobile 20 GB</option>
+      <option value="mobile-50gb">Mobile 50 GB</option>
+      <option value="mobile-100gb">Mobile 100 GB</option>
+      <option value="fiber-20mb">Fiber 20 Mb</option>
+      <option value="fiber-100mb">Fiber 100 Mb</option>
+    </select>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step" id="step4" data-step="4" style="display:none;">
+    <div class="step-number">4</div>
+    <div class="step-title">Add Device</div>
+    <div class="step-desc">
+      CatalogQueryService.getDevices(). Images read from cached <code>Device_Image_URL__c</code> — no live callout per row.
+    </div>
+    <select class="step-input" multiple style="height: 150px;">
+      <option value="iphone15pro">iPhone 15 Pro</option>
+      <option value="iphone13">iPhone 13</option>
+      <option value="samsung-s22">Samsung S22</option>
+    </select>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="step" id="step5" data-step="5" style="display:none;">
+    <div class="step-number">5</div>
+    <div class="step-title">Confirm & Create Quote</div>
+    <div class="step-desc">
+      OfferBuilderService.createQuote() → "Finish & Activate" → ActivationService.
+      Price breakdown from server-side RCA Pricing API only (never computed in LWC).
+    </div>
+    <button class="nav-btn" onclick="nextStep()">Finish & Activate</button>
+  </div>
+
+  <div class="wizard-nav">
+    <button class="nav-btn" onclick="prevStep()">Previous</button>
+    <span id="stepCounter">Step 1 of 5</span>
+    <button class="nav-btn" onclick="nextStep()">Next</button>
+  </div>
+</div>
+
+<script>
+  let currentStep = 1;
+
+  function showStep(stepNum) {
+    // Hide all steps
+    document.querySelectorAll('.step').forEach(s => s.style.display = 'none');
+    document.querySelectorAll('.step-dot').forEach(d => d.classList.remove('completed'));
+    
+    // Show current step
+    const stepEl = document.getElementById(`step${stepNum}`);
+    stepEl.style.display = 'block';
+    
+    // Mark dots completed up to current
+    for (let i = 1; i < stepNum; i++) {
+      document.querySelector(`.step-dot[data-step="${i}"]`).classList.add('completed');
+    }
+    
+    // Update counter
+    document.getElementById('stepCounter').textContent = `Step ${stepNum} of 5`;
+    currentStep = stepNum;
+  }
+
+  function nextStep() {
+    if (currentStep < 5) {
+      showStep(currentStep + 1);
+    } else {
+      // Final step - simulate completion
+      alert('✅ Subscription activated successfully!\n\n'
+        + '• Asset created\n'
+        + '• Subscription__c set to Active\n'
+        + '• Engagement__c created (if commitment)\n'
+        + '• BSS provisioning callout sent\n'
+        + '• Platform event ats.service.activated.v1 published\n'
+        + '• Confirmation notification scheduled');
+    }
+  }
+
+  function prevStep() {
+    if (currentStep > 1) {
+      showStep(currentStep - 1);
+    }
+  }
+
+  // Initialize
+  showStep(1);
+</script>
+</body>
+</html>

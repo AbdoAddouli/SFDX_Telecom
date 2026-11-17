@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATS Telecom — 4-Person Duty Allocation</title>
+<meta name="description" content="Interactive allocation of every project duty across a 4-person delivery team: workload board, duty explorer, RACI and phase gates.">
+<style>
+/*CSS-INJECT-START*/
+/* ============================================================
+   ATS TELECOM — INTERACTIVE BLUEPRINT
+   Design system
+   ============================================================ */
+:root{
+  --sf-navy:#032d60;
+  --sf-navy-2:#014486;
+  --sf-blue:#0176d3;
+  --sf-blue-2:#0b5cab;
+  --sf-blue-soft:#d8edff;
+  --sf-teal:#06a59a;
+  --sf-green:#2e844a;
+  --sf-green-soft:#cdefc4;
+  --sf-orange:#ba5d00;
+  --sf-orange-soft:#feefc5;
+  --sf-red:#ba0517;
+  --sf-red-soft:#fedbdd;
+  --sf-purple:#9050e9;
+  --sf-yellow:#8c6b00;
+
+  --bg:#f3f3f3;
+  --bg-2:#eaeff5;
+  --surface:#ffffff;
+  --surface-2:#f7f9fb;
+  --border:#c9cdd6;
+  --border-soft:#e2e6ec;
+  --text:#181818;
+  --text-2:#3c3c3c;
+  --muted:#5c5c5c;
+  --shadow:0 2px 12px rgba(3,45,92,.10);
+  --shadow-lg:0 8px 34px rgba(3,45,92,.16);
+  --radius:12px;
+  --radius-sm:8px;
+  --code-bg:#0b1e2f;
+  --code-text:#d3e6f7;
+  --sidebar-w:264px;
+  --topbar-h:58px;
+  --accent:var(--sf-blue);
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+}
+[data-theme="dark"]{
+  --bg:#0b1420;
+  --bg-2:#0e1a29;
+  --surface:#12233a;
+  --surface-2:#16294260;
+  --border:#2b4361;
+  --border-soft:#20344d;
+  --text:#eaf2fb;
+  --text-2:#c6d6e8;
+  --muted:#93a8c2;
+  --sf-blue-soft:#123a5f;
+  --sf-green-soft:#123a26;
+  --sf-orange-soft:#3d2a0a;
+  --sf-red-soft:#3f1119;
+  --shadow:0 2px 12px rgba(0,0,0,.4);
+  --shadow-lg:0 10px 40px rgba(0,0,0,.5);
+  --code-bg:#071120;
+  --code-text:#bcd9f5;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--topbar-h) + 16px)}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+  font-size:14.5px;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0;font-weight:700;line-height:1.25}
+a{color:var(--sf-blue);text-decoration:none}
+a:hover{text-decoration:underline}
+code,.mono{font-family:var(--mono);font-size:.86em}
+p{margin:.5em 0}
+table{border-collapse:collapse;width:100%}
+
+/* ---------- layout ---------- */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:var(--topbar-h);z-index:60;
+  background:linear-gradient(90deg,var(--sf-navy) 0%,var(--sf-navy-2) 60%,#0b5cab 100%);
+  color:#fff;display:flex;align-items:center;gap:14px;padding:0 16px;
+  box-shadow:0 1px 6px rgba(0,0,0,.25);
+}
+.topbar .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;white-space:nowrap}
+.topbar .brand .logo{
+  width:30px;height:30px;border-radius:8px;flex:0 0 auto;
+  background:linear-gradient(135deg,#5eead4,#0176d3 60%,#9050e9);
+  display:grid;place-items:center;font-size:15px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)
+}
+.topbar .brand small{display:block;font-weight:400;font-size:10.5px;opacity:.8;margin-top:-2px}
+.hamburger{display:none;background:none;border:0;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px}
+.search-wrap{position:relative;flex:1;max-width:520px;margin:0 auto}
+.search-wrap input{
+  width:100%;padding:8px 12px 8px 34px;border-radius:999px;border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.14);color:#fff;font-size:13.5px;outline:none;transition:.18s;
+}
+.search-wrap input::placeholder{color:rgba(255,255,255,.7)}
+.search-wrap input:focus{background:#fff;color:#181818;border-color:#fff}
+.search-wrap input:focus::placeholder{color:#8c8c8c}
+.search-wrap .s-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.85;pointer-events:none;font-size:14px}
+.search-wrap input:focus + .s-icon{color:#5c5c5c}
+.search-results{
+  position:absolute;top:44px;left:0;right:0;background:var(--surface);color:var(--text);
+  border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);max-height:60vh;overflow:auto;display:none;z-index:80;
+  border:1px solid var(--border-soft);
+}
+.search-results.open{display:block}
+.search-results .sr-item{padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border-soft);display:flex;gap:10px;align-items:flex-start}
+.search-results .sr-item:last-child{border-bottom:0}
+.search-results .sr-item:hover,.search-results .sr-item.active{background:var(--sf-blue-soft)}
+.search-results .sr-cat{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);min-width:76px;padding-top:2px}
+.search-results .sr-title{font-weight:600;font-size:13.5px}
+.search-results .sr-sub{font-size:12px;color:var(--muted)}
+.topbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.tb-btn{
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;
+  border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;transition:.15s;
+}
+.tb-btn:hover{background:rgba(255,255,255,.28)}
+
+.sidebar{
+  position:fixed;top:var(--topbar-h);bottom:0;left:0;width:var(--sidebar-w);z-index:50;
+  background:var(--surface);border-right:1px solid var(--border-soft);overflow-y:auto;padding:14px 0 30px;
+}
+.sidebar .nav-group{margin:6px 0 2px;padding:8px 18px 4px;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.sidebar a.nav-link{
+  display:flex;align-items:center;gap:11px;padding:8.5px 18px;color:var(--text-2);
+  font-size:13.5px;font-weight:500;border-left:3px solid transparent;transition:.13s;
+}
+.sidebar a.nav-link:hover{background:var(--surface-2);text-decoration:none;color:var(--sf-blue)}
+.sidebar a.nav-link.active{background:var(--sf-blue-soft);border-left-color:var(--sf-blue);color:var(--sf-blue-2);font-weight:700}
+.sidebar a.nav-link .ni{width:20px;text-align:center;font-size:15px;flex:0 0 auto}
+.sidebar .nav-badge{margin-left:auto;font-size:10.5px;background:var(--bg-2);border:1px solid var(--border-soft);color:var(--muted);border-radius:999px;padding:1px 7px;font-weight:700}
+.sidebar-footer{padding:14px 18px;margin-top:10px;border-top:1px solid var(--border-soft);font-size:11.5px;color:var(--muted)}
+
+main{margin-left:var(--sidebar-w);padding:calc(var(--topbar-h) + 22px) 30px 60px;max-width:1500px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(3,20,40,.5);z-index:45}
+.overlay.open{display:block}
+
+/* ---------- sections ---------- */
+.section{margin-bottom:46px}
+.section-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:8px}
+.section-head .s-ico{
+  width:42px;height:42px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;font-size:21px;
+  background:linear-gradient(135deg,var(--sf-blue-soft),#fff);border:1px solid var(--border-soft);
+}
+.section-head h2{font-size:22px;letter-spacing:-.2px}
+.section-head .s-sub{color:var(--muted);font-size:13px;margin-top:3px}
+.section-intro{color:var(--text-2);max-width:900px;margin:2px 0 18px}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
+.card h3{font-size:15.5px;margin-bottom:8px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.card h4{font-size:13.5px;margin:14px 0 6px;color:var(--text-2)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+
+.stat{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+.stat .sv{font-size:26px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+.stat .sl{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-top:3px}
+.stat .sn{font-size:12px;color:var(--text-2);margin-top:5px}
+
+/* ---------- badges / pills ---------- */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.b-blue{background:var(--sf-blue-soft);color:var(--sf-blue-2);border-color:rgba(1,118,211,.25)}
+.b-green{background:var(--sf-green-soft);color:#1b5e33;border-color:rgba(46,132,74,.3)}
+.b-orange{background:var(--sf-orange-soft);color:#8c4700;border-color:rgba(186,93,0,.3)}
+.b-red{background:var(--sf-red-soft);color:var(--sf-red);border-color:rgba(186,5,23,.25)}
+.b-grey{background:var(--bg-2);color:var(--muted);border-color:var(--border)}
+.b-purple{background:#efe3ff;color:#6b2ec9;border-color:rgba(144,80,233,.3)}
+.b-teal{background:#d5f5f2;color:#046b63;border-color:rgba(6,165,154,.3)}
+.obj{
+  font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px solid var(--border-soft);
+  padding:1px 7px;border-radius:6px;color:var(--sf-blue-2);white-space:nowrap;display:inline-block;margin:1px 0;
+}
+[data-theme="dark"] .obj{background:#0d1c2e;color:#7fc0f5}
+.obj.custom{border-color:rgba(144,80,233,.4);color:#7c3aed}
+[data-theme="dark"] .obj.custom{color:#c4a5ff}
+.ref{color:var(--muted);font-size:12px}
+
+/* ---------- tables ---------- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border-soft);border-radius:var(--radius-sm);background:var(--surface)}
+.tbl-wrap.tight{max-height:none}
+table.data{font-size:13px}
+table.data th{
+  text-align:left;padding:9px 12px;background:var(--surface-2);border-bottom:2px solid var(--border);
+  font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);white-space:nowrap;position:sticky;top:0;
+}
+table.data td{padding:8px 12px;border-bottom:1px solid var(--border-soft);vertical-align:top}
+table.data tr:last-child td{border-bottom:0}
+table.data tbody tr:hover{background:var(--sf-blue-soft)}
+[data-theme="dark"] table.data tbody tr:hover{background:#16304f}
+table.data td.num,table.data th.num{text-align:right;white-space:nowrap}
+table.data.compact td,table.data.compact th{padding:6px 10px;font-size:12.5px}
+
+/* ---------- code ---------- */
+pre.code{
+  background:var(--code-bg);color:var(--code-text);border-radius:var(--radius-sm);padding:13px 16px;
+  overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.55;margin:8px 0;
+  border:1px solid #1d3550;position:relative;
+}
+pre.code .cm{color:#7fb2d9}
+details.formula{margin:8px 0;border:1px solid var(--border-soft);border-radius:var(--radius-sm);background:var(--surface-2);overflow:hidden}
+details.formula summary{padding:9px 14px;cursor:pointer;font-weight:600;font-size:13px;display:flex;align-items:center;gap:9px;list-style:none}
+details.formula summary::-webkit-details-marker{display:none}
+details.formula summary::before{content:"▸";color:var(--sf-blue);transition:transform .15s;display:inline-block;font-size:12px}
+details.formula[open] summary::before{transform:rotate(90deg)}
+details.formula summary:hover{background:var(--sf-blue-soft)}
+details.formula .fbody{padding:0 14px 12px}
+details.formula pre.code{margin:6px 0 0}
+
+/* ---------- callouts ---------- */
+.callout{border-radius:var(--radius-sm);padding:12px 16px;margin:12px 0;border:1px solid;display:flex;gap:11px;align-items:flex-start;font-size:13.5px}
+.callout .c-ico{font-size:16px;line-height:1.3}
+.callout b{display:block;margin-bottom:2px}
+.co-blue{background:var(--sf-blue-soft);border-color:rgba(1,118,211,.3)}
+.co-green{background:var(--sf-green-soft);border-color:rgba(46,132,74,.35)}
+.co-orange{background:var(--sf-orange-soft);border-color:rgba(186,93,0,.35)}
+.co-red{background:var(--sf-red-soft);border-color:rgba(186,5,23,.3)}
+.co-purple{background:#f1e7ff;border-color:rgba(144,80,233,.35)}
+[data-theme="dark"] .co-purple{background:#2a1b46}
+
+/* ---------- decision cards ---------- */
+.decision{
+  background:var(--surface);border:1px solid var(--border-soft);border-left:4px solid var(--sf-blue);
+  border-radius:var(--radius-sm);padding:12px 15px;box-shadow:var(--shadow);cursor:pointer;transition:.15s;
+}
+.decision:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);border-left-color:var(--sf-purple)}
+.decision .d-id{font-size:11px;font-weight:800;color:var(--sf-blue);letter-spacing:.5px}
+.decision .d-title{font-weight:700;font-size:13.5px;margin:2px 0}
+.decision .d-out{font-size:12.5px;color:var(--muted)}
+.decision .d-why{display:none;font-size:12.5px;color:var(--text-2);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)}
+.decision.open .d-why{display:block}
+
+/* ---------- value chain ---------- */
+.valuechain{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin:14px 0 6px}
+.vc-stage{
+  flex:1;min-width:140px;background:linear-gradient(180deg,var(--surface),var(--surface-2));
+  border:1px solid var(--border);padding:12px 10px;text-align:center;position:relative;cursor:default;transition:.15s;
+}
+.vc-stage:first-child{border-radius:var(--radius-sm) 0 0 var(--radius-sm)}
+.vc-stage:last-child{border-radius:0 var(--radius-sm) var(--radius-sm) 0}
+.vc-stage:hover{background:var(--sf-blue-soft);z-index:2;box-shadow:var(--shadow)}
+.vc-stage .vc-name{font-weight:800;font-size:12.5px;letter-spacing:1px;color:var(--sf-blue-2)}
+.vc-stage .vc-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.vc-stage .vc-proc{font-size:10.5px;margin-top:6px}
+.vc-arrow{display:grid;place-items:center;width:26px;color:var(--sf-blue);font-size:17px;flex:0 0 auto}
+
+/* ---------- stack diagram ---------- */
+.stack{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.stack-layer{
+  display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid var(--border-soft);
+  cursor:pointer;transition:.13s;background:var(--surface);
+}
+.stack-layer:last-child{border-bottom:0}
+.stack-layer:hover{background:var(--sf-blue-soft);padding-left:22px}
+.stack-layer.sel{background:var(--sf-blue-soft);box-shadow:inset 4px 0 0 var(--sf-blue)}
+.stack-layer .sl-name{font-weight:800;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--sf-navy);min-width:132px}
+[data-theme="dark"] .stack-layer .sl-name{color:#8fc4f7}
+.stack-layer .sl-items{font-size:12.5px;color:var(--text-2);font-family:var(--mono)}
+.stack-detail{background:var(--surface-2);border:1px solid var(--border);border-top:0;border-radius:0 0 var(--radius) var(--radius);padding:14px 18px;font-size:13px}
+.stack-detail ul{margin:6px 0 0;padding-left:20px}
+.stack-detail li{margin:3px 0}
+
+/* ---------- state machine ---------- */
+.sm-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.sm-tab{padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:12.5px;font-weight:600;color:var(--muted)}
+.sm-tab.active{background:var(--sf-navy);color:#fff;border-color:var(--sf-navy)}
+.sm-diagram{overflow-x:auto;padding:6px 0}
+.sm-node{
+  display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:112px;padding:8px 12px;border-radius:10px;border:2px solid;font-size:12px;font-weight:700;
+  background:var(--surface);text-align:center;line-height:1.3;cursor:pointer;transition:.15s;position:relative;
+}
+.sm-node:hover{transform:scale(1.06);box-shadow:var(--shadow);z-index:3}
+.sm-node .sm-term{font-size:9.5px;font-weight:600;opacity:.8;margin-top:2px}
+.sm-node.on{box-shadow:0 0 0 4px rgba(1,118,211,.25)}
+.sm-arrow{display:inline-grid;place-items:center;color:var(--muted);font-size:18px;padding:0 3px;vertical-align:middle}
+.sm-legend{margin-top:10px;font-size:12px;color:var(--muted)}
+
+/* ---------- ER diagram ---------- */
+.er-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:8px}
+.er svg{display:block;min-width:1080px}
+.er-box{cursor:pointer}
+.er-box rect{fill:var(--surface);stroke:#8ca0b8;stroke-width:1.4;rx:8}
+.er-box.custom rect{stroke:var(--sf-purple);stroke-width:2;fill:#f6f0ff}
+[data-theme="dark"] .er-box.custom rect{fill:#241a3e;stroke:#a97cf5}
+.er-box.hub rect{stroke:var(--sf-blue);stroke-width:2.2;fill:var(--sf-blue-soft)}
+.er-box:hover rect{stroke:var(--sf-blue);stroke-width:2.6;filter:drop-shadow(0 3px 6px rgba(1,118,211,.35))}
+.er-box.sel rect{stroke:var(--sf-orange);stroke-width:3}
+.er-box text{font-size:12px;font-weight:700;fill:var(--text);pointer-events:none;font-family:var(--mono)}
+.er-box .er-sub{font-size:9.5px;font-weight:500;fill:var(--muted);font-family:inherit}
+.er-line{stroke:#9db2c8;stroke-width:1.3;fill:none}
+.er-line.dash{stroke-dasharray:4 3}
+.er-label{font-size:9px;fill:var(--muted);font-style:italic}
+.er-panel{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2);padding:14px 16px;margin-top:12px;min-height:90px}
+.er-panel h4{margin:0 0 4px;font-family:var(--mono);font-size:14px;color:var(--sf-purple)}
+[data-theme="dark"] .er-panel h4{color:#c4a5ff}
+
+/* ---------- process accordion ---------- */
+.proc{border:1px solid var(--border-soft);border-radius:var(--radius);background:var(--surface);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow)}
+.proc summary{
+  padding:13px 18px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:13px;transition:.13s;
+}
+.proc summary::-webkit-details-marker{display:none}
+.proc summary:hover{background:var(--surface-2)}
+.proc[open] summary{background:var(--sf-blue-soft);border-bottom:1px solid var(--border-soft)}
+.proc .p-num{
+  width:34px;height:34px;border-radius:9px;background:var(--sf-navy);color:#fff;display:grid;place-items:center;
+  font-weight:800;font-size:13px;flex:0 0 auto;
+}
+.proc[open] .p-num{background:var(--sf-blue)}
+.proc .p-name{font-weight:700;font-size:14.5px}
+.proc .p-tag{font-size:11.5px;color:var(--muted)}
+.proc .p-status{margin-left:auto}
+.proc .p-body{padding:16px 20px 20px}
+.proc .flowbox{background:var(--code-bg);color:var(--code-text);border-radius:var(--radius-sm);padding:14px;overflow-x:auto;font-family:var(--mono);font-size:11.5px;line-height:1.5;margin:8px 0}
+
+/* ---------- labs ---------- */
+.lab-grid{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:16px}
+@media(max-width:980px){.lab-grid{grid-template-columns:1fr}}
+.lab-controls label{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 5px}
+.lab-controls select,.lab-controls input[type=number]{
+  width:100%;padding:8px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13.5px;outline:none;
+}
+.lab-controls select:focus,.lab-controls input:focus{border-color:var(--sf-blue);box-shadow:0 0 0 3px rgba(1,183,211,.18)}
+.chip-row{display:flex;gap:7px;flex-wrap:wrap}
+.chip{
+  padding:7px 13px;border-radius:999px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;
+  font-size:12.5px;font-weight:600;color:var(--text-2);transition:.13s;
+}
+.chip:hover{border-color:var(--sf-blue);color:var(--sf-blue)}
+.chip.on{background:var(--sf-navy);border-color:var(--sf-navy);color:#fff}
+.chip.on.danger{background:var(--sf-red);border-color:var(--sf-red)}
+.chip small{display:block;font-weight:400;font-size:10.5px;opacity:.8}
+.breakdown{border:1px solid var(--border-soft);border-radius:var(--radius-sm);overflow:hidden}
+.bd-row{display:flex;justify-content:space-between;gap:14px;padding:9px 14px;border-bottom:1px dashed var(--border-soft);font-size:13px}
+.bd-row:last-child{border-bottom:0}
+.bd-row .bd-lbl{color:var(--text-2)}
+.bd-row .bd-lbl small{display:block;color:var(--muted);font-size:11px}
+.bd-row .bd-val{font-family:var(--mono);font-weight:700;white-space:nowrap}
+.bd-row.neg .bd-val{color:var(--sf-green)}
+.bd-row.total{background:var(--sf-blue-soft);font-size:15px;font-weight:800;border-top:2px solid var(--sf-blue)}
+.bd-row.total .bd-val{color:var(--sf-navy)}
+[data-theme="dark"] .bd-row.total .bd-val{color:#8fc4f7}
+.verdict{border-radius:var(--radius-sm);padding:11px 15px;margin-top:12px;font-size:13px;display:flex;gap:10px;align-items:flex-start}
+.verdict.ok{background:var(--sf-green-soft);border:1px solid rgba(46,132,74,.4)}
+.verdict.no{background:var(--sf-red-soft);border:1px solid rgba(186,5,23,.4)}
+.verdict.warn{background:var(--sf-orange-soft);border:1px solid rgba(186,93,0,.4)}
+
+/* ---------- activation walkthrough ---------- */
+.act-step{
+  display:flex;gap:14px;padding:11px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-soft);
+  background:var(--surface);margin-bottom:8px;opacity:.42;transition:.3s;align-items:flex-start;position:relative;
+}
+.act-step.done{opacity:1;border-color:rgba(46,132,74,.45);background:linear-gradient(90deg,var(--sf-green-soft),var(--surface) 70%)}
+.act-step.failed{opacity:1;border-color:rgba(186,5,23,.5);background:linear-gradient(90deg,var(--sf-red-soft),var(--surface) 70%)}
+.act-step.current{opacity:1;box-shadow:0 0 0 3px rgba(1,118,211,.2);transform:translateX(4px)}
+.act-step .as-n{
+  width:26px;height:26px;border-radius:50%;background:var(--bg-2);border:1.5px solid var(--border);
+  display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--muted);flex:0 0 auto;
+}
+.act-step.done .as-n{background:var(--sf-green);border-color:var(--sf-green);color:#fff}
+.act-step.failed .as-n{background:var(--sf-red);border-color:var(--sf-red);color:#fff}
+.act-step .as-t{font-weight:700;font-size:13px}
+.act-step .as-d{font-size:12px;color:var(--muted);margin-top:2px}
+.act-step .as-obj{margin-top:5px;display:flex;gap:5px;flex-wrap:wrap}
+
+/* ---------- epic / backlog ---------- */
+.epic{border:1px solid var(--border-soft);border-radius:var(--radius);background:var(--surface);margin-bottom:12px;box-shadow:var(--shadow);overflow:hidden}
+.epic summary{padding:14px 18px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:14px}
+.epic summary::-webkit-details-marker{display:none}
+.epic summary:hover{background:var(--surface-2)}
+.epic[open] summary{background:linear-gradient(90deg,var(--sf-navy),var(--sf-navy-2));color:#fff}
+.epic[open] .ep-num{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4);color:#fff}
+.epic[open] .ep-sub,.epic[open] .ep-gate{color:rgba(255,255,255,.85)}
+.ep-num{width:44px;height:44px;border-radius:10px;background:var(--sf-blue-soft);border:1.5px solid var(--sf-blue);color:var(--sf-blue-2);display:grid;place-items:center;font-weight:800;font-size:15px;flex:0 0 auto}
+.ep-title{font-weight:800;font-size:15px}
+.ep-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.ep-gate{font-size:11.5px;color:var(--muted);margin-top:2px;font-style:italic}
+.ep-counts{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.epic .p-body{padding:0 18px 18px}
+.progress{height:9px;border-radius:999px;background:var(--bg-2);overflow:hidden;display:flex;border:1px solid var(--border-soft)}
+.progress i{display:block;height:100%}
+.pg-done{background:var(--sf-green)}.pg-rev{background:var(--sf-blue)}.pg-prog{background:var(--sf-orange)}.pg-block{background:var(--sf-red)}.pg-todo{background:#c9d3de}
+
+/* ---------- filters ---------- */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding:12px 14px;background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius)}
+.filters .f-label{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-right:2px}
+
+/* ---------- modal ---------- */
+.modal-back{display:none;position:fixed;inset:0;background:rgba(3,20,40,.55);z-index:100;align-items:flex-start;justify-content:center;padding:5vh 16px}
+.modal-back.open{display:flex}
+.modal{
+  background:var(--surface);border-radius:14px;box-shadow:var(--shadow-lg);width:min(880px,100%);
+  max-height:86vh;display:flex;flex-direction:column;overflow:hidden;animation:pop .18s ease;
+}
+@keyframes pop{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+.modal-head{padding:16px 22px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:12px;background:var(--surface-2)}
+.modal-head h3{font-size:16px}
+.modal-head .m-sub{font-size:12px;color:var(--muted)}
+.modal-close{margin-left:auto;background:none;border:0;font-size:20px;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:8px}
+.modal-close:hover{background:var(--bg-2);color:var(--sf-red)}
+.modal-body{padding:18px 22px;overflow-y:auto}
+.modal-body h4{margin:16px 0 6px;font-size:13.5px;color:var(--sf-blue-2)}
+[data-theme="dark"] .modal-body h4{color:#7fc0f5}
+.modal-body h4:first-child{margin-top:0}
+
+/* ---------- highlight flash ---------- */
+@keyframes flash{0%,100%{box-shadow:none}20%{box-shadow:0 0 0 6px rgba(254,198,60,.55)}}
+.flash{animation:flash 1.6s ease 2}
+
+/* ---------- risk / security cards ---------- */
+.mini-card{border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:12px 14px;background:var(--surface);box-shadow:var(--shadow);transition:.15s}
+.mini-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.mini-card .mc-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;margin-bottom:5px}
+.mini-card .mc-b{font-size:12.5px;color:var(--text-2)}
+.raci-cell{text-align:center;font-weight:800;font-size:12px;padding:5px 6px !important}
+.raci-R{background:var(--sf-blue-soft);color:var(--sf-blue-2)}
+.raci-A{background:#efe3ff;color:#6b2ec9}
+.raci-C{background:var(--sf-orange-soft);color:#8c4700}
+.raci-I{background:var(--bg-2);color:var(--muted)}
+.raci-0{color:var(--border)}
+
+/* ---------- timeline (build phases) ---------- */
+.timeline{position:relative;padding-left:30px;margin:14px 0}
+.timeline::before{content:"";position:absolute;left:11px;top:6px;bottom:6px;width:3px;border-radius:3px;background:linear-gradient(180deg,var(--sf-blue),var(--sf-purple))}
+.tl-item{position:relative;margin-bottom:14px;background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:12px 16px;box-shadow:var(--shadow)}
+.tl-item::before{
+  content:"";position:absolute;left:-26px;top:16px;width:15px;height:15px;border-radius:50%;
+  background:var(--surface);border:3.5px solid var(--sf-blue);
+}
+.tl-item.critical::before{border-color:var(--sf-red);box-shadow:0 0 0 4px var(--sf-red-soft)}
+.tl-item.conditional{opacity:.75}
+.tl-item.conditional::before{border-color:var(--muted)}
+.tl-item .tl-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tl-item .tl-p{font-weight:800;font-size:13px;color:var(--sf-blue-2)}
+[data-theme="dark"] .tl-item .tl-p{color:#7fc0f5}
+.tl-item .tl-g{font-size:12px;color:var(--muted);margin-top:4px}
+.tl-item .tl-g b{color:var(--text-2)}
+
+/* ---------- misc ---------- */
+.kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--border);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--surface-2);color:var(--muted)}
+.hr{height:1px;background:var(--border-soft);margin:22px 0;border:0}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.center{text-align:center}
+.toast{
+  position:fixed;bottom:22px;right:22px;background:var(--sf-navy);color:#fff;padding:12px 18px;border-radius:10px;
+  box-shadow:var(--shadow-lg);font-size:13px;z-index:120;display:flex;gap:9px;align-items:center;animation:pop .2s ease;
+}
+footer{
+  margin-left:var(--sidebar-w);padding:22px 30px 40px;color:var(--muted);font-size:12px;border-top:1px solid var(--border-soft);
+}
+.back-top{
+  position:fixed;right:22px;bottom:22px;width:42px;height:42px;border-radius:50%;background:var(--sf-blue);color:#fff;
+  border:0;cursor:pointer;font-size:17px;box-shadow:var(--shadow-lg);display:none;z-index:70;
+}
+.back-top.show{display:block}
+
+@media(max-width:1000px){
+  .sidebar{transform:translateX(-100%);transition:transform .22s ease}
+  .sidebar.open{transform:none}
+  main,footer{margin-left:0}
+  .hamburger{display:block}
+  main{padding-left:16px;padding-right:16px}
+  .search-wrap{margin:0}
+  .topbar .brand small{display:none}
+}
+@media(max-width:640px){
+  .topbar .brand span.bt{display:none}
+  .valuechain{flex-direction:column}
+  .vc-arrow{transform:rotate(90deg);width:auto;height:22px}
+  .vc-stage{border-radius:var(--radius-sm) !important}
+}
+@media print{
+  .topbar,.sidebar,.back-top,.filters,.overlay{display:none !important}
+  main{margin:0;padding:0}
+  body{background:#fff}
+  details{open:true}
+}
+/*CSS-INJECT-END*/
+
+/* ============================================================
+   ALLOCATION ADD-ONS (layered on the blueprint design system)
+   ============================================================ */
+:root{ --p1:#0176d3; --p2:#2e844a; --p3:#9050e9; --p4:#ba5d00; }
+[data-theme="dark"]{ --p1:#5aa9f0; --p2:#63c07f; --p3:#b58cf5; --p4:#e39a4d; }
+[data-p="P1"]{ --pc:var(--p1) } [data-p="P2"]{ --pc:var(--p2) }
+[data-p="P3"]{ --pc:var(--p3) } [data-p="P4"]{ --pc:var(--p4) }
+
+.person-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:1100px){.person-grid{grid-template-columns:1fr}}
+.person{border:1px solid var(--border-soft);border-left:5px solid var(--pc);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);padding:14px 16px;cursor:pointer;transition:.15s}
+.person:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.person.focused{outline:2px solid var(--pc);outline-offset:1px}
+.person.dim{opacity:.45}
+.p-head{display:flex;align-items:center;gap:10px}
+.p-av{width:42px;height:42px;border-radius:50%;background:var(--pc);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:0 0 auto;letter-spacing:.5px}
+.p-name{font-weight:800;font-size:15px;border:1px dashed transparent;background:transparent;color:inherit;padding:1px 4px;border-radius:6px;width:100%;font-family:inherit}
+.p-name:hover{border-color:var(--border)}
+.p-name:focus{border-color:var(--pc);outline:0;background:var(--surface-2)}
+.p-role{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-top:2px}
+.p-badges{display:flex;gap:5px;flex-wrap:wrap;margin:9px 0 0}
+.p-skills{display:flex;gap:5px;flex-wrap:wrap;margin:9px 0 0}
+.skill{font-size:10.5px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:999px;padding:2px 8px;color:var(--text-2)}
+.p-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px;text-align:center}
+.p-stats div{background:var(--surface-2);border-radius:8px;padding:6px 3px}
+.p-stats b{display:block;font-size:16px;line-height:1.2}
+.p-stats span{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.load{height:9px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border-soft);overflow:hidden;margin-top:11px}
+.load i{display:block;height:100%;background:var(--pc);width:0;transition:width .35s ease}
+.load i.hot{background:var(--sf-red)}
+.load-cap{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:4px}
+
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:start}
+@media(max-width:1100px){.board{grid-template-columns:1fr}}
+.bcol{border:1px solid var(--border-soft);border-top:4px solid var(--pc);border-radius:var(--radius);background:var(--surface);display:flex;flex-direction:column}
+.bcol.dim{opacity:.38}
+.bcol-h{padding:9px 12px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:8px;background:var(--surface-2)}
+.bcol-h b{font-size:12.5px}
+.bcol-h .badge{margin-left:auto}
+.bcol-body{padding:10px;display:flex;flex-direction:column;gap:7px;max-height:660px;overflow:auto}
+.grp-lbl{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:7px 0 1px}
+.duty{border:1px solid var(--border-soft);border-left:3px solid var(--pc);border-radius:8px;padding:7px 9px;background:var(--surface);cursor:pointer;transition:.12s}
+.duty:hover{background:var(--sf-blue-soft);transform:translateX(2px)}
+.duty-top{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--muted);font-weight:700}
+.duty-t{font-size:12px;font-weight:600;margin-top:3px;line-height:1.32}
+.duty-m{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:10px;color:var(--muted);flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:0 0 auto}
+.dot.todo{background:#98a2b3} .dot.blocked{background:var(--sf-red)} .dot.progress{background:var(--sf-orange)}
+.dot.done{background:var(--sf-green)} .dot.review{background:var(--sf-blue)}
+.pts{font-size:10px;font-weight:800;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:6px;padding:1px 5px}
+
+.stack{display:flex;height:18px;border-radius:6px;overflow:hidden;border:1px solid var(--border-soft);background:var(--surface-2)}
+.stack i{display:block;height:100%;transition:width .35s ease}
+.seg-p1{background:var(--p1)} .seg-p2{background:var(--p2)} .seg-p3{background:var(--p3)} .seg-p4{background:var(--p4)}
+.legend{display:flex;gap:13px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:9px;align-items:center}
+.legend span{display:flex;align-items:center;gap:5px}
+.sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+.meter{border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:11px 14px;background:var(--surface);font-size:12.5px}
+.meter.ok{border-color:rgba(46,132,74,.45);background:var(--sf-green-soft)}
+.meter.warn{border-color:rgba(186,93,0,.4);background:var(--sf-orange-soft)}
+.meter b{font-family:var(--mono)}
+.assign{padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--surface);font:inherit;font-size:11.5px;color:inherit;max-width:100%}
+.assign:focus{outline:2px solid var(--sf-blue);outline-offset:1px}
+.freq{font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+.hours{font-family:var(--mono);font-weight:700}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:13px}
+.toolbar .sp{flex:1}
+.phase .ph-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ph-num{font-family:var(--mono);font-weight:800;font-size:12px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:6px;padding:1px 7px}
+.phase-body{padding:12px 14px 14px;border-top:1px solid var(--border-soft)}
+.char-in{flex:1;min-width:120px;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:12.5px}
+.tiny{font-size:11px}
+.pill-list{display:flex;gap:6px;flex-wrap:wrap}
+.single{color:var(--sf-red);font-weight:800}
+.bal-row{margin-bottom:12px}
+.bal-top{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:5px;flex-wrap:wrap}
+.bar-wrap{position:relative;height:13px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:99px;overflow:hidden}
+.bar-wrap i{display:block;height:100%;background:var(--pc);transition:width .4s ease}
+.bar-wrap i.hot{background:var(--sf-red)}
+.bar-wrap .meanline{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--text);opacity:.5}
+.duty-mini{font-size:11.5px;padding:3px 9px;display:inline-flex;align-items:center;gap:5px}
+.bd-k{display:flex;align-items:center;gap:8px;font-size:12px}
+.bd-row{flex-wrap:wrap;align-items:center}
+.phase>summary{cursor:pointer;list-style:none;padding:13px 15px;font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.phase>summary::-webkit-details-marker{display:none}
+.phase>summary::after{content:"▾";margin-left:auto;color:var(--muted);font-size:12px}
+.phase[open]>summary::after{content:"▴"}
+.phase>summary:hover{background:var(--surface-2)}
+.phase[open]{box-shadow:var(--shadow-lg)}
+tbody tr[data-d]{cursor:pointer}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle navigation">☰</button>
+  <div class="brand">
+    <div class="logo">👥</div>
+    <div><span class="bt">ATS Telecom <small>4-Person Duty Allocation</small></span></div>
+  </div>
+  <div class="search-wrap">
+    <input class="char-in" id="dutySearchTop" type="search" placeholder="Filter duties by id, title, epic or domain…">
+  </div>
+  <div class="topbar-actions">
+    <button class="tb-btn" id="themeBtn" title="Toggle dark mode">🌙</button>
+    <a class="tb-btn" href="index.html" title="Back to the documentation hub">📡 Blueprint</a>
+    <a class="tb-btn" href="https://github.com/AbdoAddouli/SFDX_Telecom" target="_blank" rel="noopener" title="GitHub repository">GitHub ↗</a>
+  </div>
+</header>
+
+<div class="overlay" id="overlay"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="nav-group">The plan</div>
+  <a class="nav-link" href="#overview"><span class="ni">🏠</span> Overview</a>
+  <a class="nav-link" href="#team"><span class="ni">👥</span> The Team of Four</a>
+  <a class="nav-link" href="#board"><span class="ni">🧩</span> Workload Board</a>
+  <div class="nav-group">Proof &amp; control</div>
+  <a class="nav-link" href="#duties"><span class="ni">📋</span> Duty Explorer <span class="nav-badge" id="navDutyCount">80</span></a>
+  <a class="nav-link" href="#responsibility"><span class="ni">🧭</span> Responsibility (RACI)</a>
+  <a class="nav-link" href="#phases"><span class="ni">🪜</span> Phases &amp; Gates <span class="nav-badge">11</span></a>
+  <div class="sidebar-footer">
+    Every duty from <b>use-cases/EPIC-*.md</b> (80 use cases) plus 12 recurring operational
+    duties, assigned to <b>exactly four people</b>.<br>
+    Companion to the <a href="index.html">interactive blueprint</a>.
+  </div>
+</nav>
+
+<main>
+<!-- ============================================================
+     §1 OVERVIEW
+     ============================================================ -->
+<section class="section" id="overview">
+  <div class="section-head">
+    <div class="s-ico">🏠</div>
+    <div>
+      <h2>One plan, four people</h2>
+      <div class="s-sub">80 project duties + 12 recurring duties · 11 phases · zero unassigned work</div>
+    </div>
+  </div>
+  <p class="section-intro">
+    This page takes every duty described in the documentation set and assigns it to a delivery team of
+    <b>exactly four people</b>. Each duty keeps the skill domain implied by its original owner in
+    <span class="mono">use-cases/</span>, and the allocation is balanced by effort so that no one is a
+    bottleneck on paper. Nothing here changes the scope — it only decides who carries it.
+    <span class="ref">Source: use-cases/EPIC-00…EPIC-10, ARCHITECTURE.md, BUSINESS_PROCESS.md</span>
+  </p>
+
+  <div class="grid g4" id="statGrid"></div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card">
+      <h3>Effort balance across the four <span class="ref">— points, not calendar time</span></h3>
+      <p class="small muted" style="margin-top:0">
+        A duty is worth <b>5 points</b> when it is <span class="mono">Must</span>, <b>3</b> when
+        <span class="mono">Should</span>, <b>1</b> otherwise. The target line is the team average — a
+        bar that reaches the dashed line is carrying its fair share.
+      </p>
+      <div id="balanceBars"></div>
+      <div class="legend" id="balanceLegend"></div>
+    </div>
+    <div class="card">
+      <h3>Blocked work — and who owns the chase <span class="ref">— README §8 decision register</span></h3>
+      <p class="small muted" style="margin-top:0" id="blockerSummary"></p>
+      <div id="blockerPanel"></div>
+      <div class="callout co-orange" style="margin:12px 0 0"><span class="c-ico">⚠️</span><div>
+        Blocked duties are <b>assigned</b>, but they cannot start. Chasing the open decisions is itself a
+        duty (see <b>Responsibility</b>) and is deliberately held by one accountable person, not shared.
+      </div></div>
+    </div>
+  </div>
+
+  <div class="grid g3" style="margin-top:18px">
+    <div class="mini-card"><div class="mc-h">Why four?</div><div class="mc-b">The documentation names more than a dozen roles (architect, Apex developer, admin, pricing admin, LWC developer, Experience Cloud developer, DevOps, QA, security, ops, analyst). A team of four means each person covers a set of <b>domains</b> — that is the trade-off this page makes visible.</div></div>
+    <div class="mini-card"><div class="mc-h">How the split was chosen</div><div class="mc-b">Each duty carries a demand domain from its original owner label. A duty goes to the least-loaded person whose domains cover it, so Apex work never lands on the portal developer and pricing work never lands on the CI/CD owner.</div></div>
+    <div class="mini-card"><div class="mc-h">What to watch</div><div class="mc-b">Two things cause real trouble in a four-person team: <b>single-point domains</b> (only one person can do the work) and <b>accountability stacking</b> (one person signs everything off). Both are measured below.</div></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     §2 TEAM
+     ============================================================ -->
+<section class="section" id="team">
+  <div class="section-head">
+    <div class="s-ico">👥</div>
+    <div>
+      <h2>The team of four</h2>
+      <div class="s-sub">Rename each person, then click a card to focus the whole page on their duties</div>
+    </div>
+  </div>
+  <p class="section-intro">
+    Names are editable and stored in your browser — put your real teammates in. Everything else on this page
+    (board, table, phases, counters) re-reads the current allocation, so moving a duty anywhere below updates
+    these cards immediately.
+  </p>
+
+  <div class="person-grid" id="teamCards"></div>
+
+  <h3 style="margin-top:26px">Domain coverage &amp; key-person risk <span class="ref">— who can even do the work</span></h3>
+  <p class="small muted">
+    A domain with a single capable person is a <b>single point of failure</b>: holidays, illness or a
+    resignation stops that workstream. The last columns show the mitigation to plan for.
+  </p>
+  <div class="tbl-wrap"><table class="data compact" id="domainMatrix"></table></div>
+
+  <h3 style="margin-top:26px">Recurring operational duties <span class="ref">— the work that never appears in a backlog</span></h3>
+  <p class="small muted">
+    These are not project use cases: they are the standing duties the documentation implies (pricing export
+    refresh, reconciliation triage, runbook upkeep, gate evidence). They repeat whether or not the project is
+    on track, so they are counted in <b>hours per week</b> and shown separately from effort points.
+  </p>
+  <div class="grid g2">
+    <div class="tbl-wrap"><table class="data compact" id="standingTable"></table></div>
+    <div class="card" style="margin:0">
+      <h4 style="margin-top:0">Recurring load per person</h4>
+      <div id="recurringBars"></div>
+      <div id="recurringNote" class="callout co-blue" style="margin-bottom:0"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     §3 BOARD
+     ============================================================ -->
+<section class="section" id="board">
+  <div class="section-head">
+    <div class="s-ico">🧩</div>
+    <div>
+      <h2>Workload board</h2>
+      <div class="s-sub">Every duty, grouped by its owner, then by epic — click any duty for the detail</div>
+    </div>
+  </div>
+  <p class="section-intro">
+    The four columns are the four people. Turn on <b>rebalance</b> to move duties by hand: the dropdowns only
+    ever offer people whose skills cover that duty's domain, so a move can never create impossible work.
+  </p>
+
+  <div class="toolbar" id="boardToolbar"></div>
+  <div id="boardMeter"></div>
+  <div class="board" id="boardGrid" style="margin-top:14px"></div>
+</section>
+
+<!-- ============================================================
+     §4 DUTY EXPLORER
+     ============================================================ -->
+<section class="section" id="duties">
+  <div class="section-head">
+    <div class="s-ico">📋</div>
+    <div>
+      <h2>Duty explorer</h2>
+      <div class="s-sub">All 80 project duties — filter, search, and (in rebalance mode) reassign</div>
+    </div>
+  </div>
+  <p class="section-intro">
+    The same allocation, in a table you can audit line by line. Each row keeps the <b>source owner</b> from the
+    epic files so you can always trace a duty back to the document that defined it.
+  </p>
+
+  <div id="dutyFilters">
+    <div class="toolbar" id="dfChips"></div>
+    <div class="toolbar" id="dfSelects" style="margin-top:2px"></div>
+  </div>
+  <div id="dutyCount" class="small muted" style="margin:10px 0 6px"></div>
+  <div class="tbl-wrap"><table class="data compact" id="dutyTable"></table></div>
+</section>
+
+<!-- ============================================================
+     §5 RESPONSIBILITY
+     ============================================================ -->
+<section class="section" id="responsibility">
+  <div class="section-head">
+    <div class="s-ico">🧭</div>
+    <div>
+      <h2>Responsibility matrix</h2>
+      <div class="s-sub">Who does it, who signs it off, who must be consulted — for the four-person team</div>
+    </div>
+  </div>
+  <p class="section-intro">
+    The business RACI in <span class="mono">BUSINESS_PROCESS.md §18</span> maps <i>operating</i> roles
+    (Prospect, Customer, Advisor, Finance…). This is the delivery equivalent for exactly four people:
+    <b>R</b> does the work, <b>A</b> is accountable for the outcome and signs it off, <b>C</b> must be
+    consulted before a change, <b>I</b> is kept informed.
+  </p>
+  <div class="legend" style="margin-bottom:12px">
+    <span><i class="sw" style="background:var(--sf-blue-2)"></i> R — responsible</span>
+    <span><i class="sw" style="background:#6b2ec9"></i> A — accountable</span>
+    <span><i class="sw" style="background:var(--sf-orange)"></i> C — consulted</span>
+    <span><i class="sw" style="background:#98a2b3"></i> I — informed</span>
+    <span><i class="sw" style="background:var(--surface-2);border:1px solid var(--border)"></i> — not involved</span>
+  </div>
+  <div class="tbl-wrap"><table class="data compact" id="raciTable"></table></div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card">
+      <h3>Accountability load <span class="ref">— who signs off</span></h3>
+      <div id="accLoad"></div>
+    </div>
+    <div class="card">
+      <h3>Second-hat risk <span class="ref">— where "informed" is doing all the work</span></h3>
+      <p class="small muted" style="margin-top:0">
+        When a person is only <b>informed</b> on a capability that their own duties depend on, a change there
+        can surprise them. The list below is generated from the matrix: it is the reading list, not a scolding.
+      </p>
+      <div id="hatRisk"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     §6 PHASES
+     ============================================================ -->
+<section class="section" id="phases">
+  <div class="section-head">
+    <div class="s-ico">🪜</div>
+    <div>
+      <h2>Phases &amp; gates</h2>
+      <div class="s-sub">Phases 0–10 · the gate text is the exit criterion · the lead is the person carrying the most effort</div>
+    </div>
+  </div>
+  <p class="section-intro">
+    Phases come straight from the epic files. A phase is not finished when the work stops — it is finished when
+    the gate is evidenced. The <b>lead</b> below is derived from the current allocation; the accountable
+    sign-off stays with the tech lead on every gate.
+  </p>
+  <div id="phaseList"></div>
+</section>
+</main>
+
+<footer>
+  ATS Telecom — 4-Person Duty Allocation · built from the same source set as the blueprint:
+  <a href="index.html">interactive blueprint</a> ·
+  <a href="https://github.com/AbdoAddouli/SFDX_Telecom" target="_blank" rel="noopener">github.com/AbdoAddouli/SFDX_Telecom</a><br>
+  80 project duties from use-cases/EPIC-*.md · 12 recurring duties derived from BUSINESS_PROCESS.md §18 and ARCHITECTURE.md §11.3
+</footer>
+
+<div class="modal-back" id="modalBack">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div>
+        <h3 id="modalTitle">—</h3>
+        <div class="m-sub" id="modalSub"></div>
+      </div>
+      <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<button class="back-top" id="backTop" title="Back to top">↑</button>
+
+<script>
+/* =========================================================================
+   ATS TELECOM — 4-PERSON ALLOCATION · DATA
+   ========================================================================= */
+/*DATA-INJECT-START*/
+var DOMAINS = {"ARCH":{"label":"Architecture & decisions","note":"ADRs, data-model design, security posture, go-live gates"},"DEV":{"label":"Apex & core transaction","note":"services, triggers, state machines, activation, penalty"},"ADMIN":{"label":"Admin, config & Flows","note":"objects, metadata, permission sets, declarative Flows"},"PRICING":{"label":"Catalogue & pricing","note":"RCA products, pricebooks, decision tables, activation"},"FRONTEND":{"label":"LWC & portal experience","note":"advisor console, subscriptionWizard, Experience Cloud"},"DEVOPS":{"label":"CI/CD & environments","note":"SFDX project, scratch orgs, pipeline, release artefacts"},"QA":{"label":"QA & test evidence","note":"Apex suite, pricing harness, end-to-end proofs"},"OPS":{"label":"Ops & reconciliation","note":"observability, BSS reconciliation, runbooks"}};
+var TEAM = [{"id":"P1","name":"Person 1","role":"Solution Architect & Tech Lead","tagline":"Owns the decisions, the hard Apex and every gate sign-off.","domains":["ARCH","DEV","PRICING","QA"],"primary":["ARCH"],"skills":["Architecture & ADRs","Data-model design","Senior Apex","Pricing policy","Security & go-live gates","Decision chase"]},{"id":"P2","name":"Person 2","role":"Core Transaction Developer","tagline":"Activation, penalty and integration — the transactional heart.","domains":["DEV","DEVOPS","QA"],"primary":["DEV"],"skills":["Apex services & triggers","Activation atomicity","Penalty engine","Callouts & platform events","Reconciliation batches","CI pipeline"]},{"id":"P3","name":"Person 3","role":"Config, Data-Model & Pricing Admin","tagline":"Builds the data model, catalogue, pricing and security configuration.","domains":["ADMIN","PRICING","ARCH"],"primary":["ADMIN"],"skills":["Custom objects & metadata","RCA catalogue & pricebooks","Decision tables","Permission sets & FLS","Validation rules","Declarative Flows"]},{"id":"P4","name":"Person 4","role":"Experience & Delivery Engineer","tagline":"Advisor console, portal, Flows, pipeline and the runbooks.","domains":["FRONTEND","ADMIN","DEVOPS","QA","OPS"],"primary":["FRONTEND"],"skills":["LWC advisor console & 360°","subscriptionWizard","Experience Cloud portal","Screen & record Flows","QA harness","Observability & runbooks"]}];
+var EPICS = [{"id":"E0","num":"00","title":"Foundation","sub":"Org, repo, RCA enabled, CI/CD, scaffolding","phase":"Phase 0","gate":"Metadata deploys cleanly to an empty org"},{"id":"E1","num":"01","title":"Data Model","sub":"6 custom objects, metadata, validation, FLS, seeds","phase":"Phase 1","gate":"Deploy succeeds; seeds load idempotently"},{"id":"E2","num":"02","title":"Catalog & Pricing","sub":"RCA catalogue, selling models, adjustments, pricing procedure","phase":"Phase 2","gate":"Committed 5 GB plan prices correctly; 30% device discount fires"},{"id":"E3","num":"03","title":"Acquisition","sub":"LeadImportService, portal form, conversion Flow","phase":"Phase 3","gate":"Lead Ready → Account + Contact + Opportunity, idempotently"},{"id":"E4","num":"04","title":"Commerce & Activation","sub":"OfferBuilderService, ActivationService, state machine","phase":"Phase 4","gate":"Quote → Order → activate atomically, safely twice"},{"id":"E5","num":"05","title":"Advisor Experience","sub":"customer360Shell, subscriptionWizard, CatalogQueryService","phase":"Phase 5","gate":"5-step journey completes end-to-end from a blank Account"},{"id":"E6","num":"06","title":"Lifecycle","sub":"EngagementPenaltyService, plan-change & cancellation Flows","phase":"Phase 6","gate":"Both paths produce correct fees"},{"id":"E7","num":"07","title":"Self-Service Portal","sub":"Site, 3 experiences, request forms, security layer","phase":"Phase 7","gate":"Customer cancels; advisor sees it in the 360° view"},{"id":"E8","num":"08","title":"Integration","sub":"BSS callout, Integration_Log__c, platform events, image sync","phase":"Phase 8","gate":"Rollback verified against a deliberately failing endpoint"},{"id":"E9","num":"09","title":"Hardening & NFR","sub":"Test suite, FLS/IDOR review, translation, performance","phase":"Phase 9","gate":"All exit criteria met"},{"id":"E10","num":"10","title":"Billing","sub":"Revenue Cloud Billing if Q3 confirms","phase":"Phase 10","gate":"Invoicing and revenue recognition reconciled"}];
+var DUTIES = [{"id":"UC-FND-01","epic":"E0","title":"Initialize the SFDX project and repository structure","priority":"Must","status":"todo","blocker":"","goal":"Create a versioned Salesforce DX project with the package-directory split the release pipeline depends on.","owner":"DevOps / Release Engineer","dom":"DEVOPS","pts":5,"person":"P2"},{"id":"UC-FND-02","epic":"E0","title":"Provision dedicated environments and scratch org definition","priority":"Must","status":"todo","blocker":"","goal":"Provide the four-environment strategy and stop building against devtospace-stage.","owner":"DevOps / Release Engineer","dom":"DEVOPS","pts":5,"person":"P4"},{"id":"UC-FND-03","epic":"E0","title":"Enable Revenue Cloud Advanced and required org configuration","priority":"Must","status":"blocked","blocker":"Q2","goal":"Enable the sanctioned quoting platform (RCA/RLM), which cannot be enabled via CLI and must exist before RCA-dependent metadata deploys.","owner":"Solution Architect + A7","dom":"ARCH","pts":5,"person":"P3"},{"id":"UC-FND-04","epic":"E0","title":"Establish naming, namespace, and scaffolding conventions","priority":"Must","status":"todo","blocker":"","goal":"Fix the naming and metadata conventions up front so E1 and later epics deploy consistently and pass code review.","owner":"Solution Architect","dom":"ARCH","pts":5,"person":"P3"},{"id":"UC-FND-05","epic":"E0","title":"Stand up CI/CD with DevOps Center","priority":"Must","status":"todo","blocker":"","goal":"Provide component-based deployment and release management so metadata ordering is handled and every phase has a repeatable gate.","owner":"DevOps / Release Engineer","dom":"DEVOPS","pts":5,"person":"P2"},{"id":"UC-FND-06","epic":"E0","title":"Resolve and record blocking open decisions","priority":"Must","status":"blocked","blocker":"","goal":"Close or explicitly defer each decision in the README §8 register, recording the decision, date, and rationale.","owner":"Business Analyst + sponsors","dom":"ARCH","pts":5,"person":"P1"},{"id":"UC-FND-07","epic":"E0","title":"Configure Translation Workbench scope","priority":"Should","status":"todo","blocker":"","goal":"Decide translation scope deliberately because org labels are French and standard-object translation causes layout and validation conflicts.","owner":"Salesforce Admin","dom":"ADMIN","pts":3,"person":"P3"},{"id":"UC-DM-01","epic":"E1","title":"Create the six custom objects","priority":"Must","status":"todo","blocker":"","goal":"Create the six ATS custom objects without fields first so API names exist and later field/deploy steps resolve.","owner":"Salesforce Developer (Admin/Config)","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-DM-02","epic":"E1","title":"Subscription__c — service instance fields, status, formulas","priority":"Must","status":"todo","blocker":"","goal":"Build the high-volume service-instance object: one record per active line per service type with controlled status and derived commitment state.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-DM-03","epic":"E1","title":"Engagement__c — commitment fields, status, formulas","priority":"Must","status":"todo","blocker":"","goal":"Build the commitment object whose snapshots make penalties reproducible years later.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-DM-04","epic":"E1","title":"Customer_Request__c — request fields, types, statuses, formulas","priority":"Must","status":"todo","blocker":"","goal":"Build the single controlled entry point for all lifecycle changes.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-DM-05","epic":"E1","title":"Eligibility__c — fibre coverage lookup table","priority":"Must","status":"blocked","blocker":"Q4 / BQ8","goal":"Provide the one-record-per-serviceable-geography lookup that gates every fibre promise.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-DM-06","epic":"E1","title":"Integration_Log__c — observability object","priority":"Must","status":"todo","blocker":"","goal":"Add the observability object the case study omits so a failed provisioning callout is diagnosable.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-DM-07","epic":"E1","title":"Subscription_Wizard_State__c — resumable journey state","priority":"Must","status":"todo","blocker":"","goal":"Persist guided-journey state so a dropped connection, browser crash, or end-of-day does not lose an advisor session.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-DM-08","epic":"E1","title":"Custom metadata types (Engagement_Penalty__mdt, External_Api__mdc)","priority":"Must","status":"blocked","blocker":"BQ11","goal":"Encode the two genuinely ATS-specific configuration concerns as custom metadata.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-DM-09","epic":"E1","title":"Custom setting, custom permissions, value sets, custom labels","priority":"Must","status":"todo","blocker":"","goal":"Provide the configuration surface that lets behaviour change without a deployment, plus reusable value sets and microcopy.","owner":"Salesforce Admin","dom":"ADMIN","pts":5,"person":"P3"},{"id":"UC-DM-10","epic":"E1","title":"Standard-object extensions (14 objects)","priority":"Must","status":"todo","blocker":"","goal":"Extend the standard objects the processes bind to, with correct external IDs for idempotency.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-DM-11","epic":"E1","title":"Validation rules and formulas","priority":"Must","status":"blocked","blocker":"BQ2","goal":"Implement the non-bypassable constraints and derived formulas, choosing the right mechanism per constraint type.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-DM-12","epic":"E1","title":"Permission sets and FLS matrix","priority":"Must","status":"todo","blocker":"","goal":"Grant least-privilege access through permission sets matching the FLS matrix exactly.","owner":"Solution Architect + Admin","dom":"ARCH","pts":5,"person":"P3"},{"id":"UC-DM-13","epic":"E1","title":"Indexes, external IDs, duplicate rules","priority":"Must","status":"blocked","blocker":"BQ10 / Q6","goal":"Ensure the highest-frequency queries remain selective at millions of records and duplicates are impossible.","owner":"Solution Architect","dom":"ARCH","pts":5,"person":"P3"},{"id":"UC-DM-14","epic":"E1","title":"Idempotent seed data and retention schedulers","priority":"Must","status":"todo","blocker":"","goal":"Load the catalogue and coverage baseline idempotently and schedule the cleanup and reconciliation jobs the data lifecycle requires.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-CAT-01","epic":"E2","title":"Product classification hierarchy","priority":"Must","status":"blocked","blocker":"RCA enablement","goal":"Replace the flat Product2.Family hierarchy with RCA's attribute-based ProductClassification.","owner":"A7 Pricing Admin","dom":"PRICING","pts":5,"person":"P3"},{"id":"UC-CAT-02","epic":"E2","title":"Product attributes and attribute-driven behaviour","priority":"Must","status":"todo","blocker":"","goal":"Expose product behaviour through the catalog so rules and the wizard can filter without code.","owner":"A7 Pricing Admin","dom":"PRICING","pts":5,"person":"P1"},{"id":"UC-CAT-03","epic":"E2","title":"Selling models and commitment options (ProductSellingModelOption)","priority":"Must","status":"todo","blocker":"","goal":"Model commitment as variant pricing on one product, not as separate products.","owner":"A7 Pricing Admin","dom":"PRICING","pts":5,"person":"P3"},{"id":"UC-CAT-04","epic":"E2","title":"Pricebook topology and pricebook entries","priority":"Must","status":"blocked","blocker":"BQ6 / Q3-DM","goal":"Establish list prices for the 9 seed products with effective dating.","owner":"A7 Pricing Admin","dom":"PRICING","pts":5,"person":"P1"},{"id":"UC-CAT-05","epic":"E2","title":"Bundle adjustment — 30% device discount","priority":"Must","status":"todo","blocker":"","goal":"Make the bundle discount automatic and advisor-bypass-proof, declaratively.","owner":"A7 Pricing Admin","dom":"PRICING","pts":5,"person":"P3"},{"id":"UC-CAT-06","epic":"E2","title":"Product configuration rule — mandatory commitment","priority":"Must","status":"todo","blocker":"","goal":"Prevent a device that requires a commitment from appearing on a NOCOMMIT quote.","owner":"A7 Pricing Admin","dom":"PRICING","pts":5,"person":"P1"},{"id":"UC-CAT-07","epic":"E2","title":"Pricing procedure, decision tables, and activation","priority":"Must","status":"todo","blocker":"","goal":"Build and activate the five-step pricing procedure.","owner":"A7 Pricing Admin","dom":"PRICING","pts":5,"person":"P3"},{"id":"UC-CAT-08","epic":"E2","title":"CatalogQueryService — server-side catalogue + pricing","priority":"Must","status":"todo","blocker":"","goal":"Provide the single Apex service that returns authoritative RCA prices to both advisor and portal.","owner":"Salesforce Developer (Apex)","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-CAT-09","epic":"E2","title":"pricing-export/ artefact and refresh discipline","priority":"Must","status":"todo","blocker":"","goal":"Make pricing reproducible from version control as setup-time configuration.","owner":"DevOps + A7","dom":"DEVOPS","pts":5,"person":"P2"},{"id":"UC-ACQ-01","epic":"E3","title":"LeadImportService — bulk lead import","priority":"Must","status":"todo","blocker":"","goal":"Ingest campaign lists of thousands of prospects safely within DML limits.","owner":"Salesforce Developer (Apex)","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-ACQ-02","epic":"E3","title":"Bulk import home-page LWC","priority":"Should","status":"todo","blocker":"","goal":"Give marketing/admin a home-page component to submit a campaign file to LeadImportService.","owner":"Front-end Developer (LWC)","dom":"FRONTEND","pts":3,"person":"P4"},{"id":"UC-ACQ-03","epic":"E3","title":"Portal contact form (guest, rate-limited)","priority":"Must","status":"todo","blocker":"","goal":"Capture prospect interest from the public site with declarative validation, consent recording, and abuse protection.","owner":"Front-end Developer (LWC) + Admin","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-ACQ-04","epic":"E3","title":"Dedupe, consent stamping, and scoring","priority":"Must","status":"todo","blocker":"","goal":"Ensure leads are deduplicated and scored before an advisor spends time on them.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-ACQ-05","epic":"E3","title":"Lead conversion Flow (Ready → Account/Contact/Opportunity)","priority":"Must","status":"todo","blocker":"","goal":"Convert a Ready lead into Account, Contact, and Opportunity idempotently.","owner":"Salesforce Admin (Flow)","dom":"ADMIN","pts":5,"person":"P3"},{"id":"UC-COM-01","epic":"E4","title":"OfferBuilderService — build the quote","priority":"Must","status":"todo","blocker":"","goal":"Turn a wizard selection into a priced, compliant Quote, delegating configuration and pricing to RCA.","owner":"Salesforce Developer (Apex)","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-COM-02","epic":"E4","title":"Contract + ContractLineItem — the commercial container","priority":"Must","status":"blocked","blocker":"Q1 / BQ1","goal":"Hold the 12/24-month term of record, grouping plan and device under one commitment and carrying adjustments.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-COM-03","epic":"E4","title":"ActivationService — atomic activation transaction","priority":"Must","status":"todo","blocker":"","goal":"Atomically turn a commercial Order into a live service with provisioned Asset, active Subscription, in-force Engagement, and confirmed BSS record.","owner":"Salesforce Developer (Apex)","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-COM-04","epic":"E4","title":"Subscription state machine (trigger handler)","priority":"Must","status":"todo","blocker":"","goal":"Enforce the allowed Status__c transitions from every DML path.","owner":"Salesforce Developer (Apex)","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-COM-05","epic":"E4","title":"Activation Flow + “Validate the Order” custom action","priority":"Must","status":"todo","blocker":"","goal":"Provide the entry point and error surface for activation while Apex guarantees atomicity.","owner":"Salesforce Admin (Flow)","dom":"ADMIN","pts":5,"person":"P3"},{"id":"UC-COM-06","epic":"E4","title":"Activation idempotency and bulk-safety proof","priority":"Must","status":"todo","blocker":"","goal":"Prove the two failure modes that cause double billing and production-only limit breaches.","owner":"Salesforce Developer + QA","dom":"QA","pts":5,"person":"P4"},{"id":"UC-UX-01","epic":"E5","title":"customer360Shell — composed container","priority":"Must","status":"todo","blocker":"","goal":"Provide the zoned container that declarative related lists cannot reproduce, with each zone isolated as a child component.","owner":"Front-end Developer (LWC)","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-UX-02","epic":"E5","title":"Customer Information zone + status badge","priority":"Must","status":"todo","blocker":"","goal":"Show identity, segment, computed status badge, and active line count derived from live data.","owner":"Front-end Developer (LWC)","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-UX-03","epic":"E5","title":"Subscriptions zone (datatable, Subscribe/Unsubscribe)","priority":"Must","status":"todo","blocker":"","goal":"List the customer's lines with status pill, plan, and monthly price, routing destructive action through a request.","owner":"Front-end Developer (LWC)","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-UX-04","epic":"E5","title":"Subscriptions & Hardware zone","priority":"Must","status":"todo","blocker":"","goal":"Show provisioned assets — device image, serial, colour, status — and launch equipment swap.","owner":"Front-end Developer (LWC)","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-UX-05","epic":"E5","title":"Interactions zone (timeline)","priority":"Should","status":"todo","blocker":"","goal":"Give a single timeline of Cases, Opportunities, Quotes, and Orders so any historical request can be opened.","owner":"Front-end Developer (LWC)","dom":"FRONTEND","pts":3,"person":"P4"},{"id":"UC-UX-06","epic":"E5","title":"External API card (contextual data)","priority":"Should","status":"todo","blocker":"","goal":"Demonstrate the integration pattern on the cockpit without hardcoding a vendor.","owner":"Front-end Developer (LWC)","dom":"FRONTEND","pts":3,"person":"P4"},{"id":"UC-UX-07","epic":"E5","title":"subscriptionWizard — five-step guided journey","priority":"Must","status":"todo","blocker":"","goal":"Deliver one component, five steps with persisted state and server-side pricing.","owner":"Front-end Developer (LWC)","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-LIF-01","epic":"E6","title":"EngagementPenaltyService + penalty-matrix resolution","priority":"Must","status":"blocked","blocker":"BQ11","goal":"Compute early-termination fees server-side and reproducibly from inception snapshots and a configurable matrix.","owner":"Salesforce Developer (Apex)","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-LIF-02","epic":"E6","title":"Plan change Flow (amend path)","priority":"Must","status":"blocked","blocker":"Q1 / BQ1","goal":"Let a customer upgrade/downgrade mid-term while repricing the contract, superseding the old instance, and preserving commitment integrity.","owner":"Salesforce Developer + Admin","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-LIF-03","epic":"E6","title":"Cancellation Flow (intake → fee → approval → fulfilment)","priority":"Must","status":"blocked","blocker":"BQ2","goal":"Terminate a service legally compliant, financially correct, fully traceable, and operationally clean.","owner":"Salesforce Developer + Admin","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-LIF-04","epic":"E6","title":"Suspension / unfreeze","priority":"Must","status":"blocked","blocker":"BQ3","goal":"Freeze and unfreeze a line via a reversible transition without touching the commercial term.","owner":"Salesforce Admin (Flow)","dom":"ADMIN","pts":5,"person":"P3"},{"id":"UC-LIF-05","epic":"E6","title":"Equipment swap","priority":"Should","status":"todo","blocker":"","goal":"Replace a customer's device while preserving the service instance and commitment.","owner":"Salesforce Admin (Flow)","dom":"ADMIN","pts":3,"person":"P3"},{"id":"UC-LIF-06","epic":"E6","title":"Renewal management (T−60/30/7)","priority":"Must","status":"blocked","blocker":"BQ4","goal":"Turn the natural end of a commitment into a deliberate commercial event before the customer drifts away uncontacted.","owner":"Salesforce Admin (Flow)","dom":"ADMIN","pts":5,"person":"P3"},{"id":"UC-LIF-07","epic":"E6","title":"Number portability (inbound/outbound)","priority":"Should","status":"blocked","blocker":"BQ10 / Q6","goal":"Transfer a number in or out with two-phase discipline, never optimistically overwriting the number.","owner":"Salesforce Developer","dom":"DEV","pts":3,"person":"P2"},{"id":"UC-LIF-08","epic":"E6","title":"Shared request intake, Case traceability, approval gate","priority":"Must","status":"blocked","blocker":"BQ9","goal":"Provide one intake skeleton that every lifecycle process reuses, guaranteeing traceability and approval routing.","owner":"Salesforce Admin (Flow)","dom":"ADMIN","pts":5,"person":"P4"},{"id":"UC-POR-01","epic":"E7","title":"Experience Cloud site and digital experience setup","priority":"Must","status":"todo","blocker":"","goal":"Stand up the ATS portal site with the three experiences and a clean base with no inherited controller anti-patterns.","owner":"Salesforce Admin + Experience Cloud Dev","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-POR-02","epic":"E7","title":"My Subscriptions experience","priority":"Must","status":"todo","blocker":"","goal":"Show the customer their active plans and equipment, read-mostly, with FLS enforced by default.","owner":"Experience Cloud Developer","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-POR-03","epic":"E7","title":"Track My Requests experience","priority":"Must","status":"todo","blocker":"","goal":"Let customers monitor quotes, orders, and customer requests by status.","owner":"Experience Cloud Developer","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-POR-04","epic":"E7","title":"Submit a Request experience","priority":"Must","status":"todo","blocker":"","goal":"Let a customer submit plan change and cancellation forms that land in the same back-office processes as advisor requests.","owner":"Experience Cloud Developer","dom":"FRONTEND","pts":5,"person":"P4"},{"id":"UC-POR-05","epic":"E7","title":"Portal security layer (IDOR, FLS, no controllers)","priority":"Must","status":"todo","blocker":"","goal":"Make cross-account data access impossible and secrets unreachable.","owner":"Solution Architect + Developer","dom":"ARCH","pts":5,"person":"P3"},{"id":"UC-POR-06","epic":"E7","title":"Portal-to-back-office intake and live status","priority":"Must","status":"blocked","blocker":"","goal":"Ensure a portal request enters exactly the same governed process and its status is reflected back to the customer.","owner":"Salesforce Developer + Admin","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-INT-01","epic":"E8","title":"BSS/OSS provisioning callout","priority":"Must","status":"todo","blocker":"","goal":"Provision and de-provision services over a Named Credential with an idempotency key, rolling back on failure.","owner":"Salesforce Developer (Apex)","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-INT-02","epic":"E8","title":"Integration_Log__c logging and correlation framework","priority":"Must","status":"todo","blocker":"","goal":"Give every transaction chain a shared Correlation_Id__c and log each step so a failed callout is diagnosable.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-INT-03","epic":"E8","title":"Platform events (post-commit outbox)","priority":"Must","status":"todo","blocker":"","goal":"Publish ats.service.activated.v1 only after commit so consumers never observe phantom state.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-INT-04","epic":"E8","title":"BSS status reconciliation batch","priority":"Must","status":"todo","blocker":"","goal":"Nightly compare Salesforce state to the BSS, surface drift, and retry failed de-provisions.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-INT-05","epic":"E8","title":"Product image sync","priority":"Should","status":"todo","blocker":"","goal":"Cache device photography onto Product2.Device_Image_URL__c so the 360 view and wizard never make a live callout per row.","owner":"Salesforce Developer","dom":"DEV","pts":3,"person":"P1"},{"id":"UC-INT-06","epic":"E8","title":"ExternalApiService + External_Api__mdc framework","priority":"Must","status":"todo","blocker":"","goal":"Provide one callout framework where no URL or key is ever hardcoded, with caching, throttling, timeouts, and a kill switch.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P2"},{"id":"UC-INT-07","epic":"E8","title":"Reporting / BI feed (Change Data Capture)","priority":"Should","status":"todo","blocker":"","goal":"Stream the four custom objects plus Asset to Data Cloud / Power BI for churn, penalty, and operational KPIs.","owner":"Integration Developer","dom":"DEV","pts":3,"person":"P1"},{"id":"UC-HRD-01","epic":"E9","title":"Apex test suite to coverage targets","priority":"Must","status":"todo","blocker":"","goal":"Reach at least 75% org coverage and 80% on domain services with tests that prove behaviour.","owner":"QA Engineer + Developers","dom":"QA","pts":5,"person":"P4"},{"id":"UC-HRD-02","epic":"E9","title":"FLS / CRUD / IDOR security regression","priority":"Must","status":"todo","blocker":"","goal":"Prove the portal cannot leak, fees cannot be tampered with, and no persona can exceed its grant.","owner":"Security Engineer","dom":"ARCH","pts":5,"person":"P3"},{"id":"UC-HRD-03","epic":"E9","title":"Translation (apply agreed scope)","priority":"Should","status":"todo","blocker":"","goal":"Apply the translation scope decided in E0 without causing standard-object layout or validation conflicts.","owner":"Salesforce Admin","dom":"ADMIN","pts":3,"person":"P3"},{"id":"UC-HRD-04","epic":"E9","title":"Performance and bulk hardening","priority":"Must","status":"todo","blocker":"","goal":"Ensure the system holds at scale: selective 360 query, safe renewal scan, and activation batches under limits.","owner":"Salesforce Developer","dom":"DEV","pts":5,"person":"P1"},{"id":"UC-HRD-05","epic":"E9","title":"Observability, reconciliation, and runbooks","priority":"Must","status":"todo","blocker":"","goal":"Give operations the dashboards, alerts, and runbooks to run the platform, including pricing export and dead-letter triage.","owner":"Ops Admin","dom":"OPS","pts":5,"person":"P4"},{"id":"UC-HRD-06","epic":"E9","title":"Pricing test harness (configure-price-quote assertions)","priority":"Must","status":"todo","blocker":"","goal":"Exercise the pricing engine headlessly on every deployment and assert the numbers.","owner":"QA + Developer","dom":"QA","pts":5,"person":"P4"},{"id":"UC-HRD-07","epic":"E9","title":"End-to-end test suite (wizard + both portal request types)","priority":"Must","status":"todo","blocker":"","goal":"Prove the two journeys customers and advisors actually perform, end to end, in a browser.","owner":"QA Engineer","dom":"QA","pts":5,"person":"P1"},{"id":"UC-HRD-08","epic":"E9","title":"Go-live readiness and Definition of Done validation","priority":"Must","status":"todo","blocker":"","goal":"Walk the Definition of Done and the two build checklists item by item and record evidence.","owner":"Solution Architect","dom":"ARCH","pts":5,"person":"P3"},{"id":"UC-BIL-01","epic":"E10","title":"Billing scope assessment and decision record","priority":"Must","status":"blocked","blocker":"Q3 / BQ7","goal":"Decide whether Salesforce owns billing, and record the boundary with any external billing system.","owner":"Finance + Solution Architect","dom":"ARCH","pts":5,"person":"P1"},{"id":"UC-BIL-02","epic":"E10","title":"Revenue Cloud Billing configuration","priority":"Must","status":"blocked","blocker":"Q3","goal":"Configure billing so activation and cancellation produce correct charges and credits from the pricing the rest of the system uses.","owner":"Pricing Admin + Developer","dom":"PRICING","pts":5,"person":"P3"},{"id":"UC-BIL-03","epic":"E10","title":"Invoicing and revenue-recognition reconciliation","priority":"Must","status":"blocked","blocker":"Q3","goal":"Prove invoiced amounts reconcile to contracted and cancelled amounts, with penalties traceable to snapshots.","owner":"Finance + Developer","dom":"ARCH","pts":5,"person":"P1"}];
+var STANDING = [{"id":"S-01","title":"Pricing export & decision-table activation","dom":"PRICING","freq":"per release","hours":3,"person":"P3","note":"ARCHITECTURE.md §11.3 — the pricing export must be activated after every deployment."},{"id":"S-02","title":"BSS reconciliation triage","dom":"OPS","freq":"daily","hours":2,"person":"P2","note":"Nightly external reconciliation with the BSS; exceptions triaged the next morning."},{"id":"S-03","title":"Integration_Log__c dead-letter review","dom":"DEV","freq":"daily","hours":2,"person":"P2","note":"The rollback path in EPIC-08 depends on this queue being watched."},{"id":"S-04","title":"Release runbook upkeep & deployment","dom":"DEVOPS","freq":"per release","hours":3,"person":"P4","note":"Freeze windows, deploy order, smoke checks (EPIC-00 / EPIC-09)."},{"id":"S-05","title":"CI pipeline & scratch-org maintenance","dom":"DEVOPS","freq":"weekly","hours":2,"person":"P4","note":"Keep scratch orgs, validation runs and package versions healthy."},{"id":"S-06","title":"FLS & permission-set review on every PR","dom":"ARCH","freq":"per PR","hours":2,"person":"P3","note":"Every PR touching fields or objects needs a FLS review (ARCHITECTURE.md §10)."},{"id":"S-07","title":"Duplicate-rule & MSISDN uniqueness monitoring","dom":"ADMIN","freq":"weekly","hours":1,"person":"P3","note":"Duplicate rules and MSISDN uniqueness are business-critical; monitor rule health."},{"id":"S-08","title":"Renewal scan & outreach monitoring","dom":"OPS","freq":"daily","hours":1,"person":"P4","note":"T−60/30/7 scan output and outreach progress during lifecycle windows."},{"id":"S-09","title":"Data-load & migration windows","dom":"DEV","freq":"per release","hours":2,"person":"P2","note":"Seed and reference-data loads run in controlled windows."},{"id":"S-10","title":"Advisor console defect triage","dom":"FRONTEND","freq":"weekly","hours":2,"person":"P4","note":"Triage defects raised against the console and the 360° view."},{"id":"S-11","title":"Backlog refinement & blocked-decision chase","dom":"ARCH","freq":"weekly","hours":3,"person":"P1","note":"Clear the Q/BQ register before refinement so blocked duties can start."},{"id":"S-12","title":"Phase-gate evidence pack","dom":"ARCH","freq":"per phase","hours":2,"person":"P1","note":"Assemble the evidence each gate asks for before sign-off."}];
+var RACI = [{"cap":"Solution architecture & decisions","dom":"ARCH","v":["RA","C","C","I"]},{"cap":"Data model, metadata & ERD","dom":"ARCH","v":["A","C","R","I"]},{"cap":"Catalogue & Revenue Cloud pricing config","dom":"PRICING","v":["C","I","RA","I"]},{"cap":"Apex services & trigger handlers","dom":"DEV","v":["A","R","C","I"]},{"cap":"Activation atomicity & idempotency","dom":"DEV","v":["C","RA","I","I"]},{"cap":"Integrations, callouts & platform events","dom":"DEV","v":["C","RA","I","I"]},{"cap":"Advisor console & 360° LWC","dom":"FRONTEND","v":["I","C","C","RA"]},{"cap":"Experience Cloud portal request paths","dom":"FRONTEND","v":["C","I","I","RA"]},{"cap":"Flows & declarative automation","dom":"ADMIN","v":["I","C","A","R"]},{"cap":"Validation rules & formulas","dom":"ADMIN","v":["I","C","RA","C"]},{"cap":"Permission sets, FLS & portal security","dom":"ARCH","v":["A","I","R","C"]},{"cap":"CI/CD, environments & releases","dom":"DEVOPS","v":["A","C","I","R"]},{"cap":"QA suite, pricing harness & test evidence","dom":"QA","v":["I","C","C","RA"]},{"cap":"Ops, reconciliation & runbooks","dom":"OPS","v":["I","C","I","RA"]},{"cap":"Phase gates & go-live sign-off","dom":null,"v":["RA","C","C","C"]},{"cap":"Blocked-decision chasing (Q/BQ register)","dom":null,"v":["RA","I","I","I"]}];
+var MEAN = 95.5;
+var TOTAL_PTS = 382;
+/*DATA-INJECT-END*/
+
+/* =========================================================================
+   ATS TELECOM — 4-PERSON ALLOCATION · UI
+   ========================================================================= */
+"use strict";
+/*UI-INJECT-START*/
+/* =========================================================================
+   ATS TELECOM — 4-PERSON ALLOCATION · UI
+   Renders the allocation from the injected data. No dependencies.
+   ========================================================================= */
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------------- utils */
+  var $ = function (id) { return document.getElementById(id); };
+  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function pv(id) { return "var(--" + String(id).toLowerCase() + ")"; }
+  function initials(name) {
+    var parts = String(name).trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+  function slate() { return "var(--surface-2)"; }
+
+  /* -------------------------------------------------------------- lookups */
+  var EPIC_BY = {}, DUTY_BY = {}, PERSON_BY = {}, PERSON_ORDER = TEAM.map(function (p) { return p.id; });
+  EPICS.forEach(function (e) { EPIC_BY[e.id] = e; });
+  DUTIES.forEach(function (d) { DUTY_BY[d.id] = d; });
+  TEAM.forEach(function (p) { PERSON_BY[p.id] = p; });
+  var PHASES = [];
+  EPICS.forEach(function (e) { if (PHASES.indexOf(e.phase) === -1) PHASES.push(e.phase); });
+
+  var STATUS_META = function (s) {
+    var v = String(s || "todo").toLowerCase();
+    if (v.indexOf("block") > -1) return { c: "blocked", l: "Blocked" };
+    if (v.indexOf("done") > -1 || v.indexOf("complete") > -1) return { c: "done", l: "Done" };
+    if (v.indexOf("progress") > -1) return { c: "progress", l: "In progress" };
+    if (v.indexOf("review") > -1 || v.indexOf("test") > -1) return { c: "review", l: "In review" };
+    return { c: "todo", l: "To do" };
+  };
+  function pname(id) { return PERSON_BY[id] ? PERSON_BY[id].name : id; }
+  function ptag(id) { return "<b style='color:" + pv(id) + "'>" + esc(pname(id)) + "</b>"; }
+  function pd(s) { return "<span style='color:" + pv(s) + ";font-weight:800'>" + esc(pname(s)) + "</span>"; }
+  function dotof(id) { return "<span class='dot' style='background:" + pv(id) + "'></span>"; }
+  function elig(d) { return TEAM.filter(function (p) { return p.domains.indexOf(d.dom) > -1; }); }
+  function domLabel(k) { return DOMAINS[k] ? DOMAINS[k].label : k; }
+  function phaseOf(d) { return EPIC_BY[d.epic].phase; }
+
+  /* ---------------------------------------------------------------- state */
+  var LS_NAMES = "ats-team4-names", LS_ASSIGN = "ats-team4-assign", LS_THEME = "ats-theme";
+  var state = { focus: null, rebalance: false, f: { phase: "", epic: "", dom: "", status: "", pri: "", q: "" } };
+  var assign = {};
+  function resetAssign() { DUTIES.forEach(function (d) { assign[d.id] = d.person; }); }
+  resetAssign();
+
+  try {
+    var savedNames = JSON.parse(localStorage.getItem(LS_NAMES) || "null");
+    if (savedNames) TEAM.forEach(function (p) { if (savedNames[p.id]) p.name = savedNames[p.id]; });
+  } catch (e) { }
+  try {
+    var savedAssign = JSON.parse(localStorage.getItem(LS_ASSIGN) || "null");
+    if (savedAssign) DUTIES.forEach(function (d) {
+      var t = savedAssign[d.id];
+      if (t && PERSON_BY[t] && PERSON_BY[t].domains.indexOf(d.dom) > -1) assign[d.id] = t;
+    });
+  } catch (e) { }
+
+  /* ----------------------------------------------------------- aggregates */
+  function stats() {
+    var s = {};
+    TEAM.forEach(function (p) { s[p.id] = { id: p.id, pts: 0, n: 0, blocked: 0, dom: {}, duties: [] }; });
+    DUTIES.forEach(function (d) {
+      var t = s[assign[d.id]];
+      t.pts += d.pts; t.n++; t.blocked += (d.status === "blocked" ? 1 : 0);
+      t.dom[d.dom] = (t.dom[d.dom] || 0) + d.pts;
+      t.duties.push(d);
+    });
+    return s;
+  }
+  function standingHours() {
+    var h = {}; TEAM.forEach(function (p) { h[p.id] = 0; });
+    STANDING.forEach(function (s) { h[s.person] = (h[s.person] || 0) + s.hours; });
+    return h;
+  }
+  function spreadOf(s) {
+    var v = TEAM.map(function (p) { return s[p.id].pts; });
+    return { max: Math.max.apply(null, v), min: Math.min.apply(null, v), spread: Math.max.apply(null, v) - Math.min.apply(null, v) };
+  }
+
+  /* -------------------------------------------------------------- toast */
+  function toast(msg, ico) {
+    var t = document.createElement("div");
+    t.className = "toast";
+    t.innerHTML = "<span>" + (ico || "✅") + "</span><span>" + esc(msg) + "</span>";
+    document.body.appendChild(t);
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2300);
+  }
+
+  /* ================================================================ §1 */
+  function renderStats() {
+    var s = stats(), blocked = 0, blockers = {};
+    DUTIES.forEach(function (d) {
+      if (d.status === "blocked") { blocked++; var k = d.blocker || "unlabelled"; blockers[k] = (blockers[k] || 0) + 1; }
+    });
+    var recH = STANDING.reduce(function (a, x) { return a + x.hours; }, 0);
+    var cards = [
+      ["4", "People — no more", "Every duty below has exactly one owner from these four.", "var(--sf-blue)"],
+      [String(DUTIES.length), "Project duties", TOTAL_PTS + " effort points across " + EPICS.length + " epics.", "var(--sf-purple)"],
+      ["0", "Unassigned", "Nothing is left to “the team” as a whole.", "var(--sf-green)"],
+      [String(blocked), "Blocked duties", Object.keys(blockers).length + " distinct open decisions are holding them.", "var(--sf-red)"],
+      [String(STANDING.length), "Recurring duties", recH + " h/week of standing operations on top.", "var(--sf-orange)"],
+      [String(PHASES.length), "Phases", "Phase 0 → Phase " + EPICS.length + ", each with an exit gate.", "var(--sf-teal)"]
+    ];
+    $("statGrid").innerHTML = cards.map(function (c) {
+      return "<div class='stat' style='--accent:" + c[3] + "'>" +
+        "<div class='sv'>" + esc(c[0]) + "</div><div class='sl'>" + esc(c[1]) + "</div><div class='sn'>" + esc(c[2]) + "</div></div>";
+    }).join("");
+  }
+
+  function renderBalance() {
+    var s = stats(), sp = spreadOf(s);
+    var scale = Math.max(sp.max, MEAN * 1.2);
+    $("balanceBars").innerHTML = TEAM.map(function (p) {
+      var pts = s[p.id].pts, delta = pts - MEAN, hot = pts > MEAN * 1.15;
+      var badge = Math.abs(delta) < MEAN * 0.05 ? "<span class='badge b-green'>on target</span>"
+        : (delta > 0 ? "<span class='badge b-orange'>+" + delta.toFixed(1) + " vs avg</span>"
+          : "<span class='badge b-grey'>" + delta.toFixed(1) + " vs avg</span>");
+      return "<div class='bal-row' data-p='" + p.id + "'>" +
+        "<div class='bal-top'><span class='dot' style='background:" + pv(p.id) + "'></span><b>" + esc(p.name) + "</b>" +
+        "<span class='ref'>" + esc(p.role) + "</span><span style='flex:1'></span>" +
+        "<span class='pts'>" + pts + " pts</span>" + badge + "</div>" +
+        "<div class='bar-wrap'><i class='" + (hot ? "hot" : "") + "' style='width:" + (pts / scale * 100).toFixed(1) + "%'></i>" +
+        "<span class='meanline' style='left:" + (MEAN / scale * 100).toFixed(1) + "%' title='team average " + MEAN.toFixed(1) + "'></span></div></div>";
+    }).join("");
+    $("balanceLegend").innerHTML =
+      "<span><i class='sw' style='background:" + slate() + ";border:1px solid var(--border)'></i> bar = effort points</span>" +
+      "<span><i class='sw' style='background:var(--text);opacity:.55'></i> dashed marker = team average (" + MEAN.toFixed(1) + " pts)</span>" +
+      "<span>spread <b>" + sp.spread + "</b> pts between heaviest and lightest (" + (sp.spread / MEAN * 100).toFixed(0) + "% of average)</span>";
+  }
+
+  function renderBlockers() {
+    var byB = {}, duties = [];
+    DUTIES.forEach(function (d) { if (d.status === "blocked") duties.push(d); });
+    duties.forEach(function (d) { var k = d.blocker || "unlabelled"; (byB[k] = byB[k] || []).push(d); });
+    var keys = Object.keys(byB).sort(function (a, b) { return byB[b].length - byB[a].length || (a < b ? -1 : 1); });
+    $("blockerSummary").innerHTML = duties.length + " of " + DUTIES.length + " duties are marked <b>blocked</b> in the epic files — " +
+      keys.length + " distinct decisions. They are assigned, but cannot start until the decision is recorded.";
+    $("blockerPanel").innerHTML = keys.map(function (k) {
+      return "<div class='bd-row'><div class='bd-k'><span class='badge b-red'>×" + byB[k].length + "</span> <span class='mono'>" + esc(k) + "</span></div>" +
+        "<div class='pill-list'>" + byB[k].map(function (d) {
+          return "<button class='chip duty-mini' data-d='" + esc(d.id) + "' title='" + esc(d.title) + "'>" +
+            dotof(assign[d.id]) + " " + esc(d.id) + "</button>";
+        }).join("") + "</div></div>";
+    }).join("");
+  }
+
+  /* ================================================================ §2 */
+  function renderTeam() {
+    var s = stats(), hrs = standingHours(), recH = STANDING.reduce(function (a, x) { return a + x.hours; }, 0);
+    var scale = Math.max(s.P1.pts, s.P2.pts, s.P3.pts, s.P4.pts, MEAN * 1.2);
+    $("teamCards").innerHTML = TEAM.map(function (p) {
+      var t = s[p.id], delta = t.pts - MEAN, hot = t.pts > MEAN * 1.15;
+      var domChips = Object.keys(t.dom).sort(function (a, b) { return t.dom[b] - t.dom[a]; }).map(function (k) {
+        var prim = p.primary.indexOf(k) > -1;
+        return "<span class='skill' title='" + esc(domLabel(k)) + "'>" + (prim ? "★ " : "") + esc(k) + " · " + t.dom[k] + "</span>";
+      }).join("");
+      var foc = state.focus === p.id;
+      return "<div class='person" + (foc ? " focused" : "") + (state.focus && !foc ? " dim" : "") + "' data-p='" + p.id + "' data-focus='" + p.id + "'>" +
+        "<div class='p-head'><div class='p-av'>" + esc(initials(p.name)) + "</div>" +
+        "<div style='flex:1;min-width:0'><input class='p-name' data-person='" + p.id + "' value='" + esc(p.name) + "' aria-label='Name for " + esc(p.role) + "'>" +
+        "<div class='p-role'>" + esc(p.role) + "</div></div>" +
+        "<span class='badge " + (hot ? "b-orange" : "b-blue") + "'>" + t.pts + " pts</span></div>" +
+        "<div class='p-badges'><span class='badge b-grey'>" + t.n + " duties</span>" +
+        (t.blocked ? "<span class='badge b-red'>" + t.blocked + " blocked</span>" : "") +
+        "<span class='badge b-grey'>" + hrs[p.id] + " h/wk recurring</span>" +
+        "<span class='badge b-grey'>" + Object.keys(t.dom).length + " domains</span></div>" +
+        "<div class='small muted' style='margin-top:7px'>" + esc(p.tagline) + "</div>" +
+        "<div class='p-skills'>" + p.skills.map(function (k) { return "<span class='skill'>" + esc(k) + "</span>"; }).join("") + "</div>" +
+        "<div class='p-stats'>" +
+        "<div><b>" + t.n + "</b><span>duties</span></div>" +
+        "<div><b>" + t.pts + "</b><span>points</span></div>" +
+        "<div><b>" + t.blocked + "</b><span>blocked</span></div>" +
+        "<div><b>" + hrs[p.id] + "</b><span>h / week</span></div></div>" +
+        "<div class='load'><i class='" + (hot ? "hot" : "") + "' style='width:" + (t.pts / scale * 100).toFixed(1) + "%'></i></div>" +
+        "<div class='load-cap'><span>" + t.pts + " / " + MEAN.toFixed(1) + " pts (" + (delta >= 0 ? "+" : "") + delta.toFixed(1) + ")</span>" +
+        "<span>" + (state.focus === p.id ? "showing only this person — click to clear" : "click to focus") + "</span></div>" +
+        "<div class='p-skills' style='margin-top:9px'>" + domChips + "</div></div>";
+    }).join("");
+  }
+
+  function renderDomainMatrix() {
+    var s = stats();
+    var rows = Object.keys(DOMAINS).map(function (k) {
+      var pool = DUTIES.filter(function (d) { return d.dom === k; });
+      var pts = pool.reduce(function (a, d) { return a + d.pts; }, 0);
+      var canDo = TEAM.filter(function (p) { return p.domains.indexOf(k) > -1; });
+      var cells = TEAM.map(function (p) {
+        var v = s[p.id].dom[k] || 0, prim = p.primary.indexOf(k) > -1;
+        var style = v ? " style='color:" + pv(p.id) + ";font-weight:800'" : " style='color:var(--border)'";
+        return "<td class='raci-cell'" + style + ">" + (v ? (prim ? "★" : "") + v : "–") + "</td>";
+      }).join("");
+      var risk = canDo.length === 1
+        ? "<span class='single'>single point of failure</span> — " + esc(MITIGATION[k] || "cross-train a second person.")
+        : "covered by " + canDo.length + " people";
+      return "<tr><td><b>" + esc(DOMAINS[k].label) + "</b><div class='small muted'>" + esc(DOMAINS[k].note) + "</div></td>" +
+        "<td>" + pool.length + "</td><td>" + pts + "</td>" + cells +
+        "<td>" + canDo.map(function (p) { return "<span class='badge b-grey'>" + esc(p.name) + "</span>"; }).join(" ") + "</td>" +
+        "<td class='small'>" + risk + "</td></tr>";
+    }).join("");
+    $("domainMatrix").innerHTML =
+      "<thead><tr><th>Domain</th><th>Duties</th><th>Points</th>" +
+      TEAM.map(function (p) { return "<th style='text-align:center'>" + esc(initials(p.name)) + "<div class='small muted' style='font-weight:400'>" + esc(p.name) + "</div></th>"; }).join("") +
+      "<th>Eligible</th><th>Key-person risk</th></tr></thead><tbody>" + rows + "</tbody>";
+  }
+  var MITIGATION = {
+    FRONTEND: "pair Person 3 on the Experience Cloud site setup (UC-POR-01) and keep the LWC patterns in the repo.",
+    OPS: "rotate reconciliation triage (S-02) to Person 2, who already owns the BSS link, and keep runbooks versioned."
+  };
+
+  function renderStanding() {
+    var hrs = standingHours(), tot = STANDING.reduce(function (a, x) { return a + x.hours; }, 0);
+    var max = Math.max.apply(null, TEAM.map(function (p) { return hrs[p.id]; }));
+    $("standingTable").innerHTML =
+      "<thead><tr><th>ID</th><th>Recurring duty</th><th>Frequency</th><th>Hrs</th><th>Owner</th></tr></thead><tbody>" +
+      STANDING.map(function (x) {
+        return "<tr><td class='mono'>" + esc(x.id) + "</td>" +
+          "<td><b>" + esc(x.title) + "</b><div class='small muted'>" + esc(x.note) + "</div></td>" +
+          "<td><span class='freq'>" + esc(x.freq) + "</span><div class='small muted'>" + esc(x.dom) + "</div></td>" +
+          "<td class='hours'>" + x.hours + "</td>" +
+          "<td data-p='" + x.person + "'>" + dotof(x.person) + " " + pd(x.person) + "</td></tr>";
+      }).join("") + "</tbody>";
+    $("recurringBars").innerHTML = TEAM.map(function (p) {
+      var over = hrs[p.id] / tot > 0.3;
+      return "<div class='bal-row' data-p='" + p.id + "' style='margin-bottom:9px'>" +
+        "<div class='bal-top'><span class='dot' style='background:" + pv(p.id) + "'></span><b>" + esc(p.name) + "</b>" +
+        "<span style='flex:1'></span><span class='pts'>" + hrs[p.id] + " h/wk</span>" +
+        (over ? "<span class='badge b-orange'>" + (hrs[p.id] / tot * 100).toFixed(0) + "% of the recurring load</span>" : "") +
+        "</div><div class='bar-wrap'><i class='" + (over ? "hot" : "") + "' style='width:" + (hrs[p.id] / max * 100).toFixed(1) + "%'></i></div></div>";
+    }).join("");
+    var advice = [];
+    TEAM.forEach(function (p) {
+      if (hrs[p.id] / tot <= 0.3) return;
+      var mine = STANDING.filter(function (x) { return x.person === p.id; });
+      var moveable = mine.filter(function (x) {
+        return TEAM.some(function (q) { return q.id !== p.id && q.domains.indexOf(x.dom) > -1; });
+      });
+      if (!moveable.length) return;
+      var light = TEAM.filter(function (q) { return q.id !== p.id; }).sort(function (a, b) { return hrs[a.id] - hrs[b.id]; })[0];
+      advice.push(p.name + " carries " + hrs[p.id] + " of " + tot + " recurring hours (" + (hrs[p.id] / tot * 100).toFixed(0) + "%). " +
+        "Consider handing <b>" + moveable[0].id + " " + esc(moveable[0].title) + "</b> to " + esc(light.name) + " (" + hrs[light.id] + " h/wk).");
+    });
+    $("recurringNote").innerHTML = advice.length
+      ? "<span class='c-ico'>⚠️</span><div><b>Recurring load is not even.</b><br>" + advice.join("<br>") + "</div>"
+      : "<span class='c-ico'>✅</span><div>Recurring hours are spread across the team.</div>";
+    $("recurringNote").className = advice.length ? "callout co-orange" : "callout co-green";
+  }
+
+  /* ================================================================ §3 */
+  function renderBoardToolbar() {
+    var s = stats(), sp = spreadOf(s);
+    var chips = ["<button class='chip" + (state.focus ? "" : " on") + "' data-focus=''>👥 Everyone</button>"];
+    TEAM.forEach(function (p) {
+      chips.push("<button class='chip" + (state.focus === p.id ? " on" : "") + "' data-focus='" + p.id + "'>" +
+        "<span class='dot' style='background:" + pv(p.id) + "'></span> " + esc(p.name) + "</button>");
+    });
+    $("boardToolbar").innerHTML =
+      chips.join(" ") +
+      "<span class='sp'></span>" +
+      "<button class='chip" + (state.rebalance ? " on" : "") + "' id='rebalBtn'>" + (state.rebalance ? "✋ Rebalancing" : "✋ Rebalance mode") + "</button>" +
+      "<button class='chip' id='resetBtn'>↺ Recommended plan</button>";
+    var pct = sp.spread / MEAN * 100;
+    var over = TEAM.filter(function (p) { return s[p.id].pts > MEAN * 1.15; });
+    $("boardMeter").innerHTML = "<div class='meter " + (pct <= 12 && !over.length ? "ok" : "warn") + "'>" +
+      "<b>" + (pct <= 12 && !over.length ? "Balanced" : "Watch the load") + "</b> — effort spread is <b>" + sp.spread + " points</b> " +
+      "across the four (" + pct.toFixed(0) + "% of the " + MEAN.toFixed(1) + "-point average): " +
+      TEAM.map(function (p) { return esc(initials(p.name)) + " " + s[p.id].pts; }).join(" · ") +
+      (over.length ? ". <b>" + over.map(function (p) { return esc(p.name); }).join(", ") + "</b> " + (over.length > 1 ? "are" : "is") + " more than 15% above average." : ".") +
+      (state.rebalance ? " <br>Rebalance mode is <b>on</b>: use the dropdowns in the board or the Duty explorer to move work. Only people whose skills cover a duty are offered." : "") +
+      "</div>";
+  }
+
+  function renderBoard() {
+    var s = stats();
+    $("boardGrid").innerHTML = TEAM.map(function (p) {
+      var mine = s[p.id].duties.slice().sort(function (a, b) {
+        var ea = EPIC_BY[a.epic].num, eb = EPIC_BY[b.epic].num;
+        if (ea !== eb) return ea - eb;
+        return a.id < b.id ? -1 : 1;
+      });
+      var groups = [], last = null;
+      mine.forEach(function (d) { if (d.epic !== last) { groups.push({ epic: d.epic, items: [] }); last = d.epic; } groups[groups.length - 1].items.push(d); });
+      var body = groups.map(function (g) {
+        var e = EPIC_BY[g.epic];
+        return "<div class='grp-lbl'>" + esc(e.num) + " · " + esc(e.phase) + " <span style='float:right'>" + g.items.length + "</span></div>" +
+          g.items.map(function (d) { return dutyCard(d); }).join("");
+      }).join("") || "<div class='small muted'>no duties</div>";
+      return "<div class='bcol" + (state.focus && state.focus !== p.id ? " dim" : "") + "' data-p='" + p.id + "'>" +
+        "<div class='bcol-h'><span class='dot' style='background:" + pv(p.id) + "'></span><b>" + esc(p.name) + "</b>" +
+        "<span class='badge b-grey'>" + s[p.id].n + " · " + s[p.id].pts + " pts</span></div>" +
+        "<div class='bcol-body'>" + body + "</div></div>";
+    }).join("");
+  }
+  function dutyCard(d) {
+    var st = STATUS_META(d.status), e = EPIC_BY[d.epic];
+    var sel = state.rebalance
+      ? "<select class='assign' data-d='" + esc(d.id) + "'>" + elig(d).map(function (p) {
+        return "<option value='" + p.id + "'" + (assign[d.id] === p.id ? " selected" : "") + ">" + esc(initials(p.name)) + " · " + esc(p.name) + "</option>";
+      }).join("") + "</select>" : "";
+    return "<div class='duty' data-d='" + esc(d.id) + "' data-p='" + assign[d.id] + "'>" +
+      "<div class='duty-top'><span class='dot " + st.c + "'></span><b>" + esc(d.id) + "</b><span class='pts'>" + d.pts + "</span>" +
+      "<span style='flex:1'></span>" + sel + "</div>" +
+      "<div class='duty-t'>" + esc(d.title) + "</div>" +
+      "<div class='duty-m'><span>" + esc(e.num) + " · " + esc(e.phase) + "</span><span>·</span><span>" + esc(d.dom) + "</span>" +
+      (d.status === "blocked" ? "<span>·</span><span style='color:var(--sf-red);font-weight:700'>blocked " + esc(d.blocker || "") + "</span>" : "") +
+      "</div></div>";
+  }
+
+  /* ================================================================ §4 */
+  function filterBar() {
+    var chips = ["<button class='chip" + (state.focus ? "" : " on") + "' data-focus=''>👥 Everyone</button>"];
+    TEAM.forEach(function (p) {
+      chips.push("<button class='chip" + (state.focus === p.id ? " on" : "") + "' data-focus='" + p.id + "'>" +
+        "<span class='dot' style='background:" + pv(p.id) + "'></span> " + esc(p.name) + " <span class='ref'>" + stats()[p.id].n + "</span></button>");
+    });
+    return chips.join(" ");
+  }
+  function initFilters() {
+    $("dfChips").innerHTML = filterBar();
+    var phaseSel = "<option value=''>All phases</option>" + PHASES.map(function (p) { return "<option value='" + esc(p) + "'>" + esc(p) + "</option>"; }).join("");
+    var epicSel = "<option value=''>All epics</option>" + EPICS.map(function (e) { return "<option value='" + esc(e.id) + "'>" + esc(e.id) + " · " + esc(e.title) + "</option>"; }).join("");
+    var domSel = "<option value=''>All domains</option>" + Object.keys(DOMAINS).map(function (k) { return "<option value='" + esc(k) + "'>" + esc(k) + " · " + esc(domLabel(k)) + "</option>"; }).join("");
+    var stSet = {}; DUTIES.forEach(function (d) { stSet[d.status] = 1; });
+    var stSel = "<option value=''>Any status</option>" + Object.keys(stSet).map(function (k) { return "<option value='" + esc(k) + "'>" + esc(k) + "</option>"; }).join("");
+    var priSel = "<option value=''>Any priority</option><option value='Must'>Must</option><option value='Should'>Should</option>";
+    $("dfSelects").innerHTML =
+      "<select class='assign' id='fPhase'>" + phaseSel + "</select>" +
+      "<select class='assign' id='fEpic'>" + epicSel + "</select>" +
+      "<select class='assign' id='fDom'>" + domSel + "</select>" +
+      "<select class='assign' id='fStatus'>" + stSel + "</select>" +
+      "<select class='assign' id='fPri'>" + priSel + "</select>" +
+      "<input class='assign' id='fQ' type='search' placeholder='Search id, title, epic…' style='min-width:180px' value='" + esc(state.f.q) + "'>" +
+      "<button class='chip' id='fClear'>✕ Clear</button>";
+    $("fPhase").onchange = function () { state.f.phase = this.value; renderDuties(); };
+    $("fEpic").onchange = function () { state.f.epic = this.value; renderDuties(); };
+    $("fDom").onchange = function () { state.f.dom = this.value; renderDuties(); };
+    $("fStatus").onchange = function () { state.f.status = this.value; renderDuties(); };
+    $("fPri").onchange = function () { state.f.pri = this.value; renderDuties(); };
+    $("fQ").oninput = function () { state.f.q = this.value; var top = $("dutySearchTop"); if (top) top.value = this.value; renderDuties(); };
+    $("fClear").onclick = function () {
+      state.f = { phase: "", epic: "", dom: "", status: "", pri: "", q: "" };
+      state.focus = null;
+      $$("#dfSelects select").forEach(function (s) { s.value = ""; });
+      $("fQ").value = ""; $("dutySearchTop").value = "";
+      renderAll();
+    };
+  }
+  function matches(d) {
+    var f = state.f, foc = state.focus;
+    if (foc && assign[d.id] !== foc) return false;
+    if (f.phase && phaseOf(d) !== f.phase) return false;
+    if (f.epic && d.epic !== f.epic) return false;
+    if (f.dom && d.dom !== f.dom) return false;
+    if (f.status && d.status !== f.status) return false;
+    if (f.pri && d.priority !== f.pri) return false;
+    if (f.q) {
+      var q = f.q.toLowerCase();
+      var hay = (d.id + " " + d.title + " " + d.epic + " " + d.dom + " " + d.owner + " " + pname(assign[d.id]) + " " + (d.goal || "")).toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  }
+  function renderDuties() {
+    var rows = DUTIES.filter(matches).sort(function (a, b) {
+      var pa = PERSON_ORDER.indexOf(assign[a.id]), pb = PERSON_ORDER.indexOf(assign[b.id]);
+      if (pa !== pb) return pa - pb;
+      var ea = EPIC_BY[a.epic].num, eb = EPIC_BY[b.epic].num;
+      if (ea !== eb) return ea - eb;
+      return a.id < b.id ? -1 : 1;
+    });
+    var pts = rows.reduce(function (a, d) { return a + d.pts; }, 0);
+    var bits = [];
+    if (state.focus) bits.push("owner " + pname(state.focus));
+    ["phase", "epic", "dom", "status", "pri"].forEach(function (k) { if (state.f[k]) bits.push(k + " " + state.f[k]); });
+    if (state.f.q) bits.push("“" + state.f.q + "”");
+    $("dutyCount").innerHTML = "Showing <b>" + rows.length + "</b> of " + DUTIES.length + " duties · <b>" + pts + "</b> points" +
+      (bits.length ? " · filtered by " + esc(bits.join(", ")) : "") +
+      (state.rebalance ? " · <span style='color:var(--sf-orange);font-weight:700'>rebalance mode — change the owner in the last column</span>" : "");
+    $("dutyTable").innerHTML =
+      "<thead><tr><th>ID</th><th>Duty</th><th>Epic</th><th>Phase</th><th>Domain</th><th>Pri</th><th>Status</th><th>Owner</th><th>Pts</th></tr></thead><tbody>" +
+      rows.map(function (d) {
+        var st = STATUS_META(d.status), e = EPIC_BY[d.epic];
+        var own = state.rebalance
+          ? "<select class='assign' data-d='" + esc(d.id) + "'>" + elig(d).map(function (p) {
+            return "<option value='" + p.id + "'" + (assign[d.id] === p.id ? " selected" : "") + ">" + esc(p.name) + "</option>";
+          }).join("") + "</select>"
+          : dotof(assign[d.id]) + " " + pd(assign[d.id]);
+        return "<tr data-d='" + esc(d.id) + "'>" +
+          "<td class='mono'>" + esc(d.id) + "</td>" +
+          "<td><b>" + esc(d.title) + "</b><div class='small muted'>" + esc((d.goal || "").slice(0, 96)) + ((d.goal || "").length > 96 ? "…" : "") + "</div></td>" +
+          "<td>" + esc(e.num) + "</td><td class='small'>" + esc(e.phase) + "</td><td class='small'>" + esc(d.dom) + "</td>" +
+          "<td><span class='badge " + (d.priority === "Must" ? "b-red" : "b-grey") + "'>" + esc(d.priority) + "</span></td>" +
+          "<td><span class='dot " + st.c + "'></span> " + st.l + (d.status === "blocked" && d.blocker ? "<div class='small muted'>" + esc(d.blocker) + "</div>" : "") + "</td>" +
+          "<td>" + own + "</td><td class='hours'>" + d.pts + "</td></tr>";
+      }).join("") + "</tbody>";
+  }
+
+  /* ================================================================ §5 */
+  function renderRaci() {
+    var s = stats();
+    var strong = function (v) {
+      if (v.indexOf("A") > -1) return "A";
+      if (v.indexOf("R") > -1) return "R";
+      if (v.indexOf("C") > -1) return "C";
+      if (v.indexOf("I") > -1) return "I";
+      return "0";
+    };
+    var display = function (v) { return v === "RA" ? "R/A" : (v || "–"); };
+    $("raciTable").innerHTML =
+      "<thead><tr><th>Capability</th><th>Domain</th>" +
+      TEAM.map(function (p) { return "<th style='text-align:center'>" + esc(initials(p.name)) + "<div class='small muted' style='font-weight:400'>" + esc(p.name) + "</div></th>"; }).join("") +
+      "<th>Points in this domain</th></tr></thead><tbody>" +
+      RACI.map(function (r) {
+        var pts = r.dom ? DUTIES.filter(function (d) { return d.dom === r.dom; }).reduce(function (a, d) { return a + d.pts; }, 0) : "";
+        return "<tr><td><b>" + esc(r.cap) + "</b></td><td class='small muted'>" + (r.dom ? esc(r.dom) : "cross-cutting") + "</td>" +
+          r.v.map(function (v) { return "<td class='raci-cell raci-" + strong(v || "") + "'>" + esc(display(v)) + "</td>"; }).join("") +
+          "<td class='ref'>" + (pts === "" ? "—" : pts + " pts") + "</td></tr>";
+      }).join("") + "</tbody>";
+    var acc = TEAM.map(function (p) {
+      var i = PERSON_ORDER.indexOf(p.id), a = 0, r = 0;
+      RACI.forEach(function (row) { var v = row.v[i] || ""; if (v.indexOf("A") > -1) a++; if (v.indexOf("R") > -1) r++; });
+      return { id: p.id, a: a, r: r };
+    }).sort(function (x, y) { return y.a - x.a; });
+    var maxA = Math.max.apply(null, acc.map(function (x) { return x.a; }));
+    $("accLoad").innerHTML = acc.map(function (x) {
+      var p = PERSON_BY[x.id];
+      return "<div class='bal-row' data-p='" + p.id + "' style='margin-bottom:9px'>" +
+        "<div class='bal-top'><b style='color:" + pv(p.id) + "'>" + esc(p.name) + "</b><span class='ref'>" + esc(p.role) + "</span><span style='flex:1'></span>" +
+        "<span class='pts'>" + x.a + " accountable · " + x.r + " responsible</span></div>" +
+        "<div class='bar-wrap'><i style='width:" + (x.a / maxA * 100).toFixed(1) + "%'></i></div></div>";
+    }).join("") +
+      "<div class='callout co-blue' style='margin-bottom:0'><span class='c-ico'>🧭</span><div>Accountability is the scarce resource: " + esc(acc[0].name) +
+      " signs <b>" + acc[0].a + " of " + RACI.length + "</b> capabilities. That is deliberate for architecture and gates — but it is also the first thing to fail if that person is unavailable, so pair the sign-offs.</div></div>";
+    var risks = [];
+    RACI.forEach(function (r) {
+      if (!r.dom) return;
+      r.v.forEach(function (v, i) {
+        var id = PERSON_ORDER[i], pts = s[id].dom[r.dom] || 0;
+        if (pts > 0 && (!v || v === "I")) {
+          risks.push("<li><b style='color:" + pv(id) + "'>" + esc(pname(id)) + "</b> owns <b>" + pts + " points</b> of " + esc(r.dom) +
+            " work but is only <i>" + (v ? "informed" : "not involved") + "</i> on <b>" + esc(r.cap) + "</b>.</li>");
+        }
+      });
+    });
+    $("hatRisk").innerHTML = risks.length ? "<ul style='margin:0;padding-left:18px;font-size:12.5px'>" + risks.join("") + "</ul>"
+      : "<div class='small muted'>No blind spots found.</div>";
+  }
+
+  /* ================================================================ §6 */
+  function renderPhases() {
+    $("phaseList").innerHTML = PHASES.map(function (ph) {
+      var epics = EPICS.filter(function (e) { return e.phase === ph; });
+      var ds = DUTIES.filter(function (d) { return phaseOf(d) === ph; });
+      var per = {}; TEAM.forEach(function (p) { per[p.id] = 0; });
+      ds.forEach(function (d) { per[assign[d.id]] += d.pts; });
+      var tot = ds.reduce(function (a, d) { return a + d.pts; }, 0) || 1;
+      var lead = TEAM.slice().sort(function (a, b) { return per[b.id] - per[a.id] || (a.id < b.id ? -1 : 1); })[0];
+      var gates = [];
+      epics.forEach(function (e) { if (gates.indexOf(e.gate) === -1) gates.push(e.gate); });
+      var stack = TEAM.map(function (p) {
+        return per[p.id] ? "<i class='seg-" + p.id.toLowerCase() + "' style='width:" + (per[p.id] / tot * 100).toFixed(1) + "%' title='" + esc(p.name) + " " + per[p.id] + " pts'></i>" : "";
+      }).join("");
+      return "<details class='card phase' data-p='" + lead.id + "' style='margin-bottom:12px;padding:0'>" +
+        "<summary class='ph-h'><span class='ph-num'>" + esc(ph) + "</span>" +
+        "<b>" + esc(epics.map(function (e) { return e.title; }).join(" · ")) + "</b>" +
+        "<span class='ref'>" + epics.map(function (e) { return e.id; }).join(", ") + " · " + ds.length + " duties · " + tot + " pts</span>" +
+        "<span style='flex:1'></span><span class='badge b-blue'>Lead " + esc(initials(lead.name)) + "</span></summary>" +
+        "<div class='phase-body'>" +
+        "<div class='stack'>" + stack + "</div>" +
+        "<div class='legend'>" + TEAM.map(function (p) { return "<span><i class='sw seg-" + p.id.toLowerCase() + "'></i>" + esc(p.name) + " <b>" + per[p.id] + "</b></span>"; }).join("") + "</div>" +
+        "<div class='small muted' style='margin-top:10px'><b>Gate:</b> " + esc(gates.join("  ·  ")) + "</div>" +
+        "<div class='pill-list' style='margin-top:10px'>" + ds.sort(function (a, b) { return a.id < b.id ? -1 : 1; }).map(function (d) {
+          var st = STATUS_META(d.status);
+          return "<button class='chip duty-mini' data-d='" + esc(d.id) + "' title='" + esc(d.title) + "'>" +
+            "<span class='dot " + st.c + "'></span> " + esc(d.id) + " <span class='ref'>" + esc(initials(pname(assign[d.id]))) + " · " + d.pts + "</span></button>";
+        }).join("") + "</div></div></details>";
+    }).join("");
+  }
+
+  /* ============================================================= modal */
+  function moveDuty(id, to) {
+    var d = DUTY_BY[id];
+    if (!d || assign[id] === to) return;
+    if (PERSON_BY[to].domains.indexOf(d.dom) === -1) { toast("That person's skills do not cover " + d.dom, "⛔"); return; }
+    var from = assign[id];
+    assign[id] = to;
+    persistAssign();
+    renderAll();
+    toast(d.id + " moved from " + pname(from) + " to " + pname(to), "🔀");
+  }
+  function persistAssign() {
+    var o = {};
+    var moved = false;
+    DUTIES.forEach(function (d) { if (assign[d.id] !== d.person) { o[d.id] = assign[d.id]; moved = true; } });
+    try { localStorage.setItem(LS_ASSIGN, JSON.stringify(moved ? o : {})); } catch (e) { }
+  }
+  function openDuty(id) {
+    var d = DUTY_BY[id];
+    if (!d) return;
+    var e = EPIC_BY[d.epic], st = STATUS_META(d.status);
+    $("modalTitle").innerHTML = esc(d.id) + " — " + esc(d.title);
+    $("modalSub").innerHTML = esc(e.num) + " · " + esc(e.phase) + " · " + esc(d.dom) + " · " + d.pts + " points · currently " + esc(pname(assign[d.id]));
+    var meta = [
+      ["Epic", e.num + " — " + e.title],
+      ["Phase", e.phase],
+      ["Gate", e.gate],
+      ["Demand domain", domLabel(d.dom)],
+      ["Priority", d.priority],
+      ["Status", st.l + (d.blocker ? " (" + d.blocker + ")" : "")],
+      ["Effort", d.pts + " points"],
+      ["Source owner in use-cases/", d.owner]
+    ];
+    var canDo = elig(d);
+    $("modalBody").innerHTML =
+      "<div class='grid g2' style='gap:9px'>" + meta.map(function (m) {
+        return "<div style='background:var(--surface-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 11px'>" +
+          "<div class='sl' style='margin:0'>" + esc(m[0]) + "</div><div style='margin-top:3px;font-size:13px'>" + esc(m[1]) + "</div></div>";
+      }).join("") + "</div>" +
+      "<h4 style='margin:16px 0 4px'>Why this duty exists</h4><p style='margin:0'>" + esc(d.goal) + "</p>" +
+      (d.status === "blocked" ? "<div class='callout co-orange'><span class='c-ico'>⛔</span><div><b>Blocked by " + esc(d.blocker || "an open decision") + ".</b> " +
+        "It stays assigned, but cannot start until the decision is recorded in the register (see the Overview).</div></div>" : "") +
+      "<h4 style='margin:16px 0 4px'>Who can do it</h4>" +
+      "<div class='pill-list'>" + canDo.map(function (p) {
+        var cur = assign[d.id] === p.id;
+        return "<button class='chip" + (cur ? " on" : "") + "' data-move='" + esc(d.id) + "|" + p.id + "'" + (cur ? " disabled" : "") + ">" +
+          "<span class='dot' style='background:" + pv(p.id) + "'></span> " + esc(p.name) + (cur ? " · current owner" : "") + "</button>";
+      }).join("") + "</div>" +
+      "<div class='small muted' style='margin-top:8px'>Only people whose domains cover <b>" + esc(d.dom) + "</b> are offered, so a move can never create impossible work. " +
+      "Everyone else is kept informed through the phase board.</div>";
+    $("modalBack").style.display = "flex";
+  }
+  function closeModal() { $("modalBack").style.display = "none"; }
+
+  /* ============================================================ render */
+  function syncChips() {
+    $$("[data-focus]").forEach(function (b) {
+      var f = b.getAttribute("data-focus") || "";
+      var on = (f === "" && !state.focus) || (f === state.focus);
+      if (b.classList.contains("chip")) b.classList.toggle("on", on);
+    });
+    if ($("dfChips")) $("dfChips").innerHTML = filterBar();
+    var rb = $("rebalBtn"); if (rb) rb.classList.toggle("on", state.rebalance);
+  }
+  function renderAll() {
+    renderStats(); renderBalance(); renderBlockers();
+    renderTeam(); renderDomainMatrix(); renderStanding();
+    renderBoardToolbar(); renderBoard();
+    renderDuties(); renderRaci(); renderPhases(); syncChips();
+  }
+
+  /* ============================================================== init */
+  function init() {
+    /* theme */
+    var theme = localStorage.getItem(LS_THEME) || "light";
+    var applyTheme = function (t) {
+      document.documentElement.setAttribute("data-theme", t);
+      try { localStorage.setItem(LS_THEME, t); } catch (e) { }
+      $("themeBtn").textContent = t === "dark" ? "☀️" : "🌙";
+    };
+    applyTheme(theme);
+    $("themeBtn").onclick = function () { applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"); };
+
+    initFilters();
+    renderAll();
+
+    /* global click delegation */
+    document.addEventListener("click", function (ev) {
+      var t = ev.target;
+      if (t.closest && t.closest("select")) return;
+      var mv = t.closest ? t.closest("[data-move]") : null;
+      if (mv) { var pr = mv.getAttribute("data-move").split("|"); moveDuty(pr[0], pr[1]); openDuty(pr[0]); return; }
+      var chip = t.closest ? t.closest(".duty-mini") : null;
+      if (chip) { openDuty(chip.getAttribute("data-d")); return; }
+      var card = t.closest ? t.closest(".duty") : null;
+      if (card && card.getAttribute("data-d")) { openDuty(card.getAttribute("data-d")); return; }
+      var row = t.closest ? t.closest("tr[data-d]") : null;
+      if (row) { openDuty(row.getAttribute("data-d")); return; }
+      var fo = t.closest ? t.closest("[data-focus]") : null;
+      if (fo && !t.closest(".person")) {
+        var f = fo.getAttribute("data-focus");
+        state.focus = (!f || state.focus === f) ? null : f;
+        renderAll(); return;
+      }
+      var person = t.closest ? t.closest(".person") : null;
+      if (person && !t.closest("input") && !t.closest("select")) {
+        var pid = person.getAttribute("data-p");
+        state.focus = state.focus === pid ? null : pid;
+        renderAll(); return;
+      }
+      if (t.id === "rebalBtn") {
+        state.rebalance = !state.rebalance;
+        try { localStorage.setItem("ats-team4-rebal", state.rebalance ? "1" : "0"); } catch (e) { }
+        renderAll();
+        toast(state.rebalance ? "Rebalance mode on — move duties where they fit" : "Rebalance mode off", "✋");
+        return;
+      }
+      if (t.id === "resetBtn") {
+        resetAssign(); persistAssign(); renderAll();
+        toast("Back to the recommended allocation", "↺"); return;
+      }
+      if (t === $("modalBack")) closeModal();
+    });
+
+    document.addEventListener("change", function (ev) {
+      var t = ev.target;
+      if (t.classList && t.classList.contains("assign") && t.getAttribute("data-d")) {
+        moveDuty(t.getAttribute("data-d"), t.value);
+      }
+    });
+
+    /* names */
+    document.addEventListener("input", function (ev) {
+      var t = ev.target;
+      if (t.classList && t.classList.contains("p-name")) {
+        var id = t.getAttribute("data-person");
+        PERSON_BY[id].name = t.value || id;
+        var av = t.closest(".person").querySelector(".p-av");
+        if (av) av.textContent = initials(PERSON_BY[id].name);
+        var o = {}; TEAM.forEach(function (p) { o[p.id] = p.name; });
+        try { localStorage.setItem(LS_NAMES, JSON.stringify(o)); } catch (e) { }
+        renderBalance(); renderBoardToolbar(); renderBoard(); renderDomainMatrix(); renderStanding(); renderRaci(); renderPhases(); renderDuties(); syncChips();
+      }
+    });
+
+    /* modal + keyboard */
+    $("modalClose").onclick = closeModal;
+    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") closeModal(); });
+
+    /* top search */
+    var top = $("dutySearchTop");
+    if (top) {
+      top.addEventListener("input", function () {
+        state.f.q = this.value;
+        if ($("fQ")) $("fQ").value = this.value;
+        renderDuties();
+        if (this.value.length === 1) { var s = $("duties"); if (s) s.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      });
+      top.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { var s = $("duties"); if (s) s.scrollIntoView({ behavior: "smooth", block: "start" }); } });
+    }
+
+    /* nav, scrollspy, back-to-top */
+    var links = $$(".nav-link");
+    links.forEach(function (a) {
+      a.addEventListener("click", function () {
+        $("sidebar").classList.remove("open"); $("overlay").classList.remove("show");
+      });
+    });
+    if ("IntersectionObserver" in window) {
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) return;
+          links.forEach(function (a) { a.classList.toggle("active", a.getAttribute("href") === "#" + en.target.id); });
+        });
+      }, { rootMargin: "-20% 0px -70% 0px" });
+      $$("main section.section").forEach(function (s) { obs.observe(s); });
+    }
+    $("hamburger").onclick = function () { $("sidebar").classList.toggle("open"); $("overlay").classList.toggle("show"); };
+    $("overlay").onclick = function () { $("sidebar").classList.remove("open"); $("overlay").classList.remove("show"); };
+    window.addEventListener("scroll", function () {
+      $("backTop").classList.toggle("show", window.scrollY > 400);
+    });
+    $("backTop").onclick = function () { window.scrollTo({ top: 0, behavior: "smooth" }); };
+
+    /* nav duty counter */
+    var nb = $("navDutyCount"); if (nb) nb.textContent = String(DUTIES.length);
+  }
+
+  /* the script sits at the end of <body>: every container already exists */
+  init();
+})();
+/*UI-INJECT-END*/
+</script>
+</body>
+</html>

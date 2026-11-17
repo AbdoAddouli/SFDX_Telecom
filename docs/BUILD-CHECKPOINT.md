@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-11-17
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
-**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ4, BQ9, and BQ11 are resolved as amend, monthly rollover, shared waiver/approval threshold, and a 14-day device window. UC-LIF-01 `EngagementPenaltyService` is deployed with 4/4 tests. Full local Apex suite passes 172/172 (run `707bm00001X1TmF`). Next: UC-LIF-08 shared intake, then UC-LIF-02 plan change.
+**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ4, BQ9, and BQ11 are resolved as amend, monthly rollover, shared waiver/approval threshold, and a 14-day device window. UC-LIF-01 penalty service, UC-LIF-08 shared intake, and UC-LIF-02 scoped plan change are deployed. Full local Apex suite passes 181/181 (run `707bm00001X1vNa`). Next: UC-LIF-03 cancellation.
 
 ---
 
@@ -16,7 +16,7 @@
 - Added editable FLS for the fields written by activation, including Order lifecycle/BSS fields, OrderItem numbering/commitment fields, Asset/Contract/Subscription/Engagement fields, and the non-required Integration Log fields. Required fields are governed by object access and do not receive explicit `fieldPermissions` rows.
 - Granted `ActivationService` Apex class access and the `ActivateContract`/`ActivateOrder` user permissions required to complete activation.
 - `ActivationPermissionSetTest` (5/5) creates two Standard User test personas, assigns `ats_Advisor`/`ats_AdvisorManager`, asserts object/field permissions and class access, and runs a complete user-mode activation for each persona.
-- Full local Apex suite: 172/172 passing (run `707bm00001X1TmF`) after E6 penalty work. No custom profiles or roles and no persistent org users were created; the runtime proof uses ephemeral Apex test users.
+- Full local Apex suite: 181/181 passing (run `707bm00001X1vNa`). No custom profiles or roles and no persistent org users were created; the runtime proof uses ephemeral Apex test users.
 
 ### CI workflow (2026-11-14)
 
@@ -30,8 +30,24 @@
 - Resolved decisions: plan changes amend the existing contract, expired commitments roll over monthly, the goodwill waiver threshold equals the approval threshold, and the device penalty-free window is 14 days.
 - UC-LIF-01 `EngagementPenaltyService` computes early-termination fees from engagement snapshots without SOQL or DML. It reuses the active `Engagement_Penalty__mdt` matrix through `ActivationPenaltyPolicy`, applies expired and default-no-penalty rules, and reads the new `Penalty_Applicable_After_Days__c` field for the device window.
 - The service stamps `Penalty_Rule__c`, `Penalty_Calculated_On__c`, `Penalty_Breakdown__c`, and `Early_Termination_Fee__c` on the engagement and returns the server-computed fee for `Customer_Request__c.Calculated_Fee__c`.
-- `EngagementPenaltyServiceTest` passes 4/4; full local suite passes 172/172 (run `707bm00001X1TmF`).
+- `EngagementPenaltyServiceTest` passes 4/4; full local suite now passes 181/181 (run `707bm00001X1vNa`) after shared intake and plan change.
 - The threshold relationship is resolved: goodwill waiver and approval use the same `Cancellation_Approval_Threshold__c` value. The numeric value remains the existing 0 placeholder until Finance supplies a signed-off amount.
+
+### E6 UC-LIF-08 shared request intake (2026-11-17)
+
+- Added `LifecycleRequestService.createRequests` as the single server-side intake path. It creates `Customer_Request__c` and a reciprocal `Case.Request_Link__c` for every actionable type except `Info`, derives the Account from the subscription, resolves `Impacted_Engagement__c`, computes the fee through `EngagementPenaltyService`, and enforces the shared approval gate.
+- A savepoint wraps all DML, so validation or DML failure leaves no partial request, Case, or engagement update. Goodwill waivers always require justification and always route to approval.
+- Added the `Customer_Request_Intake` screen Flow that submits to the Apex action and displays the returned request/Case/status without doing any price calculation.
+- Granted `LifecycleRequestService` class access plus `Customer_Request__c` CRUD and `Case` edit in `ats_Advisor` and `ats_AdvisorManager`.
+- `LifecycleRequestServiceTest` passes 6/6 (run `707bm00001X2IyJ`); full local suite passes 181/181 (run `707bm00001X1vNa`).
+
+### E6 UC-LIF-02 scoped plan change (2026-11-17)
+
+- Added `PlanChangeService` as the server-side amend path. It reuses `LifecycleRequestService` intake, validates the active source line and engagement, re-quotes through `CatalogQueryService.getPriceBreakdown`, stores the server-computed quote in `Customer_Request__c.Fee_Breakdown__c`, and updates billing lines only after approval.
+- Plan changes are fee-free: `LifecycleRequestService` now applies `EngagementPenaltyService` fees only to `Cancellation` and `Portability`.
+- Approved execution supersedes the source line and inserts a replacement line with `Parent_Subscription__c`, keeps the existing engagement and term, leaves `MSISDN__c` blank to avoid the unique constraint, and never creates `ContractLineItem`.
+- `PlanChangeApprovalService` is a thin invocable wrapper because Apex allows only one `@InvocableMethod` per class. Both services and the new field access are granted to `ats_Advisor` and `ats_AdvisorManager`.
+- `PlanChangeServiceTest` passes 3/3 (run `707bm00001X2YJs`); the combined targeted run passes 9/9 (run `707bm00001X1DrQ`).
 
 ### Data model (earlier work)
 

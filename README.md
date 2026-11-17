@@ -8,7 +8,7 @@ Deployable Salesforce metadata for a telecom operator's catalogue, server-side p
 
 [![Salesforce API](https://img.shields.io/badge/Salesforce%20API-68.0-00A1E0?logo=salesforce&logoColor=white)](https://developer.salesforce.com/)
 [![Apex](https://img.shields.io/badge/Apex-50%20classes-1798c1)](force-app/main/default/classes)
-[![Tests](https://img.shields.io/badge/tests-172%2F172-brightgreen)](force-app/main/default/classes)
+[![Tests](https://img.shields.io/badge/tests-181%2F181-brightgreen)](force-app/main/default/classes)
 [![Metadata](https://img.shields.io/badge/metadata-deployable-blueviolet)](force-app/main/default)
 
 </div>
@@ -44,12 +44,12 @@ The pricing model is implemented **without a Revenue Cloud Advanced licence**. C
 | Quote builder and five-step subscription wizard | Complete |
 | Atomic activation, Flow entry point, idempotency, bulk proof | Complete |
 | Subscription state machine and MSISDN duplicate handling | Complete |
-| Renewal, cancellation, and remaining lifecycle jobs | In progress: E6 decisions resolved; penalty service complete |
+| Renewal, cancellation, and remaining lifecycle jobs | In progress: penalty service, shared intake, and scoped plan change complete |
 | Real BSS callout and reconciliation batch | Partial: simulated gateway in use |
 | Portal experience | Deferred: no Experience Cloud licence |
 | Non-admin CRUD/FLS hardening | Complete: advisor and manager activation permissions verified |
 
-Latest verified local Apex suite: **172/172 passing**, including `ActivationServiceTest` **26/26**, `SubscriptionWizardControllerTest` **21/21**, `ActivationPermissionSetTest` **5/5**, and `EngagementPenaltyServiceTest` **4/4**.
+Latest verified local Apex suite: **181/181 passing**, including `ActivationServiceTest` **26/26**, `SubscriptionWizardControllerTest` **21/21**, `ActivationPermissionSetTest` **5/5**, `EngagementPenaltyServiceTest` **4/4**, `LifecycleRequestServiceTest` **6/6**, and `PlanChangeServiceTest` **3/3**.
 
 ---
 
@@ -396,7 +396,9 @@ Latest verified local org run:
 | `SubscriptionWizardControllerTest` | **21/21 passing** |
 | `ActivationPermissionSetTest` | **5/5 passing** |
 | `EngagementPenaltyServiceTest` | **4/4 passing** |
-| Full local suite | **172/172 passing** |
+| `LifecycleRequestServiceTest` | **6/6 passing** |
+| `PlanChangeServiceTest` | **3/3 passing** |
+| Full local suite | **181/181 passing** |
 
 The suite covers:
 
@@ -459,7 +461,7 @@ A real-org smoke test also confirms:
 - [x] E4 activation and wizard hand-off (`UC-COM-03`/`UC-COM-05`)
 - [x] Activation idempotency and 200/500-order bulk proof (`UC-COM-06`)
 - [x] Activation service split into reader, context, provisioner, BSS, writer, and contract collaborators
-- [ ] E6 renewal, cancellation, and remaining lifecycle jobs — in progress; Q1/BQ1, BQ4, BQ9, and BQ11 resolved
+- [ ] E6 renewal, cancellation, and remaining lifecycle jobs — in progress; penalty service and shared intake complete, plan change next
 - [ ] E7 portal — deferred; Experience Cloud licence required
 - [ ] E8 real BSS callout, reconciliation, and named credentials
 - [x] E9 non-admin activation CRUD/FLS hardening

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATS Telecom — Subscription Status Lifecycle</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; background: #f8f9fa; color: #333; }
+    h1 { color: #1a73e8; margin-bottom: 1rem; }
+    .container { max-width: 800px; margin: 0 auto; }
+    .status-box { 
+      display: inline-block; 
+      width: 140px; 
+      height: 44px; 
+      line-height: 44px; 
+      text-align: center; 
+      color: white; 
+      font-size: 13px; 
+      font-weight: 500; 
+      margin: 4px; 
+      border-radius: 6px; 
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .node { 
+      position: relative; 
+      width: 140px; 
+      height: 44px; 
+      line-height: 44px; 
+      text-align: center; 
+      color: white; 
+      font-size: 13px; 
+      font-weight: 500; 
+      margin: 4px; 
+      border-radius: 6px; 
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .arrow { 
+      font-size: 18px; 
+      color: #5f6368; 
+      user-select: none; 
+      pointer-events: none; 
+    }
+    .flowchart { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 8px; 
+    }
+    .legend { 
+      margin-top: 2rem; 
+      padding: 1rem; 
+      background: white; 
+      border-radius: 8px; 
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .legend-row { 
+      display: flex; 
+      align-items: center; 
+      gap: 0.5rem; 
+      margin: 0.25rem 0; 
+    }
+    .legend-color { 
+      width: 18px; 
+      height: 18px; 
+      border-radius: 3px; 
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>ATS Telecom — Subscription__c Status Lifecycle</h1>
+  
+  <div class="flowchart" id="statusFlow">
+    <!-- Nodes will be injected by script -->
+  </div>
+
+  <div class="legend">
+    <div><div class="legend-color" style="background: #34a853;"></div> Draft</div>
+    <div><div class="legend-color" style="background: #ff8f00;"></div> PendingActivation</div>
+    <div><div class="legend-color" style="background: #1a73e8;"></div> Active</div>
+    <div><div class="legend-color" style="background: #e6e6e6;"></div> Suspended</div>
+    <div><div class="legend-color" style="background: #f96868;"></div> PendingCancellation</div>
+    <div><div class="legend-color" style="background: #5b668e;"></div> Cancelled</div>
+    <div><div class="legend-color" style="background: #aa00ff;"></div> Superseded</div>
+  </div>
+
+  <p style="margin: 2rem 0 1rem; font-size: 13px; color: #5f6368;">
+    Transitions enforced by <code>SubscriptionTriggerHandler</code>. <strong>Cancelled</strong> and <strong>Superseded</strong> are terminal.
+  </p>
+
+  <h3>Transition Rules</h3>
+  <ul style="font-size: 14px; line-height: 1.8; color: #444;">
+    <li><strong>Draft → PendingActivation</strong>: Initial activation or after cancellation reversal</li>
+    <li><strong>PendingActivation → Active</strong>: BSS provisioning successful</li>
+    <li><strong>PendingActivation → PendingCancellation</strong>: Cancellation request submitted</li>
+    <li><strong>Active → Suspended</strong>: Temporarily suspend service</li>
+    <li><strong>Active → PendingCancellation</strong>: Cancellation submitted while active</li>
+    <li><strong>Active → Superseded</strong>: Replaced by a new subscription (plan change/upgrade)</li>
+    <li><strong>Suspended → Active</strong>: Resume service</li>
+    <li><strong>Suspended → PendingCancellation</strong>: Cancel during suspension</li>
+    <li><strong>PendingCancellation → Cancelled</strong>: Termination completed</li>
+    <li><strong>Superseded → (replacement points here)</strong>: New subscription takes over</li>
+    <li><strong>Cancelled</strong> and <strong>Superseded</strong>: Terminal — never hard-delete</li>
+  </ul>
+
+  <p style="font-size: 12px; color: #777; margin-top: 2rem;">
+    Status is the <em>only</em> mutable lifecycle field on <code>Subscription__c</code>. No automation writes it except the trigger.
+  </p>
+</div>
+
+<script>
+  // Inject status nodes and arrows
+  const nodes = [
+    { id: 'draft', label: 'Draft', color: '#34a853' },
+    { id: 'pendingActivation', label: 'PendingActivation', color: '#ff8f00' },
+    { id: 'active', label: 'Active', color: '#1a73e8' },
+    { id: 'suspended', label: 'Suspended', color: '#e6e6e6' },
+    { id: 'pendingCancellation', label: 'PendingCancellation', color: '#f96868' },
+    { id: 'cancelled', label: 'Cancelled', color: '#5b668e' },
+    { id: 'superseded', label: 'Superseded', color: '#aa00ff' }
+  ];
+
+  const edges = [
+    { from: 'draft', to: 'pendingActivation', label: '' },
+    { from: 'pendingActivation', to: 'active', label: '' },
+    { from: 'pendingActivation', to: 'pendingCancellation', label: '' },
+    { from: 'active', to: 'suspended', label: '' },
+    { from: 'active', to: 'pendingCancellation', label: '' },
+    { from: 'active', to: 'superseded', label: '' },
+    { from: 'suspended', to: 'active', label: '' },
+    { from: 'suspended', to: 'pendingCancellation', label: '' },
+    { from: 'pendingCancellation', to: 'cancelled', label: '' },
+    // Superseded transitions — replacement subscription points to whereCancelled/superseded was
+  ];
+
+  const container = document.getElementById('statusFlow');
+  
+  // Create node elements
+  nodes.forEach(node => {
+    const div = document.createElement('div');
+    div.className = `node${node.id === 'active' ? ' active-state' : ''}`;
+    div.style.background = node.color;
+    div.textContent = node.label;
+    container.appendChild(div);
+  });
+  
+  // Create arrow labels between nodes (simple linear placement for visibility)
+  const arrowContainer = document.createElement('div');
+  arrowContainer.style.marginTop = '1rem';
+  arrowContainer.style.display = 'flex';
+  arrowContainer.style.gap = '12px';
+  arrowContainer.style.justifyContent = 'center';
+  arrowContainer.style.fontSize = '14px';
+  arrowContainer.style.color = '#5f6368';
+  
+  edges.forEach((edge, i) => {
+    const span = document.createElement('span');
+    span.textContent = '→';
+    if (edge.label) {
+      const label = document.createElement('span');
+      label.textContent = ` ${edge.label} `;
+      span.appendChild(label);
+    }
+    arrowContainer.appendChild(span);
+  });
+  
+  container.parentNode.appendChild(arrowContainer);
+</script>
+</body>
+</html>

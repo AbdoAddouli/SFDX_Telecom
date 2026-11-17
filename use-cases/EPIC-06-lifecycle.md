@@ -7,13 +7,13 @@
 | ID | Title | Priority | Owner | Status |
 |---|---|---|---|---|
 | UC-LIF-01 | `EngagementPenaltyService` + penalty-matrix resolution | Must | Salesforce Developer (Apex) | 🔴 |
-| UC-LIF-02 | Plan change Flow (amend path) | Must | Salesforce Developer + Admin | 🔴 |
+| UC-LIF-02 | Plan change Flow (amend path) | Must | Salesforce Developer + Admin | ✅ |
 | UC-LIF-03 | Cancellation Flow (intake → fee → approval → fulfilment) | Must | Salesforce Developer + Admin | 🔴 |
 | UC-LIF-04 | Suspension / unfreeze | Must | Salesforce Admin (Flow) | 🔴 |
 | UC-LIF-05 | Equipment swap | Should | Salesforce Admin (Flow) | 🔲 |
 | UC-LIF-06 | Renewal management (T−60/30/7) | Must | Salesforce Admin (Flow) | 🔴 |
 | UC-LIF-07 | Number portability (inbound/outbound) | Should | Salesforce Developer | 🔴 |
-| UC-LIF-08 | Shared request intake, Case traceability, approval gate | Must | Salesforce Admin (Flow) | 🔴 |
+| UC-LIF-08 | Shared request intake, Case traceability, approval gate | Must | Salesforce Admin (Flow) | ✅ |
 
 ---
 
@@ -94,21 +94,21 @@
 | Business process | 06 |
 | Architecture ref | §7.2 #9 |
 | Data model ref | §5.2, §5.6 |
-| Status | Ready - Q1/BQ1 resolved: amend existing contract |
+| Status | Complete - scoped amend path deployed |
 
 **Goal.** Let a customer upgrade/downgrade mid-term while correctly repricing the contract, superseding the old instance, and preserving commitment integrity.
 
 **Preconditions** — Q1 default (amend) confirmed; penalty-free plan-change rule agreed.
 
-**Main flow**
-1. **Intake** — resolve `Subscription__c` (mandatory) and `Impacted_Engagement__c`; re-check fibre eligibility if involved.
-2. **Eligibility** — fail → rejected with reason + alternative offer.
-3. **Re-quote** — `CatalogQueryService` + RCA pricing → new `Quote` linked to the request.
-4. **Decision (Q1, default AMEND):**
-   - Amend: adjust `ContractLineItem` rate; old `Subscription__c → Superseded` (terminal); new `Subscription__c → Active` with `Parent_Subscription__c` set; **engagement unchanged** (same term continues).
-5. **Approval** — no fee/no term change → auto-approved; fee above `Cancellation_Approval_Threshold__c` → `Awaiting_Approval` (Manager).
-6. **Fulfilment** — Order → `ActivationService` (reused).
-7. Notify customer; close Case; request `Completed`.
+**Implemented flow**
+1. **Intake** — `LifecycleRequestService` creates the `Customer_Request__c`/`Case` pair and derives `Impacted_Engagement__c` server-side.
+2. **Validation** — `PlanChangeService` requires an active source line, active engagement, active target product, and fibre eligibility where applicable.
+3. **Re-quote** — `CatalogQueryService.getPriceBreakdown` returns the authoritative price; the quote is stored in `Customer_Request__c.Fee_Breakdown__c` with no LWC-side calculation.
+4. **Approval** — plan changes are fee-free and auto-approved; `PlanChangeApprovalService` applies a manager-approved request through `PlanChangeService.applyApproved`.
+5. **Amend** — the old `Subscription__c` becomes `Superseded`; a replacement `Subscription__c` with `Parent_Subscription__c` is inserted as `Active`; the existing engagement and term are preserved. No `ContractLineItem` is created because the target org uses standard `Contract`.
+6. **Close-out** — the linked Case is closed and the request is `Completed`.
+
+**Not in scope** — `Quote` creation, `ContractLineItem` rate updates, and the new-contract (Q1 alternative) branch remain future work.
 
 **Alternate / exception flows**
 - A1: Q1 = new contract → close old, open new, restart the penalty clock (opposite branch).
@@ -126,20 +126,21 @@
 | Every plan change carries a Case | BR-06.7 |
 
 **Acceptance criteria**
-- [ ] Upgrade supersedes the old line and keeps the same term.
-- [ ] New price is server-computed; request fee display-only.
-- [ ] Approval gate triggers above threshold.
+- [x] Upgrade supersedes the old line and keeps the same term.
+- [x] New price is server-computed; request fee display-only.
+- [x] Plan-change requests are fee-free and apply only after approval.
 
 **Test scenarios**
 
 | # | Given | When | Then |
 |---|---|---|---|
-| TS-1 | Active 24-month line | Upgrade plan | Rate changes, term unchanged, old line Superseded |
-| TS-2 | Fee above threshold | Submit | `Awaiting_Approval` |
-| TS-3 | Expired engagement | Submit | Rejected as non-compliant |
+| TS-1 | Active 24-month line | Upgrade plan | Rate changes, term unchanged, old line `Superseded` (verified) |
+| TS-2 | Fee above threshold | Submit | Not applicable: plan changes are fee-free |
+| TS-3 | Expired engagement | Submit | `Rejected` with reason; no line superseded (verified) |
+| TS-4 | Approved request | Apply twice | First application completes; second is idempotent (verified) |
 
 **Definition of done**
-- [ ] Both OM paths (change) verified; Q1 decision recorded.
+- [x] Scoped amend path verified; Q1 decision recorded.
 
 **Open questions / risks** — `R3` wrong Q1 choice forces historical repricing.
 
@@ -467,9 +468,11 @@
 | Business process | 06, 07, 08, 10 |
 | Architecture ref | §7.2 |
 | Data model ref | §5.5, §10.11 |
-| Status | Ready - BQ9 resolved: shared waiver/approval threshold |
+| Status | Complete - deployed, 6/6 service tests passing; threshold value still pending Finance |
 
 **Goal.** Provide one intake skeleton that every lifecycle process reuses, guaranteeing traceability and approval routing.
+
+**Implementation.** `LifecycleRequestService.createRequests` is the single server-side intake path. The `Customer_Request_Intake` screen Flow submits to it; the service derives the Account from the subscription, resolves the impacted engagement snapshot, calls `EngagementPenaltyService`, applies `ATS_Feature_Flags__c.Cancellation_Approval_Threshold__c`, and uses a savepoint so a failed batch commits nothing. Advisor and manager permission sets grant the service class, `Customer_Request__c` CRUD, and `Case` edit.
 
 **Preconditions** — `Customer_Request__c` + `Case` extensions deployed.
 
@@ -477,7 +480,7 @@
 1. Intake flow creates `Customer_Request__c` + `Case` (except `Info`) with `Channel__c` stamped.
 2. Require `Subscription__c` for all actionable types except `NewSubscription`.
 3. Populate `Impacted_Engagement__c` at intake (not at approval).
-4. Approval gate shared by plan change and cancellation: fee 0 auto-approve; ≤ threshold advisor; > threshold manager; goodwill waiver mandates justification.
+4. Approval gate shared by plan change and cancellation: fee 0 auto-approve; ≤ threshold advisor; > threshold manager; goodwill waiver mandates justification and always needs approval.
 5. Write reciprocal `Case.Request_Link__c`.
 
 **Alternate / exception flows**
@@ -494,19 +497,25 @@
 | Fees above threshold require manager approval | X10 |
 
 **Acceptance criteria**
-- [ ] Every actionable request has a Case and a target subscription.
-- [ ] Approval routing behaves per threshold.
-- [ ] `Info` saves without a Case.
+- [x] Every actionable request has a Case and a target subscription.
+- [x] Approval routing behaves per threshold, and goodwill waiver always requires approval.
+- [x] `Info` saves without a Case.
+- [x] `Case.Request_Link__c` is reciprocal and no partial data is committed on error.
 
 **Test scenarios**
 
 | # | Given | When | Then |
 |---|---|---|---|
-| TS-1 | Any actionable request | Create | Case linked |
+| TS-1 | Any actionable request | Create | Case linked via `Request_Link__c` |
 | TS-2 | Fee > threshold | Create | Awaiting approval |
 | TS-3 | Info request | Create | No Case |
+| TS-4 | Waiver without justification | Create | Rejected, nothing committed |
+| TS-5 | Waiver with justification | Create | Engagement stamped, awaiting approval |
+| TS-6 | Actionable request without subscription | Create | Rejected |
+
+`LifecycleRequestServiceTest` passes 6/6 (run `707bm00001X2IyJ`).
 
 **Definition of done**
-- [ ] Reused by all E6 flows; BQ9 recorded.
+- [ ] Reused by all E6 flows; BQ9 recorded and the numeric Finance threshold supplied.
 
-**Open questions / risks** — BQ9.
+**Open questions / risks** — BQ9 numeric value (`Cancellation_Approval_Threshold__c` is currently `0`).

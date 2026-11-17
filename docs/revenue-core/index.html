@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revenue Core — interactive map</title>
+<style>
+:root{
+  --sf-navy:#032d60; --sf-navy-2:#014486; --sf-blue:#0176d3; --sf-blue-2:#0b5cab;
+  --sf-blue-soft:#d8edff; --sf-teal:#06a59a; --sf-green:#2e844a; --sf-green-soft:#cdefc4;
+  --sf-orange:#ba5d00; --sf-orange-soft:#feefc5; --sf-red:#ba0517; --sf-red-soft:#fedbdd;
+  --sf-purple:#9050e9; --sf-purple-soft:#ece2fd; --sf-yellow:#8c6b00;
+  --bg:#f3f3f3; --bg-2:#eaeff5; --surface:#ffffff; --surface-2:#f7f9fb;
+  --border:#c9cdd6; --border-soft:#e2e6ec; --text:#181818; --text-2:#3c3c3c; --muted:#5c5c5c;
+  --shadow:0 2px 12px rgba(3,45,92,.10); --shadow-lg:0 8px 34px rgba(3,45,92,.16);
+  --radius:12px; --radius-sm:8px; --code-bg:#0b1e2f; --code-text:#d3e6f7;
+  --sidebar-w:268px; --topbar-h:58px;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+}
+[data-theme="dark"]{
+  --bg:#0b1420; --bg-2:#0e1a29; --surface:#12233a; --surface-2:#16294260;
+  --border:#2b4361; --border-soft:#20344d; --text:#e7f0fa; --text-2:#c9d9ea; --muted:#93a8bf;
+  --sf-blue-soft:#0f3355; --sf-green-soft:#123a24; --sf-orange-soft:#3a2a08;
+  --sf-red-soft:#3a1119; --sf-purple-soft:#241a3d;
+  --shadow:0 2px 12px rgba(0,0,0,.4); --shadow-lg:0 8px 34px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Salesforce Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--text); font-size:15px; line-height:1.55;
+}
+a{color:var(--sf-blue-2); text-decoration:none}
+a:hover{text-decoration:underline}
+code,.mono{font-family:var(--mono); font-size:.86em; background:rgba(1,118,211,.10); padding:1px 5px; border-radius:4px; color:var(--sf-blue-2); word-break:break-word}
+[data-theme="dark"] code,[data-theme="dark"] .mono{background:#0a2036; color:#8fc6f5}
+pre{background:var(--code-bg); color:var(--code-text); padding:14px 16px; border-radius:var(--radius-sm); overflow:auto; font-family:var(--mono); font-size:13px; line-height:1.5}
+h1,h2,h3,h4{margin:0 0 .4em; line-height:1.25; color:var(--sf-navy)}
+[data-theme="dark"] h1,[data-theme="dark"] h2,[data-theme="dark"] h3,[data-theme="dark"] h4{color:#8fc6f5}
+h1{font-size:27px} h2{font-size:21px} h3{font-size:17px} h4{font-size:15px}
+p{margin:.4em 0 .9em}
+ul{margin:.4em 0 .9em; padding-left:20px} li{margin:.25em 0}
+
+/* ---------- layout ---------- */
+.topbar{
+  position:fixed; top:0; left:0; right:0; height:var(--topbar-h); z-index:60;
+  background:linear-gradient(90deg,var(--sf-navy),var(--sf-navy-2));
+  display:flex; align-items:center; gap:14px; padding:0 16px; color:#fff;
+  box-shadow:0 2px 10px rgba(3,45,92,.3);
+}
+.topbar .brand{display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.2px; white-space:nowrap}
+.topbar .brand .mark{
+  width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#38b6ff,#0176d3);
+  display:grid;place-items:center;font-size:15px;font-weight:800;color:#032d60
+}
+.topbar .brand small{display:block;font-weight:400;font-size:11px;opacity:.8;letter-spacing:.4px}
+.topbar .spacer{flex:1}
+.tb-btn{
+  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); color:#fff;
+  padding:6px 11px; border-radius:999px; font-size:13px; cursor:pointer; white-space:nowrap;
+}
+.tb-btn:hover{background:rgba(255,255,255,.26)}
+.hamburger{display:none}
+.progressbar{position:fixed;top:var(--topbar-h);left:0;height:3px;background:var(--sf-teal);z-index:70;width:0;transition:width .2s}
+
+.sidebar{
+  position:fixed; top:var(--topbar-h); left:0; bottom:0; width:var(--sidebar-w);
+  background:var(--surface); border-right:1px solid var(--border-soft);
+  padding:14px 12px 30px; overflow-y:auto; z-index:50;
+}
+.side-label{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);margin:14px 8px 6px;font-weight:700}
+.nav-item{
+  display:flex; gap:10px; align-items:flex-start; width:100%; text-align:left;
+  background:none; border:0; border-radius:9px; padding:9px 10px; cursor:pointer;
+  color:var(--text-2); font-size:14px; font-family:inherit; line-height:1.35; margin-bottom:2px;
+}
+.nav-item .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:12px;background:var(--sf-blue-soft);flex:none}
+.nav-item small{display:block;color:var(--muted);font-size:11.5px}
+.nav-item:hover{background:var(--surface-2)}
+.nav-item.active{background:var(--sf-blue-soft); color:var(--sf-navy); font-weight:700}
+[data-theme="dark"] .nav-item.active{color:#9fd0ff}
+.nav-item.active .ic{background:var(--sf-blue); color:#fff}
+.side-foot{margin-top:16px;padding:10px;border-top:1px dashed var(--border-soft);font-size:12px;color:var(--muted)}
+
+.main{margin-left:var(--sidebar-w); padding:calc(var(--topbar-h) + 22px) 26px 70px; max-width:1240px}
+.view{display:none; animation:fade .25s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.card{background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow); margin-bottom:18px}
+.card h2{margin-bottom:.3em}
+.card h3{margin-top:.4em}
+.sub{color:var(--muted); font-size:13.5px}
+.grid{display:grid; gap:14px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+
+/* ---------- bits ---------- */
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+.b-build{background:var(--sf-orange-soft); color:var(--sf-orange)}
+.b-free{background:var(--sf-green-soft); color:var(--sf-green)}
+.b-blocked{background:var(--sf-red-soft); color:var(--sf-red)}
+.b-info{background:var(--sf-blue-soft); color:var(--sf-blue-2)}
+.b-purple{background:var(--sf-purple-soft); color:var(--sf-purple)}
+.b-mute{background:var(--surface-2); color:var(--muted); border:1px solid var(--border-soft)}
+.kpi{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .n{font-size:30px;font-weight:800;color:var(--sf-navy);line-height:1.1}
+[data-theme="dark"] .kpi .n{color:#8fc6f5}
+.kpi .l{font-size:12.5px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:.5em 0 .2em}
+th,td{border:1px solid var(--border-soft); padding:8px 10px; text-align:left; vertical-align:top}
+th{background:var(--surface-2); color:var(--sf-navy); font-size:12.5px; text-transform:uppercase; letter-spacing:.4px}
+[data-theme="dark"] th{color:#8fc6f5}
+tr:hover td{background:rgba(1,118,211,.04)}
+.tablewrap{overflow-x:auto}
+.callout{border-left:4px solid var(--sf-blue); background:var(--sf-blue-soft); padding:12px 15px; border-radius:0 var(--radius-sm) var(--radius-sm) var(--radius-sm); margin:12px 0; font-size:14px}
+.callout.warn{border-color:var(--sf-orange); background:var(--sf-orange-soft)}
+.callout.bad{border-color:var(--sf-red); background:var(--sf-red-soft)}
+.callout.ok{border-color:var(--sf-green); background:var(--sf-green-soft)}
+.callout b{color:inherit}
+.chip{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border-soft);font-size:12px;color:var(--text-2);margin:3px 4px 0 0}
+.btn{
+  background:var(--sf-blue); color:#fff; border:0; border-radius:999px; padding:9px 18px;
+  font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.btn:hover{background:var(--sf-blue-2)}
+.btn.ghost{background:transparent;color:var(--sf-blue-2);border:1px solid var(--border)}
+.btn.ghost:hover{background:var(--sf-blue-soft)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.input,select.input,input[type="date"].input{
+  background:var(--surface); color:var(--text); border:1px solid var(--border);
+  border-radius:8px; padding:8px 10px; font-size:14px; font-family:inherit; width:100%;
+}
+.input:focus{outline:2px solid var(--sf-blue); outline-offset:1px; border-color:var(--sf-blue)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid var(--border-soft);margin-bottom:16px}
+.tab{
+  background:none;border:0;border-bottom:3px solid transparent;padding:9px 14px;cursor:pointer;
+  font-family:inherit;font-size:14px;color:var(--muted);font-weight:600;
+}
+.tab:hover{color:var(--sf-blue-2)}
+.tab.active{color:var(--sf-blue-2);border-bottom-color:var(--sf-blue)}
+.filecard{
+  display:block;background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);
+  padding:13px 15px;box-shadow:var(--shadow);color:var(--text);transition:.15s;
+}
+.filecard:hover{border-color:var(--sf-blue);transform:translateY(-2px);text-decoration:none;box-shadow:var(--shadow-lg)}
+.filecard .num{font-family:var(--mono);font-size:11px;color:var(--sf-blue);letter-spacing:1px}
+.filecard b{display:block;color:var(--sf-navy);font-size:14.5px;margin:2px 0 3px}
+[data-theme="dark"] .filecard b{color:#8fc6f5}
+.filecard span{font-size:12.5px;color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+
+/* dependency explorer */
+.dep-layout{display:grid;grid-template-columns:minmax(300px,1fr) minmax(320px,1.15fr);gap:16px}
+@media(max-width:960px){.dep-layout{grid-template-columns:1fr}}
+.dep-list{display:flex;flex-direction:column;gap:7px;max-height:560px;overflow-y:auto;padding-right:4px}
+.dep{
+  text-align:left;background:var(--surface);border:1px solid var(--border-soft);border-left:4px solid var(--border);
+  border-radius:9px;padding:9px 12px;cursor:pointer;font-family:inherit;font-size:13.5px;color:var(--text);
+}
+.dep:hover{background:var(--surface-2)}
+.dep.active{border-color:var(--sf-blue);border-left-color:var(--sf-blue);background:var(--sf-blue-soft)}
+.dep .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.dep .id{font-family:var(--mono);font-size:11.5px;color:var(--sf-blue-2);font-weight:700}
+.dep small{color:var(--muted);font-size:12px}
+.detail{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:var(--radius);padding:16px 18px;min-height:300px;position:sticky;top:calc(var(--topbar-h) + 16px)}
+.detail .swap{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+.swap\boxed{border:1px dashed var(--border);border-radius:9px;padding:10px 12px;background:var(--surface);font-size:13.5px}
+.swapbox .hd{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:5px}
+.swapbox.gone{border-color:var(--sf-red);background:var(--sf-red-soft)}
+.swapbox.now{border-color:var(--sf-green);background:var(--sf-green-soft);border-style:solid}
+.arrowline{text-align:center;font-size:18px;color:var(--muted);line-height:1}
+
+/* component tree */
+.tree{font-family:var(--mono);font-size:13px;line-height:1.85;white-space:pre;overflow-x:auto}
+.tree .node{cursor:pointer;border-radius:5px;padding:0 4px;color:var(--text-2)}
+.tree .node:hover{background:var(--sf-blue-soft)}
+.tree .node.sel{background:var(--sf-blue);color:#fff}
+.tree .cmt{color:var(--muted)}
+
+/* simulator */
+.sim{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:16px}
+@media(max-width:1000px){.sim{grid-template-columns:1fr}}
+.prod-group{margin-bottom:12px}
+.prod-group .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.prod{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 11px;
+  margin-bottom:5px;cursor:pointer;font-family:inherit;font-size:13.5px;color:var(--text);text-align:left;
+}
+.prod:hover{border-color:var(--sf-blue)}
+.prod.on{background:var(--sf-blue-soft);border-color:var(--sf-blue);font-weight:600}
+.prod .px{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.prod.on .px{color:var(--sf-blue-2)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{
+  flex:1;min-width:78px;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:8px 6px;cursor:pointer;font-family:inherit;font-size:13px;color:var(--text-2);
+}
+.seg button.on{background:var(--sf-navy);border-color:var(--sf-navy);color:#fff;font-weight:700}
+.field{margin-bottom:14px}
+.field > .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;margin-bottom:6px;display:block}
+.trace-step{
+  display:grid;grid-template-columns:34px 1fr;gap:12px;padding:11px 0;border-bottom:1px dashed var(--border-soft);
+}
+.trace-step:last-child{border-bottom:0}
+.trace-step .sn{
+  width:30px;height:30px;border-radius:50%;background:var(--sf-blue-soft);color:var(--sf-blue-2);
+  display:grid;place-items:center;font-weight:800;font-size:13px;
+}
+.trace-step.done .sn{background:var(--sf-green-soft);color:var(--sf-green)}
+.trace-step.fail .sn{background:var(--sf-red-soft);color:var(--sf-red)}
+.trace-step .st{font-weight:700;font-size:14px}
+.trace-step .sd{font-size:13px;color:var(--text-2)}
+.trace-step .sh{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.applied{font-family:var(--mono);font-size:12px;background:rgba(1,118,211,.07);border-radius:6px;padding:4px 8px;margin-top:5px;display:inline-block;color:var(--sf-blue-2)}
+.final{display:flex;align-items:baseline;justify-content:space-between;gap:12px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:10px;padding:13px 16px;margin-top:6px}
+.final .big{font-size:26px;font-weight:800;color:var(--sf-navy);font-family:var(--mono)}
+[data-theme="dark"] .final .big{color:#8fc6f5}
+.final.blocked .big{color:var(--sf-red)}
+.mono-num{font-family:var(--mono)}
+.strike{text-decoration:line-through;color:var(--muted)}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:14px}
+.checklist label:hover{background:var(--surface-2)}
+.checklist input{margin-top:3px;accent-color:var(--sf-blue);width:16px;height:16px}
+.checklist label.done{color:var(--muted)}
+.checklist label.done span{text-decoration:line-through}
+.bar{height:9px;border-radius:99px;background:var(--border-soft);overflow:hidden;margin:10px 0 4px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--sf-teal),var(--sf-green));transition:width .3s}
+.search{position:relative}
+.search input{padding-left:32px}
+.search::before{content:"⌕";position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px}
+.filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.pill{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:5px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--text-2)}
+.pill.on{background:var(--sf-navy);border-color:var(--sf-navy);color:#fff;font-weight:600}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.hidden{display:none !important}
+.timeline{border-left:3px solid var(--border);margin-left:10px;padding-left:20px}
+.tl{position:relative;padding-bottom:20px}
+.tl::before{content:"";position:absolute;left:-29px;top:4px;width:15px;height:15px;border-radius:50%;background:var(--sf-blue);border:3px solid var(--surface);box-shadow:0 0 0 2px var(--sf-blue)}
+.tl.ok::before{background:var(--sf-green);box-shadow:0 0 0 2px var(--sf-green)}
+.tl.no::before{background:var(--sf-red);box-shadow:0 0 0 2px var(--sf-red)}
+.tl.wait::before{background:var(--sf-orange);box-shadow:0 0 0 2px var(--sf-orange)}
+.tl h4{margin-bottom:.2em}
+.toast{
+  position:fixed;bottom:22px;right:22px;background:var(--sf-navy);color:#fff;padding:11px 18px;
+  border-radius:10px;box-shadow:var(--shadow-lg);font-size:14px;opacity:0;transform:translateY(12px);
+  transition:.25s;pointer-events:none;z-index:90;
+}
+.toast.show{opacity:1;transform:none}
+@media(max-width:860px){
+  .sidebar{transform:translateX(-100%);transition:.25s;box-shadow:var(--shadow-lg)}
+  .sidebar.open{transform:none}
+  .main{margin-left:0;padding-left:16px;padding-right:16px}
+  .hamburger{display:inline-block}
+  .topbar .brand small{display:none}
+  .detail{position:static}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="tb-btn hamburger" id="hamb" aria-label="Menu">☰</button>
+  <div class="brand">
+    <div class="mark">RC</div>
+    <div>Revenue Core<small>docs/revenue-core · interactive map</small></div>
+  </div>
+  <div class="spacer"></div>
+  <button class="tb-btn" id="themeBtn" title="Toggle theme">◐ Theme</button>
+  <button class="tb-btn" id="resetBtn" title="Reset every interactive state">↺ Reset</button>
+</header>
+<div class="progressbar" id="progressbar"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="side-label">Start here</div>
+  <button class="nav-item active" data-view="overview"><span class="ic">🏠</span><span>Overview<small>The 6 things RCA gave you</small></span></button>
+  <button class="nav-item" data-view="deps"><span class="ic">🔗</span><span>Dependency explorer<small>What breaks, and the substitute</small></span></button>
+  <button class="nav-item" data-view="constraints"><span class="ic">🚧</span><span>DE org constraints<small>6 limits, 6 forced changes</small></span></button>
+  <button class="nav-item" data-view="spec"><span class="ic">🧩</span><span>Revenue Core spec<small>Components &amp; metadata</small></span></button>
+  <button class="nav-item" data-view="sim"><span class="ic">⚙️</span><span>Pricing simulator<small>Run the 5-step procedure</small></span></button>
+  <button class="nav-item" data-view="decisions"><span class="ic">❓</span><span>Decisions<small>13 blueprint + 8 new</small></span></button>
+  <button class="nav-item" data-view="build"><span class="ic">🧭</span><span>Build order<small>Phases, gates, DoD</small></span></button>
+
+  <div class="side-label">The folder</div>
+  <a class="nav-item" href="./README.md"><span class="ic">📘</span><span>README<small>Read me first</small></span></a>
+  <a class="nav-item" href="./01-REVENUE-CLOUD-DEPENDENCIES.md"><span class="ic">1</span><span>01 — Dependencies<small>Every RCA touchpoint</small></span></a>
+  <a class="nav-item" href="./02-DE-ORG-CONSTRAINTS.md"><span class="ic">2</span><span>02 — DE constraints<small>Your real org limits</small></span></a>
+  <a class="nav-item" href="./03-REVENUE-CORE-SPEC.md"><span class="ic">3</span><span>03 — Build spec<small>The engine itself</small></span></a>
+  <a class="nav-item" href="./04-OPEN-DECISIONS.md"><span class="ic">4</span><span>04 — Open decisions<small>Q/BQ + RC1…RC8</small></span></a>
+  <a class="nav-item" href="./05-BUILD-ORDER.md"><span class="ic">5</span><span>05 — Build order<small>Phase 0 → week 1</small></span></a>
+
+  <div class="side-foot">
+    Scope stays frozen at the <b>80 use cases</b> in <code>docs/index.html</code>. Revenue Core implements exactly what they demand — nothing more.
+    <br><br><a href="../index.html">← Back to blueprint</a>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- ================= OVERVIEW ================= -->
+<section class="view active" id="view-overview">
+  <div class="card">
+    <h1>Revenue Core — what you take from Revenue Cloud, and what you build instead</h1>
+    <p class="sub">The blueprint assumed <b>Revenue Cloud Advanced (RCA)</b> is enabled. Your org is a <b>Developer Edition</b>: no RCA, no Experience Cloud, no sandboxes, 5&nbsp;MB data storage, 2 licences. This folder maps every RCA dependency and the replacement you build yourself — <b>Revenue Core</b>.</p>
+    <div class="grid g4" style="margin-top:14px">
+      <div class="kpi"><div class="n" style="color:var(--sf-orange)">3</div><div class="l">you build<br><span class="badge b-build">Pricing · Config · Classification</span></div></div>
+      <div class="kpi"><div class="n" style="color:var(--sf-green)">2</div><div class="l">free from standard Salesforce<br><span class="badge b-free">Quote/Order · Catalogue/Prices</span></div></div>
+      <div class="kpi"><div class="n" style="color:var(--sf-red)">1</div><div class="l">cannot have<br><span class="badge b-blocked">Billing / rev-rec</span></div></div>
+      <div class="kpi"><div class="n">6</div><div class="l">docs in the folder<br><span class="badge b-info">read in order 01 → 05</span></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>The short answer</h2>
+    <p class="sub">Revenue Cloud would have given you six things. Click a row to see what happens to it.</p>
+    <div class="tablewrap">
+      <table id="sixTable">
+        <thead><tr><th style="width:34%">What Revenue Cloud gives you</th><th style="width:12%">Verdict</th><th>Replacement</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--sf-orange)"></i>Build it yourself</span>
+      <span><i style="background:var(--sf-green)"></i>Standard Salesforce, free</span>
+      <span><i style="background:var(--sf-red)"></i>Permanently out of reach</span>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h2>Two corrections to earlier advice</h2>
+      <div class="callout bad"><b>1. Do NOT build <code>Invoice__c</code> / <code>Invoice_Line__c</code>.</b> <code>DATA_MODEL.md</code> §18 forbids pre-building them, and E10 is conditional on <b>Q3 / BQ7</b>. Until Finance answers, those use cases must not be started.</div>
+      <div class="callout"><b>2. <code>ActivationService</code> and the subscription state machine are not new work</b> — they are already <code>UC-COM-03</code> and <code>UC-COM-04</code>. The genuinely new work created by the missing licence is the <b>pricing engine</b>, the <b>configuration rules</b>, and the <b>classification hierarchy</b>.</div>
+    </div>
+    <div class="card">
+      <h2>Permanently blocked</h2>
+      <ul>
+        <li><b>E7 — Self-Service Portal</b> needs an Experience Cloud licence. No workaround gives the real thing; only the public unauthenticated form survives (<code>UC-ACQ-03</code>).</li>
+        <li><b>Scratch orgs / sandboxes</b> — a DE org is not a Dev Hub. All testing happens <i>in the dev org</i>, with careful reset scripts.</li>
+        <li><b>“5 GB of prices”</b> in E2's exit gate cannot be tested literally — test the <i>pattern</i> at small scale, document the scaling strategy (file 02 §3).</li>
+      </ul>
+      <div class="callout warn"><b>Non-negotiable rule:</b> scope stays frozen at the <b>80 use cases</b>. Revenue Core is not a generic pricing engine — no tiers, slabs, rate matrices, usage rating, multi-currency or proration.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Read in this order</h2>
+    <div class="grid g3" id="fileCards"></div>
+  </div>
+</section>
+
+<!-- ================= DEPENDENCIES ================= -->
+<section class="view" id="view-deps">
+  <div class="card">
+    <h2>Dependency explorer</h2>
+    <p class="sub">Every use case the blueprint touches Revenue Cloud with, plus the documented fallback. <b>Click a use case</b> on the left; the right panel shows the swap.</p>
+    <div class="filterbar">
+      <div class="search" style="min-width:230px"><input class="input" id="depSearch" placeholder="Search UC id, epic, rule…"></div>
+      <button class="pill on" data-depfilter="all">All</button>
+      <button class="pill" data-depfilter="blocked">🔴 Blocked</button>
+      <button class="pill" data-depfilter="substituted">🔁 Implementation swapped</button>
+      <button class="pill" data-depfilter="wording">✏️ Wording only</button>
+      <button class="pill" data-depfilter="out">📦 Out of scope</button>
+      <span class="sub" id="depCount"></span>
+    </div>
+    <div class="dep-layout">
+      <div class="dep-list" id="depList"></div>
+      <div class="detail" id="depDetail"></div>
+    </div>
+    <div class="callout" style="margin-top:16px"><b>Remember the licence gate:</b> <code>UC-FND-03</code> “enable RCA” can't be done via CLI — it needs the Salesforce account team. Q2 never resolves on a DE org (no SKU to buy), so treat it as <b>permanently deferred</b> and take the alternate flow: base objects proceed; the RCA-dependent lookup fields split into a later deployment increment.</div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>Summary count <span class="sub">(file 01 §4)</span></h3>
+      <div class="tablewrap"><table id="countTable"></table></div>
+    </div>
+    <div class="card">
+      <h3>Data-model fields that assume RCA <span class="sub">(§3)</span></h3>
+      <p class="sub">Three lookups on <code>Subscription__c</code>, marked <b>R</b> in <code>DATA_MODEL.md</code> §1.4. Deploy them in a later increment — never remove them.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Field</th><th>Marked</th><th>RCA role</th></tr></thead>
+          <tbody>
+            <tr><td><code>ProductClassification__c</code></td><td><b>R</b></td><td>Drives 360° grouping</td></tr>
+            <tr><td><code>Asset__c</code></td><td><b>R</b> (1:1)</td><td>“RCA drives amendments from <code>Asset</code>; <code>Subscription__c</code> mirrors it”</td></tr>
+            <tr><td><code>Contract__c</code></td><td>—</td><td>“RCA owns contracts; we reference, never write directly”</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn"><b>The inversion that matters:</b> with no RCA, <b><code>Subscription__c</code> becomes the parent of truth</b> and <code>Asset__c</code> is passive provisioned equipment. Document it explicitly — it decides who wins a reconciliation dispute (decision <b>RC4</b>).</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONSTRAINTS ================= -->
+<section class="view" id="view-constraints">
+  <div class="card">
+    <h2>The constraint board</h2>
+    <p class="sub">Six stated org realities and the concrete change each one forces. <b>Click a card</b> to expand it.</p>
+    <div class="grid g3" id="constraintGrid"></div>
+    <div id="constraintDetail" style="margin-top:16px"></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>The 2-licence strategy</h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Licence</th><th>Holder</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><b>P1</b> — ARCH/DEV/PRICING</td><td>Builds &amp; activates pricing, runs the advisor wizard</td></tr>
+            <tr><td>2</td><td><b>P4</b> — FRONTEND/ADMIN/OPS</td><td>Builds LWC, configures the org</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="sub" style="margin-top:10px">P2 (DEV/DEVOPS) and P3 (ADMIN/PRICING) work <b>headlessly</b>: <code>sf project deploy start</code>, <code>sf data query</code>, <code>sf org open --path</code>, VS Code. Anything needing a click gets batched into one session owned by a licence holder — and that session becomes a <b>recorded demo artefact</b>.</p>
+    </div>
+    <div class="card">
+      <h3>Testing without sandboxes</h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Need</th><th>Sandbox answer</th><th>Your answer</th></tr></thead>
+          <tbody>
+            <tr><td>Isolated test data</td><td>Fresh sandbox</td><td><code>scripts/reset-test-data.apex</code> — delete by <code>Test_Batch__c</code> marker, re-seed idempotently</td></tr>
+            <tr><td>Rollback a bad deploy</td><td>Re-provision</td><td><b>You cannot.</b> Additive-first; destructive changes = two-step deploy</td></tr>
+            <tr><td>UAT</td><td>UAT org</td><td>Dev org, records tagged <code>UAT__c = true</code></td></tr>
+            <tr><td>Perf test</td><td>Full-volume org</td><td>Bulk Apex tests, no data (file 02 §3)</td></tr>
+            <tr><td>Failing endpoint</td><td>Mock</td><td><code>HttpCalloutMock</code> + failing named credential</td></tr>
+            <tr><td>Demo snapshot</td><td>Full-copy sandbox</td><td>Git branch + seed script</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn"><b>Most important artefact you must write:</b> <code>scripts/reset-test-data.apex</code>. Without it every manual test makes the org dirtier. Budget it as a <b>Phase 0</b> deliverable, not an afterthought.</div>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3 style="color:var(--sf-red)">What you lose permanently</h3>
+      <ul>
+        <li><b>E10 Billing</b> — no RCA Billing SKU → Q3/BQ7 defaults to <i>external, out of scope</i>.</li>
+        <li><b>E7 Portal</b> — show it as <i>deferred — licence required</i> in <code>docs/index.html</code>, not blocked-and-eventually-built.</li>
+        <li><b>The <code>Asset__c</code> parent-of-truth inversion</b> — a design decision to record, not a gap.</li>
+        <li><b>A realistic “5 GB of prices” demo</b> — replaced by the scaling strategy.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="color:var(--sf-green)">What you do NOT lose</h3>
+      <p class="sub">Everything else in the 80 use cases is buildable on a DE org:</p>
+      <span class="chip">6 custom objects</span><span class="chip">14 standard-object extensions</span>
+      <span class="chip">LeadImportService</span><span class="chip">OfferBuilderService</span>
+      <span class="chip">ActivationService</span><span class="chip">EngagementPenaltyService</span>
+      <span class="chip">CatalogQueryService</span><span class="chip">trigger framework</span>
+      <span class="chip">360° cockpit LWC</span><span class="chip">five-step wizard</span>
+      <span class="chip">Flows: lead, activation, plan change, cancellation</span><span class="chip">callouts + Integration_Log__c</span>
+      <span class="chip">platform events</span><span class="chip">image sync</span>
+      <span class="chip">FLS / permission sets</span><span class="chip">IDOR review</span>
+      <span class="chip">translations</span><span class="chip">headless CPQ-script test</span>
+      <div class="callout ok" style="margin-top:14px"><b>The 5 MB problem, answered honestly:</b> build prices programmatically, test correctness on <b>9 products × 3 commitments × 2 segments ≈ 54 entries</b>, prove scaling with a bulkified test (10 000 rows, <code>@TestVisible</code> limit assertions) and document the ceiling: <i>“validated to N thousand entries; beyond that, move to a licensed org.”</i></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SPEC ================= -->
+<section class="view" id="view-spec">
+  <div class="card">
+    <h2>Revenue Core — the build spec</h2>
+    <p class="sub">Scope-frozen: exactly what <code>UC-CAT-01…09</code>, <code>UC-COM-01</code> and <code>UC-UX-07</code> demand. <b>Click a node</b> in the component map to inspect it.</p>
+    <div class="grid g2">
+      <div class="tree" id="componentTree"></div>
+      <div id="componentDetail" class="detail" style="min-height:260px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Where the blueprint's acceptance criteria change wording <span class="sub">(file 03 §5)</span></h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:16%">Use case</th><th>Original criterion</th><th>Revenue Core wording</th></tr></thead>
+        <tbody>
+          <tr><td><code>UC-CAT-08</code></td><td>“Service returns RCA price breakdown”</td><td>“Service returns <code>PricingService</code> breakdown; portal and advisor identical for identical input” — <span class="badge b-free">guarantee unchanged</span></td></tr>
+          <tr><td><code>UC-COM-01</code></td><td>“No price arithmetic beyond RCA's returned values”</td><td>“…beyond <code>PricingService</code>'s returned values” — <span class="badge b-free">unchanged in spirit</span></td></tr>
+          <tr><td>BR-10.6</td><td>“Portal pricing is the identical server-side RCA price”</td><td>“…identical server-side <code>PricingService</code> price”</td></tr>
+          <tr><td>E9 headless test</td><td>“Script the full CPQ sequence (RCA is API-first)”</td><td>“…against <code>PricingService</code> / <code>CatalogQueryService</code>” — now a true <b>white-box</b> test</td></tr>
+          <tr><td>E2 exit gate</td><td>“5 GB plan prices committed”</td><td>“54-entry seed commits; scaling strategy documented to N thousand”</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Explicitly out of scope</h3>
+    <div class="grid g2">
+      <ul>
+        <li>Tax, invoicing, payment, revenue recognition (E10 — Q3/BQ7, forbidden pre-build by <code>DATA_MODEL.md</code> §18)</li>
+        <li>Any customer-authenticated portal surface (E7 — Experience Cloud licence)</li>
+      </ul>
+      <ul>
+        <li><code>Asset__c</code> as amendment parent — inverted: <code>Subscription__c</code> is truth</li>
+        <li>Generic pricing features not demanded by the 80 use cases: tiers, slabs, rate matrices, usage rating, multi-currency, proration</li>
+      </ul>
+    </div>
+    <div class="callout bad"><b><code>UC-DM-11</code> rejection to honour:</b> “Someone proposes a catch-all product rule metadata → reject.” With RCA gone, <code>Config_Rule__mdt</code> <i>is</i> the sanctioned mechanism — but it must stay <b>typed and specific</b> (bundle adjustment vs configuration rule are different record types), never one flexible blob.</div>
+  </div>
+</section>
+
+<!-- ================= SIMULATOR ================= -->
+<section class="view" id="view-sim">
+  <div class="card">
+    <h2>Pricing simulator — <code>PricingService.price()</code></h2>
+    <p class="sub">A faithful in-browser model of the five-step procedure from file 03 §3. Build a quote, pick a commitment and segment, then run it. The trace shows every step, every rule that fired (deterministic: <b><code>Priority__c</code> lower wins, ties by <code>DeveloperName</code></b>) and any blocking configuration reason.</p>
+
+    <div class="sim">
+      <!-- LEFT: quote builder -->
+      <div>
+        <div class="card" style="margin-bottom:14px;box-shadow:none">
+          <div class="field">
+            <span class="lbl">1 · Quote lines — 9 seed products <span class="sub">(click to add/remove)</span></span>
+            <div id="prodPicker"></div>
+          </div>
+          <div class="field">
+            <span class="lbl">2 · Commitment <span class="sub">(Pricing_Rule__mdt.Commitment_Code__c)</span></span>
+            <div class="seg" id="commitSeg">
+              <button data-v="NOCOMMIT" class="on">NOCOMMIT</button>
+              <button data-v="COMMIT12">COMMIT12 · −10%</button>
+              <button data-v="COMMIT24">COMMIT24 · −20%</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="lbl">3 · Segment <span class="sub">(Segment__c — answers BQ6 one way)</span></span>
+            <div class="seg" id="segmentSeg">
+              <button data-v="Consumer" class="on">Consumer</button>
+              <button data-v="Business">Business</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="lbl">4 · Effective date <span class="sub">(Effective_From__c / Effective_To__c)</span></span>
+            <input type="date" class="input" id="effDate" value="2026-10-19">
+          </div>
+          <div class="field">
+            <span class="lbl">5 · Channel</span>
+            <div class="seg" id="channelSeg">
+              <button data-v="Advisor wizard" class="on">Advisor wizard</button>
+              <button data-v="Portal">Portal</button>
+            </div>
+          </div>
+          <button class="btn" id="runBtn" style="width:100%">▶ Run PricingService.price()</button>
+          <p class="sub" style="margin:10px 0 0">Both channels call the <b>same</b> class and do <b>no arithmetic</b> — that is the whole point of <code>UC-CAT-08</code> / BR-10.6. Switch channels and compare: identical for identical input.</p>
+        </div>
+
+        <div class="card" style="box-shadow:none">
+          <h4>Live metadata</h4>
+          <div class="sub">Effective on <b id="metaDate">—</b>:</div>
+          <div id="metaRules" style="margin-top:6px"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: output -->
+      <div>
+        <div class="card" style="box-shadow:none" id="simOut">
+          <div class="sub" style="text-align:center;padding:44px 10px">Choose at least one quote line, then press <b>Run</b>.<br>The result renders the five-step trace, the applied-rule audit and the <code>PriceBreakdown</code>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Class rules <span class="sub">(file 03 §3.4)</span></h3>
+    <div class="grid g4">
+      <div class="kpi"><div class="n" style="font-size:16px">with sharing</div><div class="l">Never leak prices across FLS boundaries</div></div>
+      <div class="kpi"><div class="n" style="font-size:16px">Bulk-first</div><div class="l"><code>priceBulk()</code> is the entry point; ≤200 rows, no per-record loops</div></div>
+      <div class="kpi"><div class="n" style="font-size:16px">Deterministic</div><div class="l">Same input, same output — <code>Priority__c</code> then <code>DeveloperName</code></div></div>
+      <div class="kpi"><div class="n" style="font-size:16px">Auditable · no DML</div><div class="l">Every rule named; persisting a price is <code>OfferBuilderService</code>'s job</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DECISIONS ================= -->
+<section class="view" id="view-decisions">
+  <div class="card">
+    <h2>Open decisions register</h2>
+    <p class="sub">The 16 register entries deduplicated to <b>13 distinct questions</b> — plus <b>8 new ones</b> the missing licence created. Deciders are business owners; a few are now answered by circumstance.</p>
+    <div class="filterbar">
+      <div class="search" style="min-width:230px"><input class="input" id="decSearch" placeholder="Search question, owner, blocked UC…"></div>
+      <button class="pill on" data-decfilter="all">All 21</button>
+      <button class="pill" data-decfilter="new">🆕 Licence-created (RC)</button>
+      <button class="pill" data-decfilter="impact">Changed by no-RCA</button>
+      <button class="pill" data-decfilter="unaffected">Unaffected</button>
+    </div>
+    <div class="tablewrap"><table id="decTable"></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Decision cadence <span class="sub">(<code>UC-FND-06</code>)</span></h3>
+    <p class="sub">“Close or explicitly defer each decision, recording the decision, date, and rationale.” With no sponsor meetings available, the pragmatic move is:</p>
+    <div class="grid g3">
+      <div class="kpi"><div class="n" style="font-size:17px">1 · Answer yourself now</div><div class="l"><b>N1, N2, N4, N5, N7, N8</b> — they are architectural, and you are the architect.</div></div>
+      <div class="kpi"><div class="n" style="font-size:17px">2 · Answer by circumstance</div><div class="l"><b>Q2</b> and <b>Q3/BQ7</b> — no SKU exists on a DE org. Record as <i>deferred-with-rationale</i>.</div></div>
+      <div class="kpi"><div class="n" style="font-size:17px">3 · Carry as assumptions</div><div class="l"><b>Q1/BQ1, Q4/BQ8, BQ2–BQ12</b> — placeholder values tagged <code>ASSUMPTION — pending &lt;owner&gt;</code>.</div></div>
+    </div>
+    <div class="callout ok" style="margin-top:14px">None of them block the Revenue Core build. Every assumption you write becomes a one-line change later — a validation-rule value, a formula, an <code>Engagement_Penalty__mdt</code> row.</div>
+  </div>
+</section>
+
+<!-- ================= BUILD ================= -->
+<section class="view" id="view-build">
+  <div class="card">
+    <h2>Build order</h2>
+    <p class="sub">Phases 1–2 remain the critical path. What changes is the <b>substitute exit gate at E0</b> and the <b>content of E2</b>.</p>
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>E2 content swap <span class="sub">(file 05 §3)</span></h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Original (RCA)</th><th>Now (Revenue Core)</th></tr></thead>
+          <tbody>
+            <tr><td>RCA catalogue configuration</td><td><code>Product_Classification__c</code> + seeds (<code>RC2</code>)</td></tr>
+            <tr><td><code>ProductSellingModelOption</code></td><td><code>Pricing_Rule__mdt.Rule_Type__c = Commitment Variant</code></td></tr>
+            <tr><td>RCA bundle adjustment</td><td><code>Pricing_Rule__mdt</code> → <code>Device_Bundle_30_Percent</code></td></tr>
+            <tr><td>RCA product configuration rule</td><td><code>Config_Rule__mdt</code> record</td></tr>
+            <tr><td>RCA pricing procedure</td><td><code>Pricing_Procedure__mdt Five_Step_Standard</code> + <code>PricingService</code></td></tr>
+            <tr><td>RCA decision-table export</td><td><code>pricing-export/</code> JSON + <code>manifest.json</code> sha check</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout ok"><b>Revised E2 exit gate:</b> 54-entry seed commits · 30% device discount fires from <code>Pricing_Rule__mdt</code> with the applied rule named in <code>PriceBreakdown</code> · a <code>NOCOMMIT</code> quote cannot include a commitment-required device · pricing reproducible from <code>pricing-export/</code>.</div>
+    </div>
+
+    <div class="card">
+      <h3>Suggested first week</h3>
+      <div class="timeline">
+        <div class="tl"><h4>1 · <code>RC1</code> — record the decision</h4><div class="sub">Revenue Core is the approach. You already have it in principle; write it down.</div></div>
+        <div class="tl"><h4>2 · Phase 0 — skeleton</h4><div class="sub">Project skeleton, <code>reset-test-data.apex</code>, Revenue Core metadata types deployed <i>empty</i>.</div></div>
+        <div class="tl"><h4>3 · Phase 1 — objects</h4><div class="sub">The six custom objects, seeded, idempotent.</div></div>
+        <div class="tl ok"><h4>4 · The vertical slice</h4><div class="sub"><code>Pricing_Rule__mdt</code> with the 30% discount + <code>PricingService.price()</code> + a test proving it fires. <b>A product, a price, a rule, a computed price, an assertion</b> — that validates the whole premise before you build the other four steps.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Definition of done — Revenue Core itself <span class="sub">(interactive, saved locally)</span></h3>
+    <div class="bar"><i id="dodBar" style="width:0"></i></div>
+    <div class="sub" id="dodLabel">0 / 8 complete</div>
+    <div class="checklist" id="dodList" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <h3>Deferred epics</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Epic</th><th>Disposition</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td>E7 — Portal</td><td><span class="badge b-blocked">Deferred (RC5)</span></td><td>6 use cases off the critical path; P4's FRONTEND load drops — re-check <code>team.html</code></td></tr>
+          <tr><td>E10 — Billing</td><td><span class="badge b-blocked">Closed (RC6)</span></td><td>3 use cases closed; Q3/BQ7 → <i>external billing — data-export requirement raised instead</i></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   Data — extracted verbatim-in-spirit from docs/revenue-core/*
+   ============================================================ */
+
+const SIX = [
+  {give:"Pricing procedures + decision tables", verdict:"build",
+   repl:"<code>Pricing_Procedure__mdt</code> + <code>Pricing_Rule__mdt</code> + <code>PricingService</code> Apex"},
+  {give:"Product configuration rules (bundle constraints)", verdict:"build",
+   repl:"<code>Config_Rule__mdt</code> + evaluation in <code>CatalogQueryService</code>"},
+  {give:"Product classification (attribute-based catalogue)", verdict:"build",
+   repl:"<code>Product_Classification__c</code> custom hierarchy <i>(or keep <code>Product2.Family</code>)</i>"},
+  {give:"Quote / Order construction", verdict:"free",
+   repl:"Standard <code>Quote</code>, <code>QuoteLineItem</code>, <code>Order</code>, <code>OrderItem</code>"},
+  {give:"Catalogue + prices", verdict:"free",
+   repl:"Standard <code>Product2</code>, <code>Pricebook2</code>, <code>PricebookEntry</code>"},
+  {give:"Billing / invoicing / revenue recognition", verdict:"blocked",
+   repl:"Not buildable in your scope — E10 stays conditional on Q3/BQ7"}
+];
+
+const FILES = [
+  {n:"01", href:"./01-REVENUE-CLOUD-DEPENDENCIES.md", t:"Revenue Cloud dependencies", d:"Every use case that needs Revenue Cloud, with the documented fallback."},
+  {n:"02", href:"./02-DE-ORG-CONSTRAINTS.md", t:"DE org constraints", d:"Your real org limits and what each one forces you to change."},
+  {n:"03", href:"./03-REVENUE-CORE-SPEC.md", t:"Revenue Core spec", d:"The engine you build to replace RCA — components, objects, services."},
+  {n:"04", href:"./04-OPEN-DECISIONS.md", t:"Open decisions", d:"The decisions that must be answered before/while building."},
+  {n:"05", href:"./05-BUILD-ORDER.md", t:"Build order", d:"The order to build in, and where the blueprint's sequence changes."},
+  {n:"📘", href:"./README.md", t:"README", d:"Context, the short answer, and the non-negotiable scope rule."}
+];
+
+const DEPS = [
+  {id:"UC-FND-03", epic:"E0 · Foundation", kind:"blocked", title:"Enable Revenue Cloud Advanced and required org configuration",
+   blocked:"Q2 (RCA Growth vs Advanced SKU)",
+   dep:"RCA cannot be enabled via CLI — it requires the Salesforce account team (ARCHITECTURE.md §3.3). Blocks E2, E4, E5 and three RCA-dependent lookups in DATA_MODEL.md §1.4.",
+   fix:"Treat as <b>permanently deferred</b>. Q2 never resolves: no SKU exists on a DE org. Take the documented alternate flow — base objects (E1) proceed; the RCA-dependent lookup fields split into a later deployment increment.",
+   status:"🔴 Blocked → deferred"},
+  {id:"UC-CAT-01", epic:"E2 · Catalog & Pricing", kind:"blocked", title:"Product classification hierarchy",
+   blocked:"RCA enablement",
+   dep:"Replace flat <code>Product2.Family</code> with RCA attribute-based <code>ProductClassification</code>.",
+   fix:"Documented fallback: <i>“RCA not enabled → classification deferred; catalogue stays in <code>Product2.Family</code> temporarily (documented, not permanent).”</i> Now superseded by <code>Product_Classification__c</code> (decision <b>RC2</b>).",
+   status:"🔴 Blocked → substituted"},
+  {id:"UC-CAT-03", epic:"E2", kind:"substituted", title:"Selling models & commitment options",
+   blocked:"—", dep:"<code>ProductSellingModelOption</code> — commitment as variant pricing on one product.",
+   fix:"<b>Pricebook2 variant strategy</b> — commitment carried as <code>Pricing_Rule__mdt</code> <span class='mono'>Rule_Type__c = Commitment Variant</span> (file 03 §3.2). One product, three options, never three products.",
+   status:"🔁 Implementation swapped"},
+  {id:"UC-CAT-05", epic:"E2", kind:"substituted", title:"Bundle adjustment — 30% device discount",
+   blocked:"—", dep:"RCA <code>BundleBasedAdjustment</code> (30% device discount).",
+   fix:"<code>Pricing_Rule__mdt</code> record <code>Device_Bundle_30_Percent</code>, evaluated by <code>PricingService</code>. Advisor-bypass-proof because no code outside the service computes it.",
+   status:"🔁 Implementation swapped"},
+  {id:"UC-CAT-06", epic:"E2", kind:"substituted", title:"Product configuration rule — mandatory commitment",
+   blocked:"—", dep:"RCA <code>ProductConfigurationRule</code> (mandatory commitment).",
+   fix:"<code>Config_Rule__mdt</code> record — <span class='mono'>Rule_Kind__c = Requires Commitment</span>, severity <b>Block</b>: a commitment-required device cannot sit on a <code>NOCOMMIT</code> quote.",
+   status:"🔁 Implementation swapped"},
+  {id:"UC-CAT-07", epic:"E2", kind:"substituted", title:"Five-step pricing procedure + activation",
+   blocked:"—", dep:"RCA five-step pricing procedure.",
+   fix:"<code>Pricing_Procedure__mdt</code> + <code>PricingService.execute()</code>. Ordered metadata keeps the sequence auditable and exportable — activation of a procedure is a silently-breaking step, so keep it explicit.",
+   status:"🔁 Implementation swapped"},
+  {id:"UC-CAT-08", epic:"E2", kind:"substituted", title:"CatalogQueryService — server-side catalogue + pricing",
+   blocked:"—", dep:"Delegates to the <b>RCA Pricing API</b> server-side.",
+   fix:"<code>PricingService</code> — the same single-server-side-path guarantee holds. Criterion reworded to <i>“returns <code>PricingService</code> price breakdown; portal and advisor identical for identical input”</i> — <b>guarantee unchanged</b>.",
+   status:"🔁 swapped + ✏️ wording"},
+  {id:"UC-CAT-09", epic:"E2", kind:"wording", title:"pricing-export/ artefact & refresh discipline",
+   blocked:"—", dep:"<code>pricing-export/</code> held RCA decision tables.",
+   fix:"Same folder holds the <b>custom metadata records exported as JSON</b> — keep the folder, keep the discipline. <code>manifest.json</code> sha is the CI gate: a mismatch means someone edited pricing in Setup without exporting.",
+   status:"✏️ Wording only"},
+  {id:"UC-DM-11", epic:"E1 · Data model", kind:"wording", title:"No catch-all product rule metadata",
+   blocked:"—", dep:"Explicit rejection: <i>“RCA <code>BundleBasedAdjustment</code> / <code>ProductConfigurationRule</code> cover it.”</i>",
+   fix:"With RCA gone, <code>Config_Rule__mdt</code> <b>is</b> the sanctioned mechanism — but it must stay <b>typed and specific</b>: bundle adjustment, commitment variant and configuration constraint are different record types, never one flexible blob.",
+   status:"✏️ Wording only"},
+  {id:"UC-COM-01", epic:"E4 · Commerce", kind:"substituted", title:"Quote construction",
+   blocked:"—", dep:"Calls the RCA <b>Configuration API</b> + <b>Transaction API</b> to build <code>Quote</code>/<code>QuoteLineItem</code>.",
+   fix:"<code>OfferBuilderService</code> obeys the identical rule: <b>all arithmetic lives in <code>PricingService</code></b>, none in the builder. Acceptance criterion reworded from “beyond RCA's returned values” to “beyond <code>PricingService</code>'s returned values”.",
+   status:"🔁 swapped + ✏️ wording"},
+  {id:"UC-COM-02", epic:"E4", kind:"blocked", title:"Contract as commercial container",
+   blocked:"Q1 / BQ1 (amendment vs new contract)",
+   dep:"Contract + ContractLineItem as commercial container, driven by RCA.",
+   fix:"Not a licence problem — a <b>business decision</b>. Q1/BQ1 decides whether <code>Engagement__c</code> supersedes in place or a new one is born. Unaffected by the licence, still blocking for E6.",
+   status:"🔴 Blocked by decision"},
+  {id:"UC-UX-07", epic:"E5 · Advisor wizard", kind:"substituted", title:"Five-step wizard, steps 3 and 5",
+   blocked:"—", dep:"Step 3 — option-aware filtering via the RCA <b>Configuration API</b>. Step 5 — server-side RCA price breakdown rendered read-only.",
+   fix:"<code>CatalogQueryService.getOptions(productId, commitment)</code> carries step 3 (config-rule filtering); <code>getPriceBreakdown(...)</code> carries step 5 (pricing service).",
+   status:"🔁 Implementation swapped"},
+  {id:"UC-LIF-02", epic:"E6 · Lifecycle", kind:"substituted", title:"Plan change — re-quote step 3",
+   blocked:"—", dep:"<i>“Re-quote — <code>CatalogQueryService</code> + RCA pricing → new <code>Quote</code>.”</i>",
+   fix:"Same replacement as E5: <code>CatalogQueryService.getPriceBreakdown()</code> backed by <code>PricingService</code>.",
+   status:"🔁 Implementation swapped"},
+  {id:"BR-10.6", epic:"E7 · Portal", kind:"wording", title:"Portal pricing identical to advisor",
+   blocked:"—", dep:"<i>“Portal pricing is the identical server-side RCA price.”</i>",
+   fix:"A <b>design guarantee, not an RCA requirement</b>: as long as both channels call the same Apex service the rule holds. <b>Keep the rule, change the implementation</b> → <code>PricingService</code>. <i>(Portal itself is still deferred — RC5.)</i>",
+   status:"✏️ Wording only"},
+  {id:"E9-NFR", epic:"E9 · Hardening", kind:"wording", title:"Headless CPQ script",
+   blocked:"—", dep:"<i>“Script the full configure-price-quote sequence without a UI (RCA is API-first).”</i>",
+   fix:"Becomes your <b>headless integration test for Revenue Core</b> — arguably more valuable now: you wrote the engine, so you can drive it directly.",
+   status:"✏️ Wording only"},
+  {id:"UC-BIL-01", epic:"E10 · Billing", kind:"out", title:"Invoice generation",
+   blocked:"Q3 / BQ7", dep:"RCA billing capability.",
+   fix:"<b>Do not build.</b> <code>DATA_MODEL.md</code> §18: no placeholder <code>Invoice__c</code>/<code>Payment__c</code>. Two legal outcomes only: <i>closed</i> (external billing → raise a data-export requirement) or <i>built later</i> with a SKU you do not have.",
+   status:"📦 Out of scope"},
+  {id:"UC-BIL-02", epic:"E10", kind:"out", title:"Payment recording",
+   blocked:"Q3 + “RCA Billing SKU available”", dep:"RCA billing SKU.",
+   fix:"Same as above. Default answer on your org: <b>No</b> — record as <i>deferred with rationale</i> (decision <b>RC6</b>).",
+   status:"📦 Out of scope"},
+  {id:"UC-BIL-03", epic:"E10", kind:"out", title:"Revenue recognition",
+   blocked:"Q3", dep:"RCA billing capability.",
+   fix:"Close E10 and raise a data-export requirement instead. Finance's answer becomes <i>“external, out of scope”</i> by default.",
+   status:"📦 Out of scope"},
+  {id:"E7-PORTAL", epic:"E7 · Portal", kind:"out", title:"Customer self-service portal (6 use cases)",
+   blocked:"Experience Cloud licence",
+   dep:"A public Site still requires an Experience Cloud licence for authenticated customer access.",
+   fix:"No workaround gives the real thing. <b>Defer</b> (recommended, <b>RC5</b>) or demonstrate with a public unauthenticated form only — which is already <code>UC-ACQ-03</code>. Show E7 as <i>deferred — licence required</i>, not blocked-and-eventually-built.",
+   status:"📦 Out of scope"}
+];
+
+const COUNTS = [
+  ["Use cases blocked by RCA enablement", "2 — <code>UC-FND-03</code>, <code>UC-CAT-01</code>"],
+  ["Use cases whose <i>implementation</i> must be substituted", "7 — <code>UC-CAT-03/05/06/07/08</code>, <code>UC-COM-01</code>, wizard steps in <code>UC-UX-07</code>"],
+  ["Use cases where only the <i>acceptance criteria wording</i> changes", "4 — <code>UC-CAT-09</code>, <code>UC-BR-10.6</code>, E9 headless test, <code>UC-CAT-08</code> parity rule"],
+  ["Use cases permanently out of scope without a purchase", "3 (E10) + 6 (E7 portal)"]
+];
+
+const CONSTRAINTS = [
+  {n:1, c:"No Revenue Cloud Advanced", cons:"No pricing procedure, no config rules, no <code>ProductClassification</code>", force:"Build Revenue Core (file 03)",
+   detail:"This is the whole reason the folder exists. RCA needs the account team, a SKU, and a non-DE org. Revenue Core substitutes three components: <code>Pricing_Procedure__mdt</code> + <code>Pricing_Rule__mdt</code> + <code>PricingService</code> (pricing), <code>Config_Rule__mdt</code> (configuration), <code>Product_Classification__c</code> (classification). Everything else in the blueprint is untouched."},
+  {n:2, c:"No Experience Cloud licence", cons:"E7 portal cannot exist", force:"Permanently defer E7; keep <code>UC-ACQ-03</code> public form as the only customer-facing surface",
+   detail:"Even a public Site requires the licence for <i>authenticated</i> customer access. Record the disposition as <b>RC5 — deferred</b> (recommended) rather than blocked. P4's FRONTEND load drops; re-check the allocation in <code>team.html</code>."},
+  {n:3, c:"No sandboxes", cons:"No UAT/prod separation, no reset button", force:"All testing in the dev org; reset scripts mandatory (<code>scripts/</code>)",
+   detail:"Write <code>scripts/reset-test-data.apex</code> first — it deletes by a <code>Test_Batch__c</code> marker field and re-seeds idempotently. It is the only way back to a known state, so it is a Phase 0 deliverable. Deploys must be <b>additive-first</b>: destructive changes go through a two-step deploy (add new → backfill → remove old). UAT happens on records tagged <code>UAT__c = true</code>."},
+  {n:4, c:"5 MB data storage", cons:"Cannot load the real catalogue volume", force:"Test the <i>pattern</i>, not the volume",
+   detail:"E2's gate says “5 GB of prices”. Don't pretend: (1) build the price set programmatically from a parameterised seed; (2) test correctness at 9 products × 3 commitments × 2 segments ≈ <b>54 entries</b>; (3) prove scaling without the data — query-timing on a filtered subset + documented index strategy, plus a bulkified unit test inserting 10 000 rows with <code>@TestVisible</code> limit assertions, run at deploy time and never committed; (4) document the ceiling: <i>“validated to N thousand entries; beyond that, move to a licensed org.”</i>"},
+  {n:5, c:"2 licences", cons:"At most 2 concurrent named users", force:"Profile-based walkthroughs; no parallel team testing",
+   detail:"Licence 1 → <b>P1</b> (ARCH/DEV/PRICING), Licence 2 → <b>P4</b> (FRONTEND/ADMIN/OPS). P2 and P3 work headlessly through the CLI, VS Code and shared sessions. Anything requiring a Setup click is batched into one session owned by a licence holder — recorded as a demo artefact."},
+  {n:6, c:"Not a Dev Hub with scratch allocation", cons:"No disposable orgs, no <code>sf org create scratch</code>", force:"Every deploy is to the live org → <b>backward-compatible deploys only</b>",
+   detail:"<b>The one people underestimate.</b> The blueprint's E0 gate — “metadata deploys cleanly to an empty org” — can never be proven. <b>Substitute gate:</b> <i>“metadata deploys cleanly over the current org state, with no errors and no destructive changes.”</i>"}
+];
+
+/* --- component map --- */
+const COMPONENTS = {
+  classification:{label:"Classification", obj:"Product_Classification__c",
+    replaces:"RCA attribute-based <code>ProductClassification</code> (<code>UC-CAT-01</code>)",
+    purpose:"Tree that groups products for the 360° view and the wizard's plan step.",
+    type:"Custom object, <code>__c</code>",
+    fields:[["<code>Name</code>","Text"],["<code>Parent__c</code>","Self-lookup"],["<code>Level__c</code>","Picklist — Family / Type / Variant"],["<code>Sort_Order__c</code>","Number"],["<code>External_Id__c</code>","Text — <b>External ID, Unique</b>"]],
+    related:["<code>Product2.Classification__c</code> — lookup to this object","<code>Subscription__c.ProductClassification__c</code> — deploy in Phase 1 now that Revenue Core supplies both sides","Seed: the 9 products' families from <code>use-cases/EPIC-02</code>"],
+    note:"<b>Fallback if you want zero new objects:</b> keep <code>Product2.Family</code> (the documented epic fallback) and add a <code>Classification_Path__c</code> formula field. The epic calls it <i>“documented, not permanent”</i> — record the decision either way as <b>RC2</b>."},
+  procedure:{label:"Pricing_Procedure__mdt", obj:"Pricing_Procedure__mdt",
+    replaces:"RCA five-step pricing procedure (<code>UC-CAT-07</code>)",
+    purpose:"Mirrors the five-step procedure as <b>ordered metadata</b> so the sequence is auditable and exportable.",
+    type:"Custom metadata type",
+    fields:[["<code>MasterLabel</code> / <code>DeveloperName</code>","— → <code>Five_Step_Standard</code>"],["<code>Step_Number__c</code>","Number(2,0) — 1–5"],["<code>Step_Name__c</code>","Text, e.g. <code>Select base price</code>"],["<code>Apex_Class__c</code>","Text(80) — handler invoked at this step"],["<code>On_Error__c</code>","Picklist — Abort / Continue / Log"],["<code>Active__c</code>","Checkbox"]],
+    related:["Step 1 → resolve base <code>PricebookEntry</code>","Step 2 → apply commitment variant","Step 3 → apply bundle adjustments","Step 4 → apply configuration constraints","Step 5 → return breakdown"],
+    note:"Activation is a discrete, forgettable, silently-breaking step — an unactivated procedure produces wrong prices with no error (<code>R13</code>). Make <code>Active__c</code> part of your export check."},
+  rule:{label:"Pricing_Rule__mdt", obj:"Pricing_Rule__mdt",
+    replaces:"RCA <code>BundleBasedAdjustment</code> (<code>UC-CAT-05</code>) + commitment-variant logic (<code>UC-CAT-03</code>)",
+    purpose:"Typed adjustment records: bundle discount, commitment variant, segment price.",
+    type:"Custom metadata type",
+    fields:[["<code>Rule_Type__c</code>","Picklist — Bundle Adjustment / Commitment Variant / Segment Price"],["<code>Product__c</code>","Text(80) — Product2 DeveloperName or family code"],["<code>Commitment_Code__c</code>","Picklist — 24M / 12M / NOCOMMIT"],["<code>Segment__c</code>","Picklist — Consumer / Business (answers BQ6 one way)"],["<code>Adjustment_Type__c</code>","Picklist — Percent / Amount / Fixed"],["<code>Adjustment_Value__c</code>","Number(8,4) — <code>30</code> for the device discount"],["<code>Priority__c</code>","Number(3,0) — <b>lower wins</b>, ties broken by <code>DeveloperName</code>"],["<code>Effective_From__c</code> / <code>Effective_To__c</code>","Date — required by <code>UC-CAT-04</code>"],["<code>Active__c</code>","Checkbox"]],
+    related:["Example record: <code>Device_Bundle_30_Percent</code>","Example record: <code>Bundle_FiberMobile_15</code> (fibre + mobile → −15% on mobile)"],
+    note:"<b>Non-negotiable:</b> rules are typed by <code>Rule_Type__c</code>. <code>UC-DM-11</code> rejects a catch-all product rule — bundle adjustment, commitment variant and configuration constraint are different record types, never one flexible blob."},
+  config:{label:"Config_Rule__mdt", obj:"Config_Rule__mdt",
+    replaces:"RCA <code>ProductConfigurationRule</code> (<code>UC-CAT-06</code>)",
+    purpose:"A device requiring a commitment must not appear on a <code>NOCOMMIT</code> quote.",
+    type:"Custom metadata type",
+    fields:[["<code>Rule_Kind__c</code>","Picklist — Requires Commitment / Excludes Commitment / Requires Companion / Excludes Companion"],["<code>Product__c</code>","Text(80) — the constrained product"],["<code>Applies_When_Commitment__c</code>","Picklist — commitment codes this rule fires under"],["<code>Message__c</code>","Textarea — the advisor-facing rejection reason"],["<code>Severity__c</code>","Picklist — Block / Warn"]],
+    related:["Feeds <code>PriceBreakdown.blockingReasons</code>","Evaluated in step 4 of the procedure"],
+    note:"Blocked <i>selection</i>, not just blocked price: <code>TS-1</code> — NOCOMMIT plan + iPhone 15 Pro → <b>Blocked</b>."},
+  pricing:{label:"PricingService (Apex)", obj:"PricingService",
+    replaces:"RCA pricing procedure + Pricing API (<code>UC-CAT-08</code>)",
+    purpose:"The <b>single authoritative price path</b>. Both channels call it; neither does arithmetic.",
+    type:"<code>public with sharing class</code>",
+    fields:[["<code>price(productId, commitmentCode, segment, effectiveDate)</code>","Returns <code>PriceBreakdown</code>"],["<code>priceBulk(List&lt;PriceRequest&gt;)</code>","Entry point for Flow / LWC / services — ≤200 rows"],["<code>evaluateConfiguration(productId, commitmentCode)</code>","Returns <code>List&lt;ConfigResult&gt;</code>"],["<code>PriceBreakdown</code>","<code>listPrice</code>, <code>adjustmentTotal</code>, <code>finalPrice</code>, <code>appliedRules[]</code>, <code>blockingReasons[]</code>"]],
+    related:["<b>with sharing</b> — never leak prices across FLS boundaries","<b>Bulk-first</b> — no per-record loops","<b>Deterministic</b> — <code>Priority__c</code> then <code>DeveloperName</code>","<b>Auditable</b> — <code>appliedRules</code> names every rule that fired","<b>No DML</b> — persisting a price is <code>OfferBuilderService</code>'s job"],
+    note:"Try it in the <a href='#sim' data-goto='sim'>Pricing simulator →</a>."},
+  consumption:{label:"CatalogQueryService (extended)", obj:"CatalogQueryService",
+    replaces:"RCA Configuration API + RCA Pricing API",
+    purpose:"The <b>single server-side path both channels use</b> — extended with two methods.",
+    type:"Apex service (existing)",
+    fields:[["<code>getPlans(type, commitment)</code>","<i>existing</i> — wizard step 3"],["<code>getOptions(productId, commitment)</code>","<b>new</b> — replaces RCA Configuration API filtering (wizard step 3)"],["<code>getPriceBreakdown(...)</code>","<b>new</b> — replaces RCA Pricing API breakdown (wizard step 5, portal, <code>UC-UX-06</code>)"]],
+    related:["Used by the five-step advisor wizard","Used by the (deferred) portal path — same method, hence BR-10.6 holds"],
+    note:"Because <i>both</i> the wizard and the future portal read through this one service, the “identical server-side price” rule survives the missing licence."},
+  export:{label:"Export — pricing-export/", obj:"pricing-export/",
+    replaces:"RCA decision-table export (<code>UC-CAT-09</code>)",
+    purpose:"Pricing must be reproducible from version control. With RCA the folder held decision tables; now it holds a JSON dump of the metadata.",
+    type:"Git-tracked folder + <code>.forceignore</code> rule",
+    fields:[["<code>procedures/Five_Step_Standard.json</code>","one file per procedure"],["<code>rules/Device_Bundle_30_Percent.json</code>","one file per pricing rule"],["<code>config-rules/Requires_Commitment_Device.json</code>","one file per config rule"],["<code>manifest.json</code>","export timestamp, record count, <b>sha of each file</b>"]],
+    related:["Exported by <code>scripts/export-pricing.apex</code>","<code>.forceignore</code> from <code>UC-FND-01</code> still applies: exclude from normal deploy, track in git"],
+    note:"<b>Refresh discipline:</b> a CI step compares the org's live metadata against <code>manifest.json</code>. A mismatch = someone edited pricing in Setup without exporting → gate fails."}
+};
+
+/* --- pricing engine model --- */
+const PRODUCTS = [
+  {id:"Mobile_5GB",   name:"Mobile 5 GB",    family:"Mobile Plan",      px:9.99,  model:"recurring", commitReq:false},
+  {id:"Mobile_20GB",  name:"Mobile 20 GB",   family:"Mobile Plan",      px:14.99, model:"recurring", commitReq:false},
+  {id:"Mobile_50GB",  name:"Mobile 50 GB",   family:"Mobile Plan",      px:19.99, model:"recurring", commitReq:false},
+  {id:"Mobile_100GB", name:"Mobile 100 GB",  family:"Mobile Plan",      px:24.99, model:"recurring", commitReq:false},
+  {id:"Fiber_20Mb",   name:"Fiber 20 Mb",    family:"Fiber & Landline", px:24.99, model:"recurring", commitReq:false},
+  {id:"Fiber_100Mb",  name:"Fiber 100 Mb",   family:"Fiber & Landline", px:39.99, model:"recurring", commitReq:false},
+  {id:"iPhone_15_Pro",name:"iPhone 15 Pro",  family:"Device",           px:999.0, model:"device",    commitReq:true},
+  {id:"iPhone_13",    name:"iPhone 13",      family:"Device",           px:599.0, model:"device",    commitReq:true},
+  {id:"Samsung_S22",  name:"Samsung S22",    family:"Device",           px:449.0, model:"device",    commitReq:true}
+];
+
+const PRICING_RULES = [
+  {dev:"Commitment_NOCOMMIT",   type:"Commitment Variant", value:0,   adj:"Percent", prio:10, from:"2020-01-01", to:null, active:true, commitment:"NOCOMMIT", model:"recurring", label:"NOCOMMIT → 0%"},
+  {dev:"Commitment_COMMIT12",   type:"Commitment Variant", value:-10, adj:"Percent", prio:10, from:"2020-01-01", to:null, active:true, commitment:"COMMIT12", model:"recurring", label:"COMMIT12 → −10%"},
+  {dev:"Commitment_COMMIT24",   type:"Commitment Variant", value:-20, adj:"Percent", prio:10, from:"2020-01-01", to:null, active:true, commitment:"COMMIT24", model:"recurring", label:"COMMIT24 → −20%"},
+  {dev:"Device_Bundle_30_Percent", type:"Bundle Adjustment", value:-30, adj:"Percent", prio:20, from:"2020-01-01", to:null, active:true,
+   need:{any:[["plan"],["device"]]}, target:"device", label:"plan + device → device −30%"},
+  {dev:"Bundle_FiberMobile_15", type:"Bundle Adjustment", value:-15, adj:"Percent", prio:20, from:"2020-01-01", to:null, active:true,
+   need:{any:[["plan"],["fiber"]]}, target:"plan", familyTarget:"Mobile Plan", label:"fibre + mobile → mobile −15%"},
+  {dev:"Segment_Business_Plan", type:"Segment Price", value:-5, adj:"Percent", prio:30, from:"2026-01-01", to:"2026-12-31", active:true,
+   segment:"Business", target:"plan", label:"Business segment → plan −5% (ASSUMPTION — pending BQ6)", assumption:true}
+];
+
+const CONFIG_RULES = [
+  {dev:"Requires_Commitment_Device", kind:"Requires Commitment",
+   products:["iPhone_15_Pro","iPhone_13","Samsung_S22"], when:["NOCOMMIT"], severity:"Block",
+   message:"This device requires a commitment — choose COMMIT12 or COMMIT24.", src:"BR-03.3 · UC-CAT-06"},
+  {dev:"Warn_Device_Only_Quote", kind:"Requires Companion", products:["iPhone_15_Pro","iPhone_13","Samsung_S22"],
+   when:["NOCOMMIT","COMMIT12","COMMIT24"], severity:"Warn", companion:"plan", message:"Device-only quote: the 30% bundle discount will not fire (needs a plan on the quote).", src:"UC-CAT-05 TS-2"}
+];
+
+const PROCEDURE = [
+  {n:1, name:"Select base price",  handler:"PricingService.resolveBasePrice"},
+  {n:2, name:"Apply commitment variant", handler:"PricingService.applyCommitmentVariant"},
+  {n:3, name:"Apply bundle adjustments", handler:"PricingService.applyAdjustments"},
+  {n:4, name:"Apply configuration constraints", handler:"PricingService.evaluateConfiguration"},
+  {n:5, name:"Return breakdown", handler:"PricingService.buildBreakdown"}
+];
+
+const DECISIONS = [
+  {id:"Q1 / BQ1", q:"Plan change = amendment or new contract?", owner:"Finance + Sales Ops", blocks:"UC-LIF-02, UC-COM-05, UC-DM-04", bucket:"unaffected",
+   impact:"Determines whether <code>Engagement__c</code> supersedes in place or a new one is born. Unaffected by the licence. <b>Blocking for E6.</b>"},
+  {id:"Q2", q:"Target org type &amp; licensing (RCA Growth vs Advanced)", owner:"Project sponsor", blocks:"UC-FND-03, all of E2/E4/E5", bucket:"impact",
+   impact:"<b>Answered by circumstance:</b> no RCA, any tier. Record as <i>“Deferred — no SKU available on DE org; Revenue Core substituted”</i>, then unblock E2/E4/E5 via file 03."},
+  {id:"Q3 / BQ7", q:"Do invoicing &amp; revenue recognition live in Salesforce?", owner:"Finance", blocks:"Entire E10", bucket:"impact",
+   impact:"<b>Default answer on your org: No.</b> RCA Billing SKU unavailable. Close E10, raise a data-export requirement. <b>Do not build <code>Invoice__c</code>.</b>"},
+  {id:"Q4 / BQ8", q:"Source &amp; freshness of fibre eligibility data", owner:"Network team", blocks:"UC-DM-05, UC-LIF-01, UC-INT-06", bucket:"unaffected",
+   impact:"Unaffected. <code>Eligibility__c</code> is a plain custom object — buildable once the SLA is known."},
+  {id:"BQ2", q:"Is the 30-day cancellation notice correct for all categories/segments?", owner:"Commercial", blocks:"UC-DM-10, UC-LIF-03", bucket:"unaffected",
+   impact:"Unaffected — validation rule value only."},
+  {id:"BQ3", q:"Does suspension pause the commitment clock?", owner:"Commercial + Finance", blocks:"UC-LIF-04", bucket:"unaffected",
+   impact:"Unaffected — <code>Engagement__c</code> formula behaviour."},
+  {id:"BQ4", q:"Do expired commitments roll, lapse, or re-price?", owner:"Commercial", blocks:"UC-LIF-06", bucket:"impact",
+   impact:"Unaffected by the licence. If <i>re-price</i>, <code>PricingService</code> gets a renewal entry point."},
+  {id:"BQ5 / Q7", q:"Restocking fee separate from engagement penalty?", owner:"Commercial", blocks:"UC-LIF-05, UC-LIF-03", bucket:"unaffected",
+   impact:"Unaffected — may need a second fee line on <code>Customer_Request__c</code>."},
+  {id:"BQ6 / Q3-DM", q:"Same pricebook for Consumer and Business?", owner:"Commercial", blocks:"UC-CAT-04", bucket:"impact",
+   impact:"<b>Now a Revenue Core question too.</b> One pricebook + <code>Segment__c</code> on <code>Pricing_Rule__mdt</code>, or two <code>Pricebook2</code> records. Answer both at once (folded into <b>RC3</b>)."},
+  {id:"BQ9", q:"Goodwill waiver threshold = approval threshold?", owner:"Finance", blocks:"UC-LIF-03", bucket:"unaffected",
+   impact:"Unaffected — approval routing Flow."},
+  {id:"BQ10 / Q6", q:"Is MSISDN unique globally or per account?", owner:"Commercial", blocks:"UC-DM-11, UC-LIF-07", bucket:"unaffected",
+   impact:"Unaffected — duplicate-rule scope on a standard field extension."},
+  {id:"BQ11", q:"Penalty-free window for device commitments", owner:"Commercial", blocks:"UC-DM-08, UC-LIF-01", bucket:"unaffected",
+   impact:"Unaffected — seeds <code>Engagement_Penalty__mdt</code>."},
+  {id:"BQ12", q:"Set <code>Churned</code> on any line cancel or the last line?", owner:"Sales Ops", blocks:"UC-LIF-03", bucket:"unaffected",
+   impact:"Unaffected — <code>Account</code> status derivation rule."},
+  {id:"RC1", new:true, q:"Confirm the Revenue Core approach: build the engine rather than purchase RCA", owner:"Project sponsor + Solution Architect", blocks:"Everything in file 03", bucket:"new",
+   impact:"Architectural — answer it yourself now and record it (<code>UC-FND-06</code>)."},
+  {id:"RC2", new:true, q:"Classification: new <code>Product_Classification__c</code>, or fall back to <code>Product2.Family</code>?", owner:"Solution Architect + A7", blocks:"UC-CAT-01, 360° grouping, wizard step 3", bucket:"new",
+   impact:"Zero-new-objects fallback exists: keep <code>Product2.Family</code> + a <code>Classification_Path__c</code> formula."},
+  {id:"RC3", new:true, q:"Pricebook topology for Revenue Core (fold the BQ6 answer into the rule model)", owner:"A7 Pricing Admin", blocks:"UC-CAT-04, Pricing_Rule__mdt.Segment__c", bucket:"new",
+   impact:"The simulator's Business-segment rule is tagged <code>ASSUMPTION — pending BQ6</code> until you answer this."},
+  {id:"RC4", new:true, q:"Record the <code>Asset__c</code> inversion: <code>Subscription__c</code> is parent of truth", owner:"Solution Architect", blocks:"UC-DM-02, UC-LIF-02 reconciliation semantics", bucket:"new",
+   impact:"A design decision to record, not a gap. It decides who wins a reconciliation dispute."},
+  {id:"RC5", new:true, q:"E7 disposition: formally deferred (recommended) vs public-form-only substitute", owner:"Project sponsor", blocks:"6 use cases, P4's FRONTEND load", bucket:"new",
+   impact:"Show E7 as <i>deferred — licence required</i> in <code>docs/index.html</code>."},
+  {id:"RC6", new:true, q:"E10 disposition: closed, or retained as a future paid-SKU epic", owner:"Finance", blocks:"3 use cases", bucket:"new",
+   impact:"If closed: Q3/BQ7 recorded as <i>external billing — data-export requirement raised instead</i>."},
+  {id:"RC7", new:true, q:"Testing strategy sign-off: dev-org-only, with <code>reset-test-data.apex</code> as Phase 0", owner:"Solution Architect + QA", blocks:"E0 exit gate substitute", bucket:"new",
+   impact:"Replaces the never-provable “deploys to an empty org” gate."},
+  {id:"RC8", new:true, q:"Scaling strategy for price volume accepted in place of the 5 GB gate", owner:"Solution Architect", blocks:"E2 exit gate", bucket:"new",
+   impact:"54-entry correctness + bulk test + documented ceiling (file 02 §3)."}
+];
+
+const TIMELINE = [
+  {cls:"wait", h:"Phase 0 — vacated slot by <code>UC-FND-03</code>", body:`
+    <div class="tablewrap"><table><thead><tr><th>New Phase 0 deliverable</th><th>Source</th></tr></thead><tbody>
+    <tr><td><code>scripts/reset-test-data.apex</code></td><td>File 02 §4 — no rollback without it</td></tr>
+    <tr><td>Revenue Core metadata skeletons deployed empty</td><td>File 03</td></tr>
+    <tr><td>Dev-org-only test strategy recorded as the E0 gate substitute</td><td>File 02 §1 · <code>RC7</code></td></tr>
+    <tr><td>Assumption table for the unanswered <code>BQ*</code> decisions</td><td>File 04</td></tr>
+    </tbody></table></div>
+    <div class="callout ok"><b>Revised E0 exit gate:</b> metadata deploys cleanly over the live org; reset script returns the org to a known state; Revenue Core metadata types exist and are queryable.</div>`},
+  {cls:"ok", h:"Phase 1 (E1) — unchanged, one addition", body:`
+    <p class="sub">All six custom objects, the 14 standard-object extensions, FLS, seeds. Unaffected.</p>
+    <div class="callout"><b>Addition:</b> deploy <code>Subscription__c.ProductClassification__c</code> and <code>Subscription__c.Asset__c</code> <i>here</i> rather than in a later increment — the DATA_MODEL §1.4 fallback exists because RCA might not arrive. It hasn't. Revenue Core supplies both sides, so there is nothing to wait for. Record <b>RC4</b> (the inversion) in the same commit.</div>`},
+  {cls:"", h:"Phase 2 (E2) — now Revenue Core", body:`
+    <p class="sub">The only phase whose <b>content</b> is replaced — six swaps, see the table below right. Phases 3–9 (E3 acquisition, E4 activation, E5 advisor, E6 lifecycle, E8 integration, E9 hardening) build exactly as written; only the acceptance-criteria wording changes (file 03 §5).</p>
+    <div class="callout ok"><b>Revised E2 exit gate:</b> 54-entry seed commits · 30% device discount fires from <code>Pricing_Rule__mdt</code> with the applied rule named in <code>PriceBreakdown</code> · a <code>NOCOMMIT</code> quote cannot include a commitment-required device · pricing reproducible from <code>pricing-export/</code>.</div>`},
+  {cls:"no", h:"Phases 7 &amp; 10 — deferred", body:`
+    <p class="sub"><b>E7 Portal</b> deferred (<code>RC5</code>) — 6 use cases off the critical path. <b>E10 Billing</b> closed (<code>RC6</code>) — 3 use cases closed, Q3/BQ7 → external billing, data-export requirement raised instead.</p>`}
+];
+
+const DOD = [
+  "Four metadata types deployed and queryable via <code>SELECT … FROM …__mdt</code>",
+  "<code>PricingService.price()</code> and <code>priceBulk()</code> implemented, <code>with sharing</code>, bulk-safe",
+  "<code>PriceBreakdown.appliedRules</code> names every rule that fired",
+  "<code>Config_Rule__mdt</code> blocks a <code>NOCOMMIT</code> quote from a commitment-required device",
+  "<code>CatalogQueryService.getOptions()</code> and <code>getPriceBreakdown()</code> exist; called by both wizard and (future) portal path",
+  "<code>scripts/export-pricing.apex</code> produces <code>pricing-export/</code> with a matching <code>manifest.json</code> sha",
+  "Test class at 75%+ coverage, bulk test with 10 000 rows asserting no limit breach",
+  "Headless CPQ script (E9) drives the sequence end-to-end without a UI"
+];
+
+/* ============================================================
+   Helpers
+   ============================================================ */
+const $ = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const eur = n => "€" + Number(n).toFixed(2);
+const today = () => $("#effDate").value || "2026-10-19";
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2200);}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+/* ============================================================
+   Navigation
+   ============================================================ */
+const PROGRESS = {overview:8,deps:24,constraints:40,spec:56,sim:74,decisions:88,build:100};
+function go(view){
+  $$(".view").forEach(v=>v.classList.toggle("active", v.id === "view-"+view));
+  $$(".nav-item[data-view]").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
+  $("#progressbar").style.width = (PROGRESS[view]||0) + "%";
+  $("#sidebar").classList.remove("open");
+  window.scrollTo({top:0,behavior:"smooth"});
+  try{ history.replaceState(null,"","#"+view); }catch(e){}
+}
+$$(".nav-item[data-view]").forEach(b=> b.addEventListener("click",()=>go(b.dataset.view)));
+document.addEventListener("click", e=>{
+  const g = e.target.closest("[data-goto]");
+  if(g){ e.preventDefault(); go(g.dataset.goto); }
+});
+$("#hamb").addEventListener("click",()=>$("#sidebar").classList.toggle("open"));
+
+/* theme */
+const THEMES = ["light","dark"];
+function setTheme(t){
+  document.documentElement.setAttribute("data-theme",t);
+  try{localStorage.setItem("rc-theme",t)}catch(e){}
+}
+$("#themeBtn").addEventListener("click",()=>{
+  const cur = document.documentElement.getAttribute("data-theme");
+  setTheme(cur==="light"?"dark":"light");
+});
+try{ const st = localStorage.getItem("rc-theme"); if(st) setTheme(st); }catch(e){}
+
+$("#resetBtn").addEventListener("click",()=>{
+  if(!confirm("Reset all interactive state (filters, selections, checklist, theme)?")) return;
+  try{ Object.keys(localStorage).filter(k=>k.startsWith("rc-")).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+  location.reload();
+});
+
+/* ============================================================
+   Overview
+   ============================================================ */
+(function renderOverview(){
+  const badge = {build:'<span class="badge b-build">BUILD</span>', free:'<span class="badge b-free">FREE</span>', blocked:'<span class="badge b-blocked">BLOCKED</span>'};
+  $("#sixTable tbody").innerHTML = SIX.map(s=>
+    `<tr><td><b>${s.give}</b></td><td>${badge[s.verdict]}</td><td>${s.repl}</td></tr>`).join("");
+
+  $("#fileCards").innerHTML = FILES.map(f=>
+    `<a class="filecard" href="${f.href}"><div class="num">${f.n}</div><b>${f.t}</b><span>${f.d}</span></a>`).join("");
+})();
+
+/* ============================================================
+   Dependency explorer
+   ============================================================ */
+let depFilter = "all", depQuery = "", depSelected = DEPS[0].id;
+
+function depMatches(d){
+  const okFilter = depFilter==="all" || d.kind===depFilter;
+  const hay = (d.id+" "+d.epic+" "+d.title+" "+d.dep+" "+d.fix+" "+d.blocked).toLowerCase();
+  return okFilter && (!depQuery || hay.includes(depQuery));
+}
+function renderDeps(){
+  const list = DEPS.filter(depMatches);
+  $("#depCount").textContent = list.length + " of " + DEPS.length + " shown";
+  $("#depList").innerHTML = list.map(d=>`
+    <button class="dep ${d.id===depSelected?'active':''}" data-dep="${d.id}">
+      <div class="row"><span class="id">${d.id}</span><span class="sub">${d.epic}</span></div>
+      <div class="row" style="margin-top:3px"><span>${d.title}</span></div>
+      <small>${d.status}</small>
+    </button>`).join("") || `<div class="sub" style="padding:20px">No match.</div>`;
+
+  const d = DEPS.find(x=>x.id===depSelected) || list[0];
+  if(d) depSelected = d.id;
+  $("#depDetail").innerHTML = d ? `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+      <div><div class="mono" style="color:var(--sf-blue-2);font-weight:700">${d.id}</div>
+      <h3 style="margin:2px 0 0">${d.title}</h3>
+      <div class="sub">${d.epic} · ${d.status}</div></div>
+      ${d.blocked!=="—" ? `<span class="badge b-blocked">Blocked by ${d.blocked}</span>` : `<span class="badge b-info">No decision gate</span>`}
+    </div>
+    <div class="swap">
+      <div class="swapbox gone"><div class="hd">RCA dependency</div>${d.dep}</div>
+      <div class="arrowline">↓ substitute</div>
+      <div class="swapbox now"><div class="hd">Your replacement</div>${d.fix}</div>
+    </div>` : "";
+
+  $$("#depList .dep").forEach(b=> b.addEventListener("click",()=>{depSelected=b.dataset.dep; renderDeps();}));
+}
+$("#depSearch").addEventListener("input", e=>{depQuery=e.target.value.trim().toLowerCase(); renderDeps();});
+$$("[data-depfilter]").forEach(b=> b.addEventListener("click",()=>{
+  $$("[data-depfilter]").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  depFilter=b.dataset.depfilter; renderDeps();
+}));
+$("#countTable").innerHTML = "<tbody>" + COUNTS.map(c=>`<tr><td>${c[0]}</td><td><b>${c[1]}</b></td></tr>`).join("") + "</tbody>";
+renderDeps();
+
+/* ============================================================
+   Constraints
+   ============================================================ */
+(function renderConstraints(){
+  $("#constraintGrid").innerHTML = CONSTRAINTS.map(c=>`
+    <button class="dep" data-cons="${c.n}" style="border-left-color:var(--sf-orange)">
+      <div class="row"><span class="id">#${c.n}</span><span class="badge b-build">Forced change</span></div>
+      <div style="font-weight:700;margin-top:4px">${c.c}</div>
+      <small>${c.force}</small>
+    </button>`).join("");
+  const show = n => {
+    const c = CONSTRAINTS.find(x=>x.n===n);
+    $("#constraintDetail").innerHTML = `
+      <div class="detail" style="position:static">
+        <div class="mono" style="color:var(--sf-blue-2);font-weight:700">CONSTRAINT #${c.n}</div>
+        <h3>${c.c}</h3>
+        <div class="swap">
+          <div class="swapbox gone"><div class="hd">Consequence</div>${c.cons}</div>
+          <div class="arrowline">↓</div>
+          <div class="swapbox now"><div class="hd">Forced change</div>${c.force}</div>
+        </div>
+        <div style="margin-top:12px;font-size:13.5px">${c.detail}</div>
+      </div>`;
+    $$("[data-cons]").forEach(b=>b.classList.toggle("active", +b.dataset.cons===n));
+  };
+  $$("[data-cons]").forEach(b=> b.addEventListener("click",()=>show(+b.dataset.cons)));
+  show(6);
+})();
+
+/* ============================================================
+   Spec — component tree
+   ============================================================ */
+const TREE = [
+  {k:"classification", label:"Classification   Product_Classification__c", cmt:"  (replaces RCA ProductClassification)"},
+  {k:"configuration",  label:"Configuration    Config_Rule__mdt", cmt:"            (replaces RCA ProductConfigurationRule)"},
+  {k:"pricing",        label:"Pricing          Pricing_Procedure__mdt", cmt:"         + Pricing_Rule__mdt"},
+  {k:"service",        label:"                 PricingService (Apex)", cmt:"         (replaces RCA pricing procedure + API)"},
+  {k:"consumption",    label:"Consumption      CatalogQueryService (extended)", cmt:" (single server-side path)"},
+  {k:"export",         label:"Export           pricing-export/ (JSON dumps)", cmt:"  (replaces RCA decision-table export)"}
+];
+const TREE_KEY = {configuration:"config", pricing:"rule", service:"pricing"};
+
+(function renderTree(){
+  $("#componentTree").innerHTML =
+    `<span class="node" data-k="root" style="cursor:default"><b>Revenue Core</b></span>\n` +
+    TREE.map((t,i)=>`├── <span class="node${i===0?' sel':''}" data-k="${t.k}">${t.label}</span><span class="cmt">${t.cmt}</span>`).join("\n") +
+    `\n<span class="cmt">└── not in Revenue Core: ActivationService (UC-COM-03), subscription
+                                 state machine (UC-COM-04), OfferBuilderService
+                                 (UC-COM-01), EngagementPenaltyService (UC-LIF-01)</span>`;
+
+  const show = key => {
+    const k = TREE_KEY[key] || key;
+    const c = COMPONENTS[k];
+    const el = $("#componentDetail");
+    if(!c){
+      el.innerHTML = `<h3>Revenue Core</h3><p class="sub">Five components, one rule: implement exactly what the 80 use cases demand.</p>
+      <p class="sub">Already covered by the blueprint, <b>not</b> part of Revenue Core:</p>
+      <span class="chip">ActivationService · UC-COM-03</span><span class="chip">Subscription state machine · UC-COM-04</span>
+      <span class="chip">OfferBuilderService · UC-COM-01</span><span class="chip">EngagementPenaltyService · UC-LIF-01</span>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="mono" style="color:var(--sf-blue-2);font-weight:700">${c.obj}</div>
+      <h3>${c.label}</h3>
+      <div class="sub"><b>Replaces:</b> ${c.replaces}</div>
+      <p style="font-size:13.5px">${c.purpose}</p>
+      <div class="swapbox"><div class="hd">Type</div>${c.type}</div>
+      <div class="hd" style="font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 5px">Fields / API</div>
+      <div class="tablewrap"><table><tbody>${c.fields.map(f=>`<tr><td style="width:52%">${f[0]}</td><td>${f[1]}</td></tr>`).join("")}</tbody></table></div>
+      <div class="hd" style="font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:700;margin:12px 0 5px">Related</div>
+      <ul style="font-size:13px;margin:0">${c.related.map(r=>`<li>${r}</li>`).join("")}</ul>
+      <div class="callout" style="margin-top:12px">${c.note}</div>`;
+    $$("#componentTree .node").forEach(n=>n.classList.toggle("sel", n.dataset.k===key));
+  };
+  $("#componentTree").addEventListener("click", e=>{
+    const n = e.target.closest(".node[data-k]"); if(!n) return;
+    show(n.dataset.k);
+  });
+  show("classification");
+})();
+
+/* ============================================================
+   Pricing simulator
+   ============================================================ */
+const simState = {items:["Mobile_5GB","iPhone_15_Pro"], commitment:"NOCOMMIT", segment:"Consumer", channel:"Advisor wizard"};
+
+function inWindow(rule, date){
+  if(!rule.active) return false;
+  if(rule.from && date < rule.from) return false;
+  if(rule.to && date > rule.to) return false;
+  return true;
+}
+function hasKind(items, kind){
+  /* "plan" = any subscription product (mobile or fibre) on the quote */
+  return items.some(p => kind==="plan" ? p.model==="recurring"
+                       : kind==="fiber" ? p.family==="Fiber & Landline"
+                       : kind==="device"? p.model==="device" : false);
+}
+function ruleApplies(rule, p, ctx){
+  if(rule.type==="Commitment Variant"){
+    if(rule.model!=="recurring" || p.model!=="recurring") return false;
+    return rule.commitment === ctx.commitment;
+  }
+  if(rule.type==="Bundle Adjustment"){
+    const need = rule.need.any;
+    const ok = need.every(cond => hasKind(ctx.items, cond[0]));
+    if(!ok) return false;
+    if(rule.target==="device") return p.model==="device";
+    if(rule.familyTarget) return p.family===rule.familyTarget;
+    return p.model==="recurring";
+  }
+  if(rule.type==="Segment Price"){
+    if(rule.segment !== ctx.segment) return false;
+    if(rule.target==="device") return p.model==="device";
+    return p.model==="recurring";
+  }
+  return false;
+}function applyAdj(current, rule){
+  if(rule.adj==="Percent") return current * (1 + rule.value/100);
+  if(rule.adj==="Amount")  return current + rule.value;
+  return rule.value; /* Fixed */
+}
+function fmtAdj(rule){
+  const v = rule.value;
+  if(rule.adj==="Percent") return (v>0?"+":"") + v + "%";
+  if(rule.adj==="Amount")  return (v>0?"+":"−") + "€" + Math.abs(v).toFixed(2);
+  return "fixed €" + v.toFixed(2);
+}
+const KIND_LABEL = {"Commitment Variant":"commitment","Bundle Adjustment":"bundle","Segment Price":"segment"};
+
+function priceLine(p, ctx){
+  const steps = [];
+  const applied = [];
+  const blocking = [];
+
+  /* step 1 */
+  let running = p.px;
+  steps.push({n:1, ok:true, detail:`<code>PricebookEntry</code> for <b>${p.name}</b> → <span class="mono-num">${eur(running)}</span>`});
+
+  /* step 2 */
+  let s2 = "";
+  if(p.model==="recurring"){
+    const cand = PRICING_RULES.filter(r=>r.type==="Commitment Variant" && r.commitment===ctx.commitment && inWindow(r,ctx.date) && ruleApplies(r,p,ctx))
+                               .sort((a,b)=> a.prio-b.prio || a.dev.localeCompare(b.dev));
+    if(cand.length){
+      const r = cand[0];
+      const before = running; running = applyAdj(running, r);
+      applied.push({r, from:before, to:running});
+      s2 = `Rule <code>${r.dev}</code> (${fmtAdj(r)}) · <span class="mono-num">${eur(before)} → ${eur(running)}</span>`;
+    } else s2 = `No commitment rule matches <code>${ctx.commitment}</code> — price unchanged.`;
+  } else {
+    s2 = `<code>TELCO_DEVICE</code> has <b>no own commitment option</b> — the device inherits the plan's <code>Root_Engagement__c</code> (0%).`;
+  }
+  steps.push({n:2, ok:true, detail:s2});
+
+  /* step 3 */
+  const adjRules = PRICING_RULES.filter(r=>r.type!=="Commitment Variant" && inWindow(r,ctx.date) && ruleApplies(r,p,ctx))
+                                 .sort((a,b)=> a.prio-b.prio || a.dev.localeCompare(b.dev));
+  let s3;
+  if(adjRules.length){
+    const parts = [];
+    adjRules.forEach(r=>{
+      const before = running; running = applyAdj(running, r);
+      applied.push({r, from:before, to:running});
+      parts.push(`<span class="applied">${r.dev} · ${r.type} · ${fmtAdj(r)} · prio ${r.prio} · <span class="mono-num">${eur(before)} → ${eur(running)}</span>${r.to?" · to "+r.to:""}${r.assumption?" · ASSUMPTION":""}</span>`);
+    });
+    s3 = parts.join("<br>");
+  } else s3 = `<span class="sub">No bundle/segment rule fires for this line in this quote context.</span>`;
+  steps.push({n:3, ok:true, detail:s3});
+
+  /* step 4 */
+  const ctxHas = {plan:hasKind(ctx.items,"plan"), fiber:hasKind(ctx.items,"fiber"), device:hasKind(ctx.items,"device")};
+  const cfgs = [];
+  CONFIG_RULES.forEach(c=>{
+    if(!c.products.includes(p.id)) return;
+    if(!c.when.includes(ctx.commitment)) return;
+    if(c.severity==="Block"){
+      cfgs.push(c);
+      blocking.push(`[${c.dev}] ${c.message}`);
+    } else {
+      if(c.companion && !ctxHas[c.companion]) cfgs.push(c);
+    }
+  });
+  const s4 = cfgs.length
+    ? cfgs.map(c=>`<span class="badge ${c.severity==="Block"?"b-blocked":"b-build"}">${c.severity}</span> <code>${c.dev}</code> — ${c.message} <span class="sub">(${c.src})</span>`).join("<br>")
+    : `<span class="sub">No configuration rule fires — selection is legal.</span>`;
+  steps.push({n:4, ok:blocking.length===0, fail:blocking.length>0, detail:s4});
+
+  /* step 5 */
+  const totalAdj = running - p.px;
+  steps.push({n:5, ok:true, detail:
+    `<code>PriceBreakdown</code>: list <span class="mono-num">${eur(p.px)}</span> · adjustment <span class="mono-num">${totalAdj>=0?"+":"−"}${eur(Math.abs(totalAdj)).replace("€","€")}</span> · final <span class="mono-num"><b>${eur(running)}</b></span>`});
+
+  return {p, list:p.px, final:running, adjustment:totalAdj, applied, blocking, steps};
+}
+
+function renderMeta(){
+  const d = today();
+  $("#metaDate").textContent = d;
+  $("#metaRules").innerHTML = PRICING_RULES.map(r=>{
+    const on = inWindow(r,d);
+    const env = (r.from||"∞") + " → " + (r.to||"∞");
+    return `<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--border-soft)">
+      <span class="mono">${r.dev}</span>
+      <span class="sub">${KIND_LABEL[r.type]} · ${fmtAdj(r)} · ${env}</span>
+      <span class="badge ${on?"b-free":"b-mute"}">${on?"effective":"out of window"}</span></div>`;
+  }).join("");
+}
+
+function renderPicker(){
+  const families = ["Mobile Plan","Fiber & Landline","Device"];
+  $("#prodPicker").innerHTML = families.map(f=>`
+    <div class="prod-group"><div class="lbl">${f} ${f==="Device"?'<span class="sub">· requires commitment</span>':""}</div>
+      ${PRODUCTS.filter(p=>p.family===f).map(p=>{
+        const on = simState.items.includes(p.id);
+        return `<button class="prod ${on?"on":""}" data-prod="${p.id}">
+          <span>${on?"✓ ":""}${p.name}</span><span class="px">${eur(p.px)}</span></button>`;
+      }).join("")}
+    </div>`).join("");
+  $$("[data-prod]").forEach(b=> b.addEventListener("click",()=>{
+    const id=b.dataset.prod;
+    const i=simState.items.indexOf(id);
+    if(i>=0) simState.items.splice(i,1); else simState.items.push(id);
+    renderPicker();
+  }));
+}
+
+function run(){
+  const date = today();
+  const ctx = {items:PRODUCTS.filter(p=>simState.items.includes(p.id)), commitment:simState.commitment, segment:simState.segment, date};
+  const out = $("#simOut");
+  if(!ctx.items.length){
+    out.innerHTML = `<div class="sub" style="text-align:center;padding:44px 10px">Add at least one quote line, then press <b>Run</b>.</div>`;
+    return;
+  }
+
+  const results = ctx.items.map(p=>priceLine(p, ctx));
+  const anyBlocked = results.some(r=>r.blocking.length);
+  const bulk = ctx.items.length > 1;
+
+  const traceHTML = PROCEDURE.map(step=>{
+    const sample = results[0];
+    const s = sample.steps.find(x=>x.n===step.n);
+    const cls = s.fail ? "fail" : "done";
+    const perLine = step.n===3 || step.n===4
+      ? `<div class="sub" style="margin-top:6px">${results.map(r=>`<b>${r.p.name}:</b> ${r.steps.find(x=>x.n===step.n).detail}`).join("<br>")}</div>`
+      : "";
+    return `<div class="trace-step ${cls}">
+      <div class="sn">${s.fail?"✕":step.n}</div>
+      <div><div class="st">${step.name}</div><div class="sh">${step.handler}</div>
+      <div class="sd">${step.n===1||step.n===2?s.detail:""}</div>${perLine}</div></div>`;
+  }).join("");
+
+  const rows = results.map(r=>`
+    <tr>
+      <td><b>${r.p.name}</b><br><span class="sub">${r.p.family} · ${r.p.model}</span></td>
+      <td class="mono-num">${eur(r.list)}</td>
+      <td class="mono-num">${r.adjustment>=0?"+":"−"}${eur(Math.abs(r.adjustment))}</td>
+      <td class="mono-num"><b>${eur(r.final)}</b></td>
+      <td>${r.applied.length ? r.applied.map(a=>`<code>${a.r.dev}</code> <span class="sub mono-num">${fmtAdj(a.r)}</span>`).join("<br>") : "<span class='sub'>—</span>"}</td>
+      <td>${r.blocking.length ? `<span class="badge b-blocked">BLOCKED</span>` : `<span class="badge b-free">OK</span>`}</td>
+    </tr>`).join("");
+
+  const allRules = [...new Set(results.flatMap(r=>r.applied.map(a=>a.r.dev)))];
+
+  out.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+      <div>
+        <div class="mono" style="color:var(--sf-blue-2);font-weight:700">PriceBreakdown · ${simState.channel}</div>
+        <div class="sub">Inputs → commitment <code>${simState.commitment}</code> · segment <code>${simState.segment}</code> · effective <code>${date}</code> · ${ctx.items.length} line${ctx.items.length>1?"s":""}</div>
+      </div>
+      <span class="badge ${anyBlocked?"b-blocked":"b-free"}">${anyBlocked?"⛔ BLOCKED":"✓ PRICED"}</span>
+    </div>
+
+    ${anyBlocked ? `<div class="callout bad"><b>Blocking reasons</b> (from <code>Config_Rule__mdt</code>, step 4):<br>
+      ${results.flatMap(r=>r.blocking.map(b=>`<b>${r.p.name}</b> — ${b}`)).join("<br>")}</div>` : ""}
+
+    <div class="final ${anyBlocked?"blocked":""}">
+      <div><div class="sub">Quote total (list ${eur(results.reduce((s,r)=>s+r.list,0))})</div>
+        <div class="big">${anyBlocked ? "BLOCKED" : eur(results.reduce((s,r)=>s+r.final,0))}</div></div>
+      <div style="text-align:right"><div class="sub">Rules that fired</div>
+        <div class="mono" style="font-size:12.5px">${allRules.length?allRules.map(esc).join("<br>"):"none"}</div></div>
+    </div>
+
+    <h4 style="margin-top:16px">Five-step trace <span class="sub">(${bulk?"priceBulk() · "+ctx.items.length+" ≤ 200 requests":"price() single" })</span></h4>
+    ${traceHTML}
+
+    <h4 style="margin-top:14px">Line detail</h4>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Line</th><th>List</th><th>Adj</th><th>Final</th><th>appliedRules</th><th>Config</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+
+    <div class="callout ok" style="margin-top:12px"><b>UC-CAT-08 / BR-10.6 parity:</b> this same computation runs for <i>both</i> channels because neither the advisor wizard nor the portal does arithmetic — both call <code>PricingService</code>. Switch the channel above: the output is byte-for-byte identical for identical input.</div>
+
+    <div class="callout" style="margin-top:10px"><b>Audit note:</b> every rule above is named with its <code>Priority__c</code>, so a price dispute is explainable years later. Rules were ordered by <b>lower priority wins</b>, ties broken by <code>DeveloperName</code>. No DML happened — persisting this price is <code>OfferBuilderService</code>'s job.</div>
+  `;
+}
+
+/* simulator wiring */
+$$("#commitSeg button").forEach(b=> b.addEventListener("click",()=>{
+  $$("#commitSeg button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  simState.commitment=b.dataset.v;
+}));
+$$("#segmentSeg button").forEach(b=> b.addEventListener("click",()=>{
+  $$("#segmentSeg button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  simState.segment=b.dataset.v;
+}));
+$$("#channelSeg button").forEach(b=> b.addEventListener("click",()=>{
+  $$("#channelSeg button").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  simState.channel=b.dataset.v;
+  if($("#simOut").querySelector(".final")) run();
+}));
+$("#effDate").addEventListener("change", renderMeta);
+$("#runBtn").addEventListener("click", run);
+renderPicker(); renderMeta();
+
+/* ============================================================
+   Decisions
+   ============================================================ */
+let decFilter="all", decQuery="";
+function renderDec(){
+  const rows = DECISIONS.filter(d=>{
+    const okF = decFilter==="all" || (decFilter==="new" ? d.new : d.bucket===decFilter);
+    const hay = (d.id+" "+d.q+" "+d.owner+" "+d.blocks+" "+d.impact).toLowerCase().replace(/<[^>]+>/g,"");
+    return okF && (!decQuery || hay.includes(decQuery));
+  });
+  $("#decTable").innerHTML = `
+    <thead><tr><th style="width:9%"># / ID</th><th style="width:26%">Question</th><th style="width:14%">Owner</th><th style="width:17%">Blocks</th><th>What it means without Revenue Cloud</th></tr></thead>
+    <tbody>${rows.map((d,i)=>`<tr>
+      <td><b>${i+1}</b> · <span class="mono">${d.id}</span>${d.new?' <span class="badge b-purple">NEW</span>':""}</td>
+      <td>${d.q}</td><td>${d.owner}</td><td><span class="mono" style="font-size:12px">${d.blocks}</span></td>
+      <td>${d.impact}</td></tr>`).join("") || `<tr><td colspan="5" class="sub">No match.</td></tr>`}</tbody>`;
+}
+$("#decSearch").addEventListener("input", e=>{decQuery=e.target.value.trim().toLowerCase(); renderDec();});
+$$("[data-decfilter]").forEach(b=> b.addEventListener("click",()=>{
+  $$("[data-decfilter]").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  decFilter=b.dataset.decfilter; renderDec();
+}));
+renderDec();
+
+/* ============================================================
+   Build order
+   ============================================================ */
+$("#timeline").innerHTML = TIMELINE.map(t=>`<div class="tl ${t.cls}"><h4>${t.h}</h4>${t.body}</div>`).join("");
+
+(function renderDod(){
+  let saved = [];
+  try{ saved = JSON.parse(localStorage.getItem("rc-dod")||"[]"); }catch(e){}
+  $("#dodList").innerHTML = DOD.map((d,i)=>`
+    <label class="${saved.includes(i)?"done":""}">
+      <input type="checkbox" data-dod="${i}" ${saved.includes(i)?"checked":""}>
+      <span>${d}</span></label>`).join("");
+  const update = ()=>{
+    const done = $$("[data-dod]").filter(c=>c.checked).map(c=>+c.dataset.dod);
+    try{ localStorage.setItem("rc-dod", JSON.stringify(done)); }catch(e){}
+    $("#dodBar").style.width = Math.round(done.length/DOD.length*100) + "%";
+    $("#dodLabel").textContent = done.length + " / " + DOD.length + " complete";
+    $$("[data-dod]").forEach(c=> c.closest("label").classList.toggle("done", c.checked));
+  };
+  $$("[data-dod]").forEach(c=> c.addEventListener("change", update));
+  update();
+})();
+
+/* ============================================================
+   Boot
+   ============================================================ */
+(function boot(){
+  const h = (location.hash||"").replace("#","");
+  if(PROGRESS[h]) go(h);
+  else $("#progressbar").style.width = "8%";
+})();
+</script>
+</body>
+</html>

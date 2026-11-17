@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATS Telecom — Delivery Task Board</title>
+<meta name="description" content="Interactive execution board for the 80-use-case ATS Telecom delivery backlog: kanban, ownership, dependencies, decisions and progress export.">
+<style>
+/* ============================================================
+   ATS TELECOM — DELIVERY TASK BOARD
+   Design system (shared with docs/index.html & docs/team.html)
+   ============================================================ */
+:root{
+  --sf-navy:#032d60; --sf-navy-2:#014486;
+  --sf-blue:#0176d3; --sf-blue-2:#0b5cab; --sf-blue-soft:#d8edff;
+  --sf-teal:#06a59a; --sf-green:#2e844a; --sf-green-soft:#cdefc4;
+  --sf-orange:#ba5d00; --sf-orange-soft:#feefc5;
+  --sf-red:#ba0517; --sf-red-soft:#fedbdd;
+  --sf-purple:#9050e9; --sf-purple-soft:#ece2fd;
+  --sf-yellow:#8c6b00; --sf-yellow-soft:#fcf6d9;
+  --bg:#f3f3f3; --bg-2:#eaeff5;
+  --surface:#ffffff; --surface-2:#f7f9fb;
+  --border:#c9cdd6; --border-soft:#e2e6ec;
+  --text:#181818; --text-2:#3c3c3c; --muted:#5c5c5c;
+  --shadow:0 2px 12px rgba(3,45,92,.10);
+  --shadow-lg:0 8px 34px rgba(3,45,92,.16);
+  --radius:12px; --radius-sm:8px;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --p1:#0176d3; --p2:#2e844a; --p3:#9050e9; --p4:#ba5d00;
+  --topbar-h:56px;
+}
+[data-theme="dark"]{
+  --bg:#0b1420; --bg-2:#0e1a29; --surface:#12233a; --surface-2:#162942;
+  --border:#2b4361; --border-soft:#20344d;
+  --text:#eaf2fb; --text-2:#c6d6e8; --muted:#93a8c2;
+  --sf-blue-soft:#123a5f; --sf-green-soft:#123a26; --sf-red-soft:#3d1520;
+  --sf-orange-soft:#3a2712; --sf-purple-soft:#2a1f47; --sf-yellow-soft:#332b10;
+  --p1:#5aa9f0; --p2:#63c07f; --p3:#b58cf5; --p4:#e39a4d;
+  --shadow:0 2px 12px rgba(0,0,0,.35); --shadow-lg:0 8px 34px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:"Salesforce Sans","Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45}
+button{font:inherit;cursor:pointer;color:inherit;background:none;border:none}
+a{color:var(--sf-blue);text-decoration:none}
+a:hover{text-decoration:underline}
+input,select,textarea{font:inherit;color:inherit}
+.mono{font-family:var(--mono);font-size:.92em}
+
+/* ---------- topbar ---------- */
+.topbar{position:sticky;top:0;z-index:60;height:var(--topbar-h);display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--sf-navy);color:#fff;box-shadow:var(--shadow)}
+.brand{font-weight:800;font-size:15px;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.brand small{font-weight:500;opacity:.75;font-size:11.5px}
+.tb-spacer{flex:1}
+.tb-link{color:#cde6ff;font-size:12.5px;padding:6px 10px;border-radius:8px;white-space:nowrap}
+.tb-link:hover{background:rgba(255,255,255,.12);text-decoration:none}
+.tb-btn{background:rgba(255,255,255,.14);color:#fff;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.tb-btn:hover{background:rgba(255,255,255,.26)}
+.tb-btn.accent{background:#fff;color:var(--sf-navy)}
+.tb-btn.accent:hover{background:#d8edff}
+#search{background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:8px 12px;color:#fff;width:210px;font-size:13px;outline:none}
+#search::placeholder{color:#bcd7ef}
+#search:focus{background:#fff;color:var(--text);width:280px}
+#search:focus::placeholder{color:var(--muted)}
+.kbd{font-size:10px;background:rgba(255,255,255,.2);border-radius:4px;padding:2px 5px;margin-left:6px;font-family:var(--mono)}
+
+/* ---------- stats strip ---------- */
+.stats{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;padding:14px 16px 4px}
+.ring-card{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:12px 18px;box-shadow:var(--shadow)}
+.ring{position:relative;width:74px;height:74px}
+.ring svg{transform:rotate(-90deg)}
+.ring .rt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:17px}
+.ring .rt small{font-size:9px;font-weight:600;color:var(--muted)}
+.ring-info b{font-size:14px}
+.ring-info div{font-size:12px;color:var(--muted);margin-top:2px}
+.stat-cards{display:flex;flex:1;gap:10px;flex-wrap:wrap;min-width:0}
+.stat{flex:1;min-width:104px;background:var(--surface);border:1px solid var(--border-soft);border-left:4px solid var(--sc,var(--border));border-radius:var(--radius);padding:10px 12px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s}
+.stat:hover{transform:translateY(-2px)}
+.stat b{font-size:19px;display:block;line-height:1.1}
+.stat span{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.stat.on{outline:2px solid var(--sc,var(--sf-blue))}
+.person-chips{display:flex;gap:8px;flex-wrap:wrap}
+.pchip{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:8px 12px;box-shadow:var(--shadow);cursor:pointer;border-top:3px solid var(--pc)}
+.pchip:hover{transform:translateY(-2px)}
+.pchip.on{outline:2px solid var(--pc)}
+.pchip .pid{font-weight:800;font-size:12px;color:var(--pc)}
+.pchip .prole{font-size:11px;color:var(--muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pchip .pbar{width:86px;height:6px;border-radius:4px;background:var(--bg-2);overflow:hidden}
+.pchip .pbar i{display:block;height:100%;background:var(--pc);border-radius:4px}
+.pchip .ppts{font-size:11px;font-weight:700}
+
+/* ---------- toolbar ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px 0;position:sticky;top:var(--topbar-h);z-index:50;background:linear-gradient(var(--bg) 82%,transparent)}
+.viewtabs{display:flex;background:var(--surface);border:1px solid var(--border-soft);border-radius:10px;padding:3px;box-shadow:var(--shadow)}
+.viewtabs button{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.viewtabs button.on{background:var(--sf-blue);color:#fff}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1}
+select.filt{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12.5px;max-width:190px}
+.fchip{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--muted)}
+.fchip.on{background:var(--sf-blue-soft);border-color:var(--sf-blue);color:var(--sf-blue-2)}
+.fchip.rm{background:var(--sf-red-soft);border-color:var(--sf-red);color:var(--sf-red)}
+.clearf{font-size:12px;color:var(--sf-blue);font-weight:600;padding:6px 8px}
+
+/* ---------- kanban ---------- */
+main{padding:14px 16px 60px}
+.kanban{display:flex;gap:12px;align-items:flex-start;overflow-x:auto;padding-bottom:12px}
+.col{flex:1;min-width:236px;max-width:340px;background:var(--bg-2);border:1px solid var(--border-soft);border-radius:var(--radius);display:flex;flex-direction:column;max-height:calc(100vh - 260px)}
+.col.drop-hot{outline:2px dashed var(--sf-blue);outline-offset:-2px}
+.col-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border-soft);position:sticky;top:0;background:var(--bg-2);border-radius:var(--radius) var(--radius) 0 0;z-index:2}
+.col-head .dot{width:9px;height:9px;border-radius:50%;background:var(--sc)}
+.col-head b{font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+.col-head .cnt{margin-left:auto;background:var(--surface);border:1px solid var(--border-soft);border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;color:var(--muted)}
+.col-body{overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:9px;min-height:70px}
+.col-empty{font-size:12px;color:var(--muted);text-align:center;padding:18px 8px;border:1px dashed var(--border);border-radius:var(--radius-sm)}
+
+/* task card */
+.tcard{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:9px 10px;box-shadow:var(--shadow);cursor:pointer;position:relative;transition:transform .1s,box-shadow .1s;border-left:4px solid var(--pc,var(--border))}
+.tcard:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.tcard.dragging{opacity:.45}
+.tcard-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.tid{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--muted)}
+.tpri{font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:4px;letter-spacing:.3px}
+.tpri.Must{background:var(--sf-red-soft);color:var(--sf-red)}
+.tpri.Should{background:var(--sf-orange-soft);color:var(--sf-orange)}
+.tpri.Could{background:var(--sf-blue-soft);color:var(--sf-blue-2)}
+.tpts{margin-left:auto;font-size:10px;font-weight:700;color:var(--muted)}
+.ttitle{font-size:12.5px;font-weight:600;line-height:1.32}
+.tcard-bot{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
+.epic-chip{font-size:9.5px;font-weight:700;background:var(--bg-2);border:1px solid var(--border-soft);color:var(--muted);border-radius:4px;padding:1px 5px}
+.person-tag{font-size:9.5px;font-weight:800;color:#fff;background:var(--pc);border-radius:4px;padding:1.5px 6px}
+.badge{font-size:9.5px;font-weight:700;border-radius:4px;padding:1.5px 6px}
+.badge.blocked{background:var(--sf-red-soft);color:var(--sf-red)}
+.badge.deps{background:var(--sf-orange-soft);color:var(--sf-orange)}
+.badge.decision-resolved{background:var(--sf-green-soft);color:var(--sf-green)}
+.check-prog{margin-left:auto;font-size:9.5px;color:var(--muted);font-weight:700}
+
+/* ---------- decisions ---------- */
+.grid{display:grid;gap:12px}
+.grid.c2{grid-template-columns:repeat(auto-fill,minmax(370px,1fr))}
+.grid.c3{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.dcard{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.dcard.resolved{border-left:4px solid var(--sf-green)}
+.dcard.unresolved{border-left:4px solid var(--sf-red)}
+.dtop{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.did{font-family:var(--mono);font-weight:800;font-size:12.5px;background:var(--bg-2);border-radius:6px;padding:2px 8px}
+.dq{font-size:13.5px;font-weight:700;margin-bottom:6px}
+.dmeta{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.dblocks{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.dchip{font-family:var(--mono);font-size:10.5px;background:var(--sf-blue-soft);color:var(--sf-blue-2);border-radius:4px;padding:2px 7px;cursor:pointer;border:1px solid transparent}
+.dchip:hover{border-color:var(--sf-blue);text-decoration:none}
+.dnote{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;background:var(--surface-2);resize:vertical;min-height:34px;margin-bottom:8px}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;cursor:pointer}
+.toggle input{width:16px;height:16px;accent-color:var(--sf-green)}
+.unblock-btn{margin-left:auto;font-size:11.5px;font-weight:700;color:#fff;background:var(--sf-green);border-radius:8px;padding:6px 10px}
+.sect-title{font-size:16px;font-weight:800;margin:22px 0 10px;display:flex;align-items:center;gap:10px}
+.sect-title small{font-weight:500;color:var(--muted);font-size:12px}
+
+/* ---------- epics ---------- */
+.ecard{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s}
+.ecard:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.etop{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.eid{font-family:var(--mono);font-weight:800;font-size:13px}
+.etitle{font-size:14px;font-weight:700}
+.eobj{font-size:12px;color:var(--muted);margin:6px 0 10px}
+.ebar{height:8px;border-radius:5px;background:var(--bg-2);overflow:hidden;display:flex}
+.ebar i{height:100%}
+.ebar .fd{background:var(--sf-green)}
+.ebar .fp{background:var(--sf-blue)}
+.ebar .fb{background:var(--sf-red)}
+.emeta{display:flex;gap:10px;margin-top:8px;font-size:11px;color:var(--muted);flex-wrap:wrap;align-items:center}
+.crit{font-size:10px;font-weight:800;background:var(--sf-orange-soft);color:var(--sf-orange);border-radius:4px;padding:2px 7px}
+.gate{font-size:11px;color:var(--muted);margin-top:6px;font-style:italic}
+
+/* ---------- workload ---------- */
+.wcard{background:var(--surface);border:1px solid var(--border-soft);border-top:4px solid var(--pc);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.wname{font-weight:800;font-size:14px}
+.wrole{font-size:12px;color:var(--muted);margin-bottom:10px}
+.wrow{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11.5px}
+.wrow .wl{width:34px;font-family:var(--mono);font-weight:700;color:var(--muted)}
+.wrow .wb{flex:1;height:10px;background:var(--bg-2);border-radius:5px;overflow:hidden;display:flex}
+.wrow .wb i{height:100%}
+.wrow .wv{width:52px;text-align:right;font-weight:700;color:var(--muted)}
+.wskills{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.wskill{font-size:10px;background:var(--bg-2);border:1px solid var(--border-soft);border-radius:4px;padding:2px 6px;color:var(--muted)}
+
+/* ---------- drawer ---------- */
+.overlay{position:fixed;inset:0;background:rgba(3,45,92,.45);z-index:80;opacity:0;pointer-events:none;transition:opacity .18s}
+.overlay.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,96vw);background:var(--surface);z-index:90;box-shadow:var(--shadow-lg);transform:translateX(103%);transition:transform .22s ease;display:flex;flex-direction:column}
+.drawer.show{transform:none}
+.dr-head{padding:14px 18px;border-bottom:1px solid var(--border-soft);display:flex;align-items:flex-start;gap:10px;background:var(--surface-2)}
+.dr-head .dh-main{flex:1;min-width:0}
+.dr-id{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--muted)}
+.dr-title{font-size:16px;font-weight:800;line-height:1.25;margin-top:2px}
+.dr-close{font-size:20px;line-height:1;color:var(--muted);padding:4px 8px;border-radius:8px}
+.dr-close:hover{background:var(--bg-2)}
+.dr-body{overflow-y:auto;padding:16px 18px 40px;flex:1}
+.dr-sec{margin-bottom:18px}
+.dr-sec h4{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:7px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--muted)}
+.seg button.on{background:var(--sc,var(--sf-blue));border-color:transparent;color:#fff}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.meta-grid div{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;font-size:12px}
+.meta-grid div b{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.goal{background:var(--sf-blue-soft);border-radius:8px;padding:10px 12px;font-size:13px}
+ol.steps,ul.plain{margin:0 0 0 18px;font-size:12.5px}
+ol.steps li,ul.plain li{margin-bottom:5px}
+.chk{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;padding:6px 8px;border-radius:8px;cursor:pointer}
+.chk:hover{background:var(--surface-2)}
+.chk input{margin-top:2px;accent-color:var(--sf-green);width:15px;height:15px}
+.chk.done span{color:var(--muted);text-decoration:line-through}
+.mini-tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.mini-tbl th{text-align:left;padding:6px 8px;background:var(--surface-2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;border:1px solid var(--border-soft)}
+.mini-tbl td{padding:6px 8px;border:1px solid var(--border-soft);vertical-align:top}
+.dep-chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;font-weight:700;border:1px solid var(--border);border-radius:6px;padding:3px 8px;margin:0 5px 5px 0;cursor:pointer;background:var(--surface)}
+.dep-chip.ok{border-color:var(--sf-green);color:var(--sf-green)}
+.dep-chip.no{border-color:var(--sf-orange);color:var(--sf-orange)}
+.notes{width:100%;min-height:70px;border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:12.5px;background:var(--surface-2);resize:vertical}
+.co{display:flex;gap:9px;border-radius:8px;padding:10px 12px;font-size:12px;margin-top:8px}
+.co-red{background:var(--sf-red-soft);color:var(--sf-red)}
+.co-green{background:var(--sf-green-soft);color:var(--sf-green)}
+.co-orange{background:var(--sf-orange-soft);color:var(--sf-orange)}
+
+/* ---------- objects & fields ---------- */
+.ocard{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s}
+.ocard:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.otop{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.oname{font-weight:800;font-size:12.5px;font-family:var(--mono)}
+.olabel{font-size:12px;color:var(--muted)}
+.opurpose{font-size:11.5px;color:var(--muted);margin:6px 0 8px;min-height:30px}
+.obar{height:8px;border-radius:5px;background:var(--bg-2);overflow:hidden}
+.obar i{display:block;height:100%;background:var(--sf-green);border-radius:5px;transition:width .2s}
+.ometa{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.obadge{font-size:9.5px;font-weight:800;border-radius:4px;padding:1.5px 6px;text-transform:uppercase;letter-spacing:.3px}
+.k-custom{background:var(--sf-blue-soft);color:var(--sf-blue-2)}
+.k-standard{background:var(--bg-2);color:var(--muted)}
+.k-metadata{background:var(--sf-purple-soft);color:var(--sf-purple)}
+.k-setting{background:var(--sf-orange-soft);color:var(--sf-orange)}
+.taskpill{font-family:var(--mono);font-size:10px;font-weight:700;background:var(--sf-green-soft);color:var(--sf-green);border-radius:4px;padding:1.5px 6px;margin-left:auto}
+.tasklink{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--sf-blue);border:1px solid var(--border);border-radius:6px;padding:1px 6px;background:var(--surface)}
+.tasklink:hover{background:var(--sf-blue-soft)}
+.acc{border:1px solid var(--border-soft);border-radius:var(--radius-sm);margin-bottom:8px;background:var(--surface)}
+.acc>summary{cursor:pointer;padding:8px 10px;font-size:12.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;list-style:none}
+.acc>summary::-webkit-details-marker{display:none}
+.acc>summary::before{content:"▸";color:var(--muted);font-size:11px}
+.acc[open]>summary::before{content:"▾"}
+.acc>summary:hover{background:var(--surface-2)}
+.acc-body{padding:0 10px 10px}
+.tblwrap{overflow-x:auto;margin-top:4px}
+.mini-tbl.fields{min-width:540px}
+.mini-tbl.fields td.fnotes{font-size:11px;color:var(--muted)}
+.mini-tbl th.c,.mini-tbl td.c{width:26px;text-align:center}
+.mini-tbl td.mono{font-family:var(--mono)}
+.kind{font-size:10px;font-weight:700;border-radius:4px;padding:1px 5px;white-space:nowrap;display:inline-block}
+.k-lookup{background:var(--sf-blue-soft);color:var(--sf-blue-2)}
+.k-formula{background:var(--sf-purple-soft);color:var(--sf-purple)}
+.k-autonumber{background:var(--sf-yellow-soft);color:var(--sf-yellow)}
+.k-picklist,.k-multiselect{background:var(--sf-green-soft);color:var(--sf-green)}
+.k-currency,.k-number,.k-percent{background:var(--sf-orange-soft);color:var(--sf-orange)}
+.k-checkbox,.k-text,.k-textarea,.k-url,.k-date,.k-datetime,.k-other{background:var(--bg-2);color:var(--muted)}
+.flag{font-size:9.5px;font-weight:800;border-radius:4px;padding:1px 5px;margin:0 3px 2px 0;white-space:nowrap;display:inline-block}
+.f-req{background:var(--sf-red-soft);color:var(--sf-red)}
+.f-uniq{background:var(--sf-blue-soft);color:var(--sf-blue-2)}
+.f-ext{background:var(--sf-purple-soft);color:var(--sf-purple)}
+.f-rca{background:var(--sf-orange-soft);color:var(--sf-orange)}
+.frow.done td:not(.c){color:var(--muted)}
+.vitem{border:1px solid var(--border-soft);border-radius:8px;padding:6px 8px;margin-bottom:7px}
+.vitem.done{opacity:.72}
+.via{font-size:9.5px;font-weight:800;border-radius:4px;padding:1px 6px;margin-left:4px;white-space:nowrap}
+.via-vr{background:var(--sf-green-soft);color:var(--sf-green)}
+.via-flow{background:var(--sf-blue-soft);color:var(--sf-blue-2)}
+.via-dup{background:var(--sf-purple-soft);color:var(--sf-purple)}
+.formula{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:6px;padding:7px 9px;font-family:var(--mono);font-size:11px;overflow-x:auto;white-space:pre;margin:5px 0 0 24px}
+.vnote{font-size:11px;color:var(--muted);margin:5px 0 0 24px}
+.sub{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin:10px 0 5px}
+.hint{font-size:11.5px;color:var(--muted);margin-bottom:6px}
+
+/* ---------- guide ---------- */
+.gintro{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.gintro-col{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow)}
+.gintro-col h4{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+.gintro-col ol{margin:0 0 0 18px;font-size:12px}
+.gintro-col li{margin-bottom:4px}
+.gblock{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);margin-bottom:12px}
+.ghead{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.ghead b{font-size:14px}
+.gmuted{margin-left:auto;font-size:11px;color:var(--muted);font-weight:700}
+.gobj{font-size:12px;color:var(--muted);margin:5px 0 8px}
+.gtask{border:1px solid var(--border-soft);border-radius:8px;margin-top:7px;background:var(--surface)}
+.gtask>summary{cursor:pointer;padding:7px 9px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;list-style:none}
+.gtask>summary::-webkit-details-marker{display:none}
+.gtask[open]>summary{background:var(--surface-2);border-bottom:1px solid var(--border-soft)}
+.gtask>summary:hover{background:var(--surface-2)}
+.gtitle{font-weight:600}
+.gstatus{font-size:9.5px;font-weight:800;border-radius:4px;padding:1.5px 6px}
+.s-backlog{background:var(--bg-2);color:var(--muted)}
+.s-progress{background:var(--sf-blue-soft);color:var(--sf-blue-2)}
+.s-review{background:var(--sf-purple-soft);color:var(--sf-purple)}
+.s-blocked{background:var(--sf-red-soft);color:var(--sf-red)}
+.s-done{background:var(--sf-green-soft);color:var(--sf-green)}
+.gprog{margin-left:auto;font-size:10.5px;color:var(--muted);font-weight:700}
+.gbody{padding:9px 10px 12px}
+.gsteps{margin:6px 0}
+.gart{font-size:11.5px;background:var(--bg-2);border:1px dashed var(--border);border-radius:6px;padding:6px 9px;margin-top:8px}
+.gfoot{display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap}
+code{font-family:var(--mono);font-size:.92em;background:var(--bg-2);border-radius:4px;padding:1px 4px}
+.drawer.wide{width:min(840px,98vw)}
+@media(max-width:760px){.gintro{grid-template-columns:1fr}}
+
+/* toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sf-navy);color:#fff;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600;z-index:120;transition:transform .25s;box-shadow:var(--shadow-lg);max-width:90vw}
+.toast.show{transform:translateX(-50%)}
+.toast.err{background:var(--sf-red)}
+
+.hidden{display:none!important}
+@media(max-width:900px){
+  .col{min-width:82vw}
+  .stats{gap:8px}
+  .toolbar{position:static}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">📡 ATS Telecom <small>Delivery Task Board</small></div>
+  <input id="search" type="search" placeholder="Search tasks…" autocomplete="off" aria-label="Search tasks">
+  <span class="kbd">Ctrl+K</span>
+  <div class="tb-spacer"></div>
+  <button class="tb-btn" id="exportBtn" title="Download current progress as JSON">⬇ Export</button>
+  <button class="tb-btn" id="docBtn" title="Download the full step-by-step build guide as Markdown">📄 Checklist</button>
+  <button class="tb-btn" id="importBtn" title="Merge progress from a JSON file">⬆ Import</button>
+  <input type="file" id="importFile" accept=".json" class="hidden">
+  <button class="tb-btn" id="resetBtn" title="Reset all progress">↺ Reset</button>
+  <a class="tb-link" href="index.html">Blueprint</a>
+  <a class="tb-link" href="team.html">Team</a>
+  <button class="tb-btn" id="themeBtn" title="Toggle dark mode">◐</button>
+</header>
+
+<section class="stats">
+  <div class="ring-card">
+    <div class="ring">
+      <svg width="74" height="74" viewBox="0 0 74 74">
+        <circle cx="37" cy="37" r="31" fill="none" stroke="var(--bg-2)" stroke-width="9"></circle>
+        <circle id="ringArc" cx="37" cy="37" r="31" fill="none" stroke="var(--sf-green)" stroke-width="9" stroke-linecap="round" stroke-dasharray="195" stroke-dashoffset="195"></circle>
+      </svg>
+      <div class="rt"><span id="ringPct">0%</span><small>DONE</small></div>
+    </div>
+    <div class="ring-info">
+      <b id="progLine">0 / 80 tasks</b>
+      <div id="ptsLine">0 / 400 points completed</div>
+      <div id="fieldsLine">🧱 0 / 0 fields &amp; config created</div>
+      <div id="saveLine">auto-saved locally</div>
+    </div>
+  </div>
+  <div class="stat-cards" id="statCards"></div>
+  <div class="person-chips" id="personChips"></div>
+</section>
+
+<div class="toolbar">
+  <div class="viewtabs" role="tablist">
+    <button data-view="board" class="on">🗂 Board</button>
+    <button data-view="guide">📖 Guide</button>
+    <button data-view="objects">🧱 Objects</button>
+    <button data-view="decisions">⚖ Decisions</button>
+    <button data-view="epics">🏁 Epics</button>
+    <button data-view="workload">👥 Workload</button>
+  </div>
+  <div class="filters">
+    <select class="filt" id="fEpic"><option value="">All epics</option></select>
+    <button class="fchip" data-prio="Must">Must</button>
+    <button class="fchip" data-prio="Should">Should</button>
+    <button class="fchip" data-prio="Could">Could</button>
+    <button class="fchip" id="fDeps">⚠ Deps open</button>
+    <button class="fchip" id="fHideDone">Hide done</button>
+    <button class="clearf hidden" id="clearF">✕ Clear filters</button>
+  </div>
+</div>
+
+<main>
+  <!-- BOARD -->
+  <div id="view-board">
+    <div class="kanban" id="kanban"></div>
+  </div>
+
+  <!-- GUIDE -->
+  <div id="view-guide" class="hidden">
+    <div class="sect-title">📖 Build guide <small>work top to bottom — decisions first, then E0 foundation → E1 data model → E2 pricing → …</small></div>
+    <div id="guideIntro"></div>
+    <div id="guideList"></div>
+  </div>
+
+  <!-- OBJECTS -->
+  <div id="view-objects" class="hidden">
+    <div class="sect-title">🧱 Objects &amp; fields <small id="objSummary"></small></div>
+    <div class="grid c3" id="objectGrid"></div>
+    <div class="sect-title">⚙ Shared configuration <small>tick every item as you build it — progress saves in this browser and exports to JSON</small></div>
+    <div class="grid c3" id="sharedGrid"></div>
+  </div>
+
+  <!-- DECISIONS -->
+  <div id="view-decisions" class="hidden">
+    <div class="sect-title">⚖ Open decision register <small>resolve these to unblock the board — 14 items from use-cases/README.md §8</small></div>
+    <div class="grid c2" id="decisionGrid"></div>
+  </div>
+
+  <!-- EPICS -->
+  <div id="view-epics" class="hidden">
+    <div class="sect-title">🏁 Epics <small>click an epic to filter the board</small></div>
+    <div class="grid c3" id="epicGrid"></div>
+  </div>
+
+  <!-- WORKLOAD -->
+  <div id="view-workload" class="hidden">
+    <div class="sect-title">👥 Workload by person <small>points: Must=5 · Should=3 · Could=1</small></div>
+    <div class="grid c2" id="workloadGrid"></div>
+  </div>
+</main>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-label="Task detail">
+  <div class="dr-head">
+    <div class="dh-main">
+      <div class="dr-id" id="drId"></div>
+      <div class="dr-title" id="drTitle"></div>
+    </div>
+    <button class="dr-close" id="drClose" aria-label="Close">✕</button>
+  </div>
+  <div class="dr-body" id="drBody"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script src="board-data.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   ATS DELIVERY BOARD — app
+   State persists in localStorage; Export/Import shares progress.
+   ============================================================ */
+const D = window.BOARD_DATA;
+if (!D || !D.tasks) { document.body.innerHTML = "<p style='padding:40px'>board-data.js missing — run <b>node _board-gen.js</b> first.</p>"; }
+
+const STATUSES = [
+  { id:"backlog",  label:"Not started", color:"var(--muted)" },
+  { id:"progress", label:"In progress", color:"var(--sf-blue)" },
+  { id:"review",   label:"In review",   color:"var(--sf-purple)" },
+  { id:"blocked",  label:"Blocked",     color:"var(--sf-red)" },
+  { id:"done",     label:"Done",        color:"var(--sf-green)" },
+];
+const STATUS_BY_ID = Object.fromEntries(STATUSES.map(s=>[s.id,s]));
+const PCOLOR = { P1:"var(--p1)", P2:"var(--p2)", P3:"var(--p3)", P4:"var(--p4)" };
+const LS_KEY = "ats-board-v1";
+
+/* ---------- state ---------- */
+let state = { statuses:{}, assignees:{}, ac:{}, dod:{}, notes:{}, blockedReasons:{}, decisions:{}, fields:{}, steps:{} };
+let ui = { view:"board", epic:"", prios:new Set(), q:"", hideDone:false, depsOnly:false, person:"", openTask:null, openObject:null };
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) state = Object.assign(state, JSON.parse(raw));
+  }catch(e){ console.warn("load failed", e); }
+}
+let saveTimer=null;
+function saveState(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+      const el=document.getElementById("saveLine");
+      if(el) el.textContent = "auto-saved locally · " + new Date().toLocaleTimeString();
+    }catch(e){ toast("Could not save to localStorage", true); }
+  },150);
+}
+
+/* ---------- derived ---------- */
+const taskById = Object.fromEntries(D.tasks.map(t=>[t.id,t]));
+function statusOf(t){ return state.statuses[t.id] || (t.blockedReason ? "blocked" : "backlog"); }
+function assigneeOf(t){ return state.assignees[t.id] || t.assignee; }
+function blockedReasonOf(t){ return state.blockedReasons[t.id] ?? t.blockedReason; }
+function decisionResolved(id){
+  for (const key of Object.keys(state.decisions)){
+    if (state.decisions[key]?.resolved && (key===id || id.includes(key) || key.includes(id))) return true;
+  }
+  // match "Q1 / BQ1" style ids against free-text reasons
+  const dr = D.decisions.find(x=>x.id===id);
+  if (dr && state.decisions[dr.id]?.resolved) return true;
+  return false;
+}
+function isDecisionResolved(reason){
+  if(!reason) return false;
+  return D.decisions.some(dec => reason.includes(dec.id) && state.decisions[dec.id]?.resolved);
+}
+/* task ids this task depends on */
+function depIds(t){
+  if(!t.dependsOn) return [];
+  return t.dependsOn.split(",").map(s=>s.trim()).filter(s=>/^UC-[A-Z]+-\d+$/.test(s));
+}
+function openDeps(t){
+  return depIds(t).filter(id => taskById[id] && statusOf(taskById[id]) !== "done");
+}
+function defaultStatus(){
+  return { };
+}
+
+/* ---------- filters ---------- */
+function visibleTasks(){
+  const q = ui.q.toLowerCase();
+  return D.tasks.filter(t=>{
+    if (ui.epic && t.epic!==ui.epic) return false;
+    if (ui.person && assigneeOf(t)!==ui.person) return false;
+    if (ui.prios.size && !ui.prios.has(t.priority)) return false;
+    if (ui.hideDone && statusOf(t)==="done") return false;
+    if (ui.depsOnly && openDeps(t).length===0) return false;
+    if (q){
+      const hay = (t.id+" "+t.title+" "+t.goal+" "+t.owner+" "+(t.archRef||"")+" "+(t.dmRef||"")+" "+(state.notes[t.id]||"")).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function anyFilter(){ return ui.epic||ui.person||ui.prios.size||ui.q||ui.hideDone||ui.depsOnly; }
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function toast(msg, err){
+  const el=document.getElementById("toast");
+  el.textContent=msg; el.classList.toggle("err",!!err); el.classList.add("show");
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove("show"),2600);
+}
+function counts(list){
+  const c={}; STATUSES.forEach(s=>c[s.id]=0);
+  list.forEach(t=>c[statusOf(t)]++); return c;
+}
+
+/* ---------- fields & steps helpers ---------- */
+const KIND='custom standard metadata setting'.split(' ');
+const KIND_NAME={custom:"Custom object",standard:"Standard ext.",metadata:"Metadata type",setting:"Custom setting"};
+function kindName(k){ return KIND_NAME[k]||k; }
+function mdInline(s){
+  return esc(s)
+    .replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>");
+}
+function stepsOf(t){ return (t.guideSteps && t.guideSteps.length) ? t.guideSteps : t.mainFlow; }
+function checkTotal(key){
+  if(key.charAt(0)==="@"){
+    if(key==="@valueSets") return (D.valueSets||[]).length;
+    if(key==="@labels") return (D.labels||[]).length;
+    if(key==="@permissions") return (D.permissions||[]).length;
+    if(key==="@validations") return (D.validations||[]).length;
+    if(key==="@fls") return (D.fls&&D.fls.rows?D.fls.rows.length:0);
+    if(key==="@indexes") return (D.indexes?D.indexes.external.length+D.indexes.compound.length:0);
+    if(key==="@seeds") return (D.seeds||[]).reduce((a,s)=>a+s.rows.length,0);
+    if(key==="@deploy") return (D.deployOrder||[]).length;
+    return 0;
+  }
+  return (D.objects&&D.objects[key])?D.objects[key].fields.length:0;
+}
+function checkDone(key){ return (state.fields[key]||[]).length; }
+const SHARED_KEYS=["@valueSets","@labels","@permissions","@validations","@fls","@indexes","@seeds"];
+function overallConfigProgress(){
+  let done=0,total=0;
+  Object.keys(D.objects||{}).forEach(k=>{ total+=D.objects[k].fields.length; done+=checkDone(k); });
+  SHARED_KEYS.forEach(k=>{ total+=checkTotal(k); done+=checkDone(k); });
+  return {done,total};
+}
+
+/* ---------- render: stats ---------- */
+function renderStats(){
+  const all=D.tasks, c=counts(all);
+  const done=c.done, pct=Math.round(done/all.length*100);
+  document.getElementById("ringPct").textContent=pct+"%";
+  document.getElementById("ringArc").style.strokeDashoffset = String(195 - 195*pct/100);
+  document.getElementById("progLine").textContent = done+" / "+all.length+" tasks";
+  const ptsTotal=all.reduce((a,t)=>a+t.pts,0);
+  const ptsDone=all.filter(t=>statusOf(t)==="done").reduce((a,t)=>a+t.pts,0);
+  document.getElementById("ptsLine").textContent = ptsDone+" / "+ptsTotal+" points completed";
+  const fp = overallConfigProgress();
+  document.getElementById("fieldsLine").textContent = "🧱 "+fp.done+" / "+fp.total+" fields & config created";
+
+  const cards=[
+    {k:"backlog",l:"Not started",c:"var(--muted)"},
+    {k:"progress",l:"In progress",c:"var(--sf-blue)"},
+    {k:"review",l:"In review",c:"var(--sf-purple)"},
+    {k:"blocked",l:"Blocked",c:"var(--sf-red)"},
+    {k:"done",l:"Done",c:"var(--sf-green)"},
+  ];
+  const sc=document.getElementById("statCards");
+  sc.innerHTML = cards.map(x=>
+    '<button class="stat'+(ui.hideDone&&x.k==="done"?"":"")+'" style="--sc:'+x.c+'" data-stat="'+x.k+'"><b>'+c[x.k]+'</b><span>'+x.l+'</span></button>'
+  ).join("");
+  sc.querySelectorAll(".stat").forEach(b=>b.onclick=()=>{
+    const k=b.dataset.stat;
+    ui.hideDone = (k==="done") ? !ui.hideDone : true;
+    if(k!=="done"){ ui.hideDone=false; ui.q=""; ui.view="board"; setView("board"); }
+    // simple behaviour: clicking a status counter focuses the board
+    renderAll();
+  });
+
+  const pc=document.getElementById("personChips");
+  pc.innerHTML = D.team.map(p=>{
+    const mine=D.tasks.filter(t=>assigneeOf(t)===p.id);
+    const tpts=mine.reduce((a,t)=>a+t.pts,0);
+    const dpts=mine.filter(t=>statusOf(t)==="done").reduce((a,t)=>a+t.pts,0);
+    const p2 = tpts? Math.round(dpts/tpts*100):0;
+    return '<button class="pchip'+(ui.person===p.id?" on":"")+'" data-p="'+p.id+'" style="--pc:'+PCOLOR[p.id]+'" title="'+esc(p.role)+' — '+esc(p.skills.join(", "))+'">'
+      +'<span class="pid">'+p.id+'</span>'
+      +'<span class="prole">'+esc(p.name!=="Person "+p.id.slice(1)?p.name:p.role)+'</span>'
+      +'<span class="pbar"><i style="width:'+p2+'%"></i></span>'
+      +'<span class="ppts">'+dpts+'/'+tpts+'</span></button>';
+  }).join("");
+  pc.querySelectorAll(".pchip").forEach(b=>b.onclick=()=>{
+    ui.person = ui.person===b.dataset.p ? "" : b.dataset.p;
+    renderAll();
+  });
+}
+
+/* ---------- render: board ---------- */
+function taskCard(t){
+  const st=statusOf(t), a=assigneeOf(t);
+  const od=openDeps(t);
+  const decRes = st==="blocked" && isDecisionResolved(blockedReasonOf(t));
+  const acDone=(state.ac[t.id]||[]).length, acTot=t.acceptance.length;
+  const artKeys=(t.artifacts||[]).filter(a=>a.type==="object").map(a=>a.key);
+  const artTot=artKeys.reduce((a,k)=>a+checkTotal(k),0);
+  const artDone=artKeys.reduce((a,k)=>a+checkDone(k),0);
+  return '<div class="tcard" draggable="true" data-id="'+t.id+'" style="--pc:'+(PCOLOR[a]||"var(--border)")+'" tabindex="0">'
+    +'<div class="tcard-top"><span class="tid">'+t.id+'</span>'
+    +'<span class="tpri '+t.priority+'">'+t.priority+'</span>'
+    +'<span class="tpts">'+t.pts+'pt</span></div>'
+    +'<div class="ttitle">'+esc(t.title)+'</div>'
+    +'<div class="tcard-bot">'
+      +'<span class="epic-chip">'+t.epic+'</span>'
+      +(a?'<span class="person-tag" style="--pc:'+PCOLOR[a]+'">'+a+'</span>':'')
+      +(st==="blocked"?'<span class="badge blocked">⛔ '+esc(blockedReasonOf(t)||"blocked")+(decRes?' · resolved?':'')+'</span>':'')
+      +(od.length&&st!=="done"?'<span class="badge deps" title="Open dependencies: '+esc(od.join(", "))+'">↳'+od.length+' dep</span>':'')
+      +(decRes?'<span class="badge decision-resolved">✓ decision resolved</span>':'')
+      +(artTot?'<span class="check-prog" title="fields & config created">🧱 '+artDone+'/'+artTot+'</span>':'')
+      +(acTot?'<span class="check-prog">☑ '+acDone+'/'+acTot+'</span>':'')
+    +'</div></div>';
+}
+function renderBoard(){
+  const list=visibleTasks();
+  const kb=document.getElementById("kanban");
+  kb.innerHTML = STATUSES.map(s=>{
+    const items=list.filter(t=>statusOf(t)===s.id);
+    return '<div class="col" data-status="'+s.id+'" style="--sc:'+s.color+'">'
+      +'<div class="col-head"><span class="dot"></span><b>'+s.label+'</b><span class="cnt">'+items.length+'</span></div>'
+      +'<div class="col-body">'
+      +(items.length?items.map(taskCard).join(""):'<div class="col-empty">drop tasks here</div>')
+      +'</div></div>';
+  }).join("");
+
+  kb.querySelectorAll(".tcard").forEach(card=>{
+    card.onclick=()=>openDrawer(card.dataset.id);
+    card.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();openDrawer(card.dataset.id);} };
+    card.ondragstart=e=>{
+      e.dataTransfer.setData("text/plain",card.dataset.id);
+      e.dataTransfer.effectAllowed="move";
+      card.classList.add("dragging");
+    };
+    card.ondragend=()=>card.classList.remove("dragging");
+  });
+  kb.querySelectorAll(".col").forEach(col=>{
+    col.ondragover=e=>{ e.preventDefault(); col.classList.add("drop-hot"); };
+    col.ondragleave=()=>col.classList.remove("drop-hot");
+    col.ondrop=e=>{
+      e.preventDefault(); col.classList.remove("drop-hot");
+      const id=e.dataTransfer.getData("text/plain");
+      if(!id||!taskById[id]) return;
+      setStatus(id, col.dataset.status);
+    };
+  });
+}
+function setStatus(id, st){
+  const t=taskById[id];
+  state.statuses[id]=st;
+  if(st!=="blocked") delete state.blockedReasons[id];
+  saveState(); renderAll();
+  if(ui.openTask===id) openDrawer(id);
+  toast(t.id+" → "+STATUS_BY_ID[st].label);
+}
+
+/* ---------- render: decisions ---------- */
+function renderDecisions(){
+  const g=document.getElementById("decisionGrid");
+  g.innerHTML = D.decisions.map(dec=>{
+    const st=state.decisions[dec.id]||{};
+    const blockedTasks=D.tasks.filter(t=>blockedReasonOf(t) && blockedReasonOf(t).includes(dec.id));
+    const stillBlocked=blockedTasks.filter(t=>statusOf(t)==="blocked");
+    return '<div class="dcard '+(st.resolved?"resolved":"unresolved")+'" data-dec="'+esc(dec.id)+'">'
+      +'<div class="dtop"><span class="did">'+esc(dec.id)+'</span>'
+      +'<span style="font-size:11px;color:var(--muted)">owner: '+esc(dec.owner)+'</span>'
+      +(st.resolved?'<span style="margin-left:auto;font-size:11px;font-weight:800;color:var(--sf-green)">✓ RESOLVED</span>':'<span style="margin-left:auto;font-size:11px;font-weight:800;color:var(--sf-red)">OPEN</span>')
+      +'</div>'
+      +'<div class="dq">'+esc(dec.question)+'</div>'
+      +'<div class="dmeta">blocks '+blockedTasks.length+' task(s):</div>'
+      +'<div class="dblocks">'+blockedTasks.map(t=>'<span class="dchip" data-task="'+t.id+'">'+t.id+(statusOf(t)==="done"?" ✓":"")+'</span>').join("")+'</div>'
+      +'<textarea class="dnote" placeholder="Decision, decider, date, rationale…" data-note="'+esc(dec.id)+'">'+esc(st.note||"")+'</textarea>'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +'<label class="toggle"><input type="checkbox" data-res="'+esc(dec.id)+'"'+(st.resolved?" checked":"")+'> Resolved</label>'
+      +(stillBlocked.length&&st.resolved?'<button class="unblock-btn" data-unblock="'+esc(dec.id)+'">Unblock '+stillBlocked.length+' task(s)</button>':'')
+      +'</div></div>';
+  }).join("");
+  g.querySelectorAll("[data-task]").forEach(el=>el.onclick=()=>openDrawer(el.dataset.task));
+  g.querySelectorAll("[data-res]").forEach(el=>el.onchange=()=>{
+    const id=el.dataset.res;
+    state.decisions[id]=Object.assign({},state.decisions[id],{resolved:el.checked,date:el.checked?new Date().toISOString():""});
+    saveState(); renderAll();
+  });
+  g.querySelectorAll("[data-note]").forEach(el=>el.onchange=()=>{
+    const id=el.dataset.note;
+    state.decisions[id]=Object.assign({},state.decisions[id],{note:el.value});
+    saveState(); toast("Decision note saved");
+  });
+  g.querySelectorAll("[data-unblock]").forEach(el=>el.onclick=()=>{
+    const id=el.dataset.unblock;
+    D.tasks.filter(t=>blockedReasonOf(t).includes(id)&&statusOf(t)==="blocked")
+      .forEach(t=>{ state.statuses[t.id]="backlog"; delete state.blockedReasons[t.id]; });
+    saveState(); renderAll(); toast("Tasks unblocked — now Not started");
+  });
+}
+
+/* ---------- render: epics ---------- */
+function renderEpics(){
+  const g=document.getElementById("epicGrid");
+  g.innerHTML = D.epics.map(e=>{
+    const mine=D.tasks.filter(t=>t.epic===e.id);
+    const c=counts(mine);
+    const n=mine.length||1;
+    return '<div class="ecard" data-epic="'+e.id+'">'
+      +'<div class="etop"><span class="eid">'+e.id+'</span><span class="etitle">'+esc(e.title)+'</span>'
+      +(e.criticalPath?'<span class="crit">CRITICAL PATH</span>':'')+'</div>'
+      +'<div class="eobj">'+esc(e.objective)+'</div>'
+      +'<div class="ebar">'
+        +'<i class="fd" style="width:'+(c.done/n*100)+'%" title="done"></i>'
+        +'<i class="fp" style="width:'+((c.progress+c.review)/n*100)+'%" title="in progress/review"></i>'
+        +'<i class="fb" style="width:'+(c.blocked/n*100)+'%" title="blocked"></i>'
+      +'</div>'
+      +'<div class="emeta"><b>'+c.done+'/'+mine.length+' done</b>'
+      +'<span>⛔ '+c.blocked+'</span><span>🔄 '+(c.progress+c.review)+'</span>'
+      +'<span style="margin-left:auto"><a href="../'+e.file+'">source ↗</a></span></div>'
+      +'<div class="gate">Exit gate: '+esc(e.exitGate)+'</div>'
+      +'</div>';
+  }).join("");
+  g.querySelectorAll(".ecard").forEach(el=>el.onclick=ev=>{
+    if(ev.target.tagName==="A") return;
+    ui.epic=el.dataset.epic; setView("board"); renderAll();
+  });
+}
+
+/* ---------- render: workload ---------- */
+function renderWorkload(){
+  const g=document.getElementById("workloadGrid");
+  g.innerHTML = D.team.map(p=>{
+    const mine=D.tasks.filter(t=>assigneeOf(t)===p.id);
+    const c=counts(mine);
+    const tpts=mine.reduce((a,t)=>a+t.pts,0);
+    const byEpic={};
+    mine.forEach(t=>{ (byEpic[t.epic]=byEpic[t.epic]||[]).push(t); });
+    const rows=Object.keys(byEpic).sort().map(eid=>{
+      const ts=byEpic[eid];
+      const d=ts.filter(t=>statusOf(t)==="done").reduce((a,t)=>a+t.pts,0);
+      const w=ts.reduce((a,t)=>a+t.pts,0);
+      const bp=ts.filter(t=>statusOf(t)==="blocked").reduce((a,t)=>a+t.pts,0);
+      const pr=w?Math.round(d/w*100):0;
+      return '<div class="wrow"><span class="wl">'+eid+'</span>'
+        +'<span class="wb"><i style="width:'+pr+'%;background:var(--sf-green)"></i><i style="width:'+(w?(bp/w*100):0)+'%;background:var(--sf-red)"></i></span>'
+        +'<span class="wv">'+d+'/'+w+'pt</span></div>';
+    }).join("");
+    const donePtsAll = mine.filter(t=>statusOf(t)==="done").reduce((a,t)=>a+t.pts,0);
+    const pctAll = tpts ? Math.round(donePtsAll/tpts*100) : 0;
+    return '<div class="wcard" style="--pc:'+PCOLOR[p.id]+'">'
+      +'<div class="wname">'+p.id+' — '+esc(p.name)+'</div>'
+      +'<div class="wrole">'+esc(p.role)+' · “'+esc(p.tagline)+'”</div>'
+      +'<div class="wrow"><span class="wl">ALL</span><span class="wb">'
+        +'<i style="width:'+pctAll+'%;background:var(--sf-green)"></i>'
+      +'</span><span class="wv">'+mine.filter(t=>statusOf(t)==="done").length+'/'+mine.length+' tk</span></div>'
+      +rows
+      +'<div class="wskills">'+p.skills.map(s=>'<span class="wskill">'+esc(s)+'</span>').join("")+'</div>'
+      +'</div>';
+  }).join("");
+}
+
+/* ============================================================
+   FIELDS / CONFIGURATION & BUILD GUIDE
+   ============================================================ */
+function kindBadge(type,kind){
+  return '<span class="kind k-'+esc(kind||"other")+'" title="'+esc(type||"")+'">'+esc(type||"—")+'</span>';
+}
+function flagBadges(f){
+  let s="";
+  if(f.required) s+='<span class="flag f-req">Required</span>';
+  if(f.unique) s+='<span class="flag f-uniq">Unique</span>';
+  if(f.extId) s+='<span class="flag f-ext">Ext ID</span>';
+  if(f.rca) s+='<span class="flag f-rca">RCA</span>';
+  return s||'<span class="muted">—</span>';
+}
+function chkCell(kind,key,i,on){
+  const attr = kind==="obj" ? 'data-obj="'+esc(key)+'" data-fi="'+i+'"' : 'data-shared="'+esc(key)+'" data-si="'+i+'"';
+  return '<td class="c"><input type="checkbox" '+attr+(on?" checked":"")+'></td>';
+}
+function grpSummary(key,title,note,done,total){
+  return '<summary><b>'+title+'</b> '+note
+    +' <span class="muted" data-groupprog="'+esc(key)+'">'+done+"/"+total+'</span>'
+    +(D.objects&&D.objects[key]&&D.objects[key].task?' <button class="tasklink" data-open-task="'+D.objects[key].task+'">'+D.objects[key].task+'</button>':"")
+    +'</summary>';
+}
+function acc(key,title,note,body){
+  const total=checkTotal(key), done=checkDone(key);
+  return '<details class="acc" open>'+grpSummary(key,title,note||"",done,total)+'<div class="acc-body">'+body+'</div></details>';
+}
+
+/* one object → full field table with a checkbox per field */
+function groupObject(key){
+  const o=D.objects[key]; if(!o) return "";
+  const done=new Set(state.fields[key]||[]);
+  const rows=o.fields.map((f,i)=>{
+    const on=done.has(i);
+    return '<tr class="frow'+(on?" done":"")+'">'+chkCell("obj",key,i,on)
+      +'<td class="mono">'+esc(f.name)+'</td>'
+      +'<td>'+esc(f.label||"—")+'</td>'
+      +'<td>'+kindBadge(f.type,f.kind)+'</td>'
+      +'<td class="flags">'+flagBadges(f)+'</td>'
+      +'<td class="fnotes">'+esc(f.notes||"")+'</td></tr>';
+  }).join("");
+  let extra="";
+  (o.seedTables||[]).forEach(t=>{
+    extra+='<div class="sub">Records to create</div><div class="tblwrap"><table class="mini-tbl"><tr>'+t.header.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr>'
+      +t.rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join("")+'</tr>').join("")+'</table></div>';
+  });
+  const note='<span class="obadge k-'+o.kind+'">'+kindName(o.kind)+'</span>'+(o.rca?' <span class="flag f-rca">RCA</span>':"");
+  const body='<div class="tblwrap"><table class="mini-tbl fields"><tr><th class="c"></th><th>Field API name</th><th>Label</th><th>Type</th><th>Flags</th><th>Notes</th></tr>'+rows+'</table></div>'
+    +(o.fields.length?'':'<div class="hint">No field-level rows parsed for this object — see the source section.</div>')
+    +extra;
+  return '<details class="acc" open>'+grpSummary(key,'<span class="mono">'+esc(o.name)+'</span>',note,done.size,o.fields.length)+'<div class="acc-body">'+body+'</div></details>';
+}
+/* the six custom objects, no fields yet (UC-DM-01) */
+function groupObjectsIndex(){
+  return '<div class="tblwrap"><table class="mini-tbl"><tr><th>API name</th><th>Label</th><th>Purpose</th><th>Fields</th><th>Task</th></tr>'
+    +Object.values(D.objects).filter(o=>o.kind==="custom").map(o=>
+      '<tr><td class="mono">'+esc(o.name)+'</td><td>'+esc(o.label)+'</td><td>'+esc(o.purpose||"")+'</td>'
+      +'<td>'+o.fields.length+'</td><td><button class="tasklink" data-open-task="'+o.task+'">'+o.task+'</button></td></tr>').join("")
+    +'</table></div>'
+    +'<div class="hint">Create the empty objects now (deploy order §19 step 4). DM-02…DM-07 add the fields object by object.</div>';
+}
+function groupValueSets(){
+  const done=new Set(state.fields["@valueSets"]||[]);
+  const body='<div class="tblwrap"><table class="mini-tbl"><tr><th class="c"></th><th>Value set</th><th>Reused by</th></tr>'
+    +D.valueSets.map((v,i)=>'<tr class="frow'+(done.has(i)?" done":"")+'">'+chkCell("sh","@valueSets",i,done.has(i))
+      +'<td class="mono">'+esc(v.name)+'</td><td>'+esc(v.reusedBy)+'</td></tr>').join("")+'</table></div>';
+  return acc("@valueSets","Global value sets",'<span class="muted">§9.6</span>',body);
+}
+function groupLabels(){
+  const done=new Set(state.fields["@labels"]||[]);
+  const body='<div class="tblwrap"><table class="mini-tbl"><tr><th class="c"></th><th>API name</th><th>EN</th><th>FR</th></tr>'
+    +D.labels.map((l,i)=>'<tr class="frow'+(done.has(i)?" done":"")+'">'+chkCell("sh","@labels",i,done.has(i))
+      +'<td class="mono">'+esc(l.api)+'</td><td>'+esc(l.en)+'</td><td>'+esc(l.fr)+'</td></tr>').join("")+'</table></div>';
+  return acc("@labels","Custom labels (EN / FR)",'<span class="muted">§9.7</span>',body);
+}
+function groupPermissions(){
+  const done=new Set(state.fields["@permissions"]||[]);
+  const body='<div class="tblwrap"><table class="mini-tbl"><tr><th class="c"></th><th>API name</th><th>Label</th><th>Grants</th></tr>'
+    +D.permissions.map((p,i)=>'<tr class="frow'+(done.has(i)?" done":"")+'">'+chkCell("sh","@permissions",i,done.has(i))
+      +'<td class="mono">'+esc(p.name)+'</td><td>'+esc(p.label)+'</td><td>'+esc(p.grants)+'</td></tr>').join("")+'</table></div>';
+  return acc("@permissions","Custom permissions",'<span class="muted">§9.5</span>',body);
+}
+function groupValidations(){
+  const done=new Set(state.fields["@validations"]||[]);
+  const body=D.validations.map((v,i)=>{
+    const cls=v.via==="Validation rule"?"vr":(v.via==="Flow"?"flow":"dup");
+    const on=done.has(i);
+    return '<div class="vitem'+(on?" done":"")+'">'
+      +'<label class="chk"><input type="checkbox" data-shared="@validations" data-si="'+i+'"'+(on?" checked":"")+'>'
+      +'<span><b class="mono">'+esc(v.object)+'</b> — '+esc(v.title)+' <span class="via via-'+cls+'">'+esc(v.via)+'</span></span></label>'
+      +(v.formula?'<pre class="formula">'+esc(v.formula)+'</pre>':'')
+      +(v.note?'<div class="vnote">'+esc(v.note)+'</div>':'')
+      +'</div>';
+  }).join("");
+  return acc("@validations","Validation rules &amp; formula constraints",'<span class="muted">§11.2 — 2 items are Flow / duplicate rules</span>',body);
+}
+function groupFls(){
+  const done=new Set(state.fields["@fls"]||[]);
+  const head='<tr><th class="c"></th><th>Object / field</th>'+D.fls.columns.map(c=>'<th class="mono">'+esc(c)+'</th>').join("")+'</tr>';
+  const rows=D.fls.rows.map((r,i)=>'<tr class="frow'+(done.has(i)?" done":"")+'">'+chkCell("sh","@fls",i,done.has(i))
+    +'<td class="mono">'+esc(r.object)+'</td>'+r.grants.map(g=>'<td>'+esc(g)+'</td>').join("")+'</tr>').join("");
+  const body='<div class="hint">Legend: '+esc(D.fls.legend)+'</div><div class="tblwrap"><table class="mini-tbl">'+head+rows+'</table></div>'
+    +'<div class="sub">Non-negotiable rules (§17.1)</div><ol class="plain">'+D.fls.rules.map(r=>'<li>'+mdInline(r)+'</li>').join("")+'</ol>';
+  return acc("@fls","Field-level security matrix",'<span class="muted">§17</span>',body);
+}
+function groupIndexes(){
+  const done=new Set(state.fields["@indexes"]||[]);
+  let k=0;
+  const ext='<div class="sub">External IDs — built-in unique indexes (§13.1)</div><div class="tblwrap"><table class="mini-tbl"><tr><th class="c"></th><th>Object</th><th>Field</th><th>Key</th></tr>'
+    +D.indexes.external.map(r=>{const i=k++;return '<tr class="frow'+(done.has(i)?" done":"")+'">'+chkCell("sh","@indexes",i,done.has(i))
+      +'<td class="mono">'+esc(r.object)+'</td><td class="mono">'+esc(r.field)+'</td><td>'+esc(r.key)+'</td></tr>';}).join("")+'</table></div>';
+  const comp='<div class="sub">Compound indexes to request from Salesforce Support (§13.2)</div><div class="tblwrap"><table class="mini-tbl"><tr><th class="c"></th><th>Object</th><th>Fields</th><th>Serves</th></tr>'
+    +D.indexes.compound.map(r=>{const i=k++;return '<tr class="frow'+(done.has(i)?" done":"")+'">'+chkCell("sh","@indexes",i,done.has(i))
+      +'<td class="mono">'+esc(r.object)+'</td><td class="mono">'+esc(r.fields)+'</td><td>'+esc(r.serves)+'</td></tr>';}).join("")+'</table></div>';
+  return acc("@indexes","Indexes &amp; external IDs",'<span class="muted">§13</span>',ext+comp);
+}
+function groupSeeds(){
+  const done=new Set(state.fields["@seeds"]||[]);
+  let k=0;
+  const body=D.seeds.map(s=>{
+    const rows=s.rows.map(r=>{const i=k++;return '<tr class="frow'+(done.has(i)?" done":"")+'">'+chkCell("sh","@seeds",i,done.has(i))
+      +r.map(c=>'<td>'+esc(c)+'</td>').join("")+'</tr>';}).join("");
+    return '<div class="sub">'+esc(s.title)+' <span class="muted">§'+esc(s.id)+'</span></div>'
+      +'<div class="tblwrap"><table class="mini-tbl"><tr><th class="c"></th>'+s.header.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr>'+rows+'</table></div>';
+  }).join("");
+  return acc("@seeds","Seed catalogue (idempotent upsert)",'<span class="muted">§15 — keyed on ATS_Product_Code__c / Postal_Code__c</span>',body);
+}
+function groupDeploy(){
+  return '<ol class="plain">'+D.deployOrder.map(x=>'<li>'+mdInline(x)+'</li>').join("")+'</ol>'
+    +'<div class="co co-orange"><span>⚠</span><div>Step 6 caveat: Subscription.ProductClassification__c, Wizard.Selling_Model_Option__c / Quote__c and every (R) field extension deploy only after Revenue Cloud Advanced is enabled. Split them into a later increment if RCA arrives late.</div></div>';
+}
+function renderGroup(g){
+  switch(g.type){
+    case "object": return groupObject(g.key);
+    case "objectsIndex": return groupObjectsIndex();
+    case "valueSets": return groupValueSets();
+    case "labels": return groupLabels();
+    case "permissions": return groupPermissions();
+    case "validations": return groupValidations();
+    case "fls": return groupFls();
+    case "indexes": return groupIndexes();
+    case "seeds": return groupSeeds();
+    case "deploy": return groupDeploy();
+  }
+  return "";
+}
+function artLabel(a){
+  if(a.type==="object"){ const o=D.objects[a.key]; return (o?o.name:a.key)+" ("+(o?o.fields.length:0)+" fields)"; }
+  return {valueSets:"3 global value sets",labels:"12 custom labels",permissions:"4 custom permissions",
+    validations:"validation rules",fls:"FLS matrix",indexes:"indexes & external IDs",seeds:"seed data",
+    objectsIndex:"6 custom objects"}[a.type]||a.type;
+}
+
+/* ---------- render: objects view ---------- */
+function renderObjects(){
+  const q=ui.q.toLowerCase();
+  const objs=Object.values(D.objects).filter(o=>{
+    if(!q) return true;
+    return (o.name+" "+o.label+" "+o.purpose+" "+o.fields.map(f=>f.name+" "+f.label+" "+f.notes).join(" ")).toLowerCase().includes(q);
+  });
+  document.getElementById("objectGrid").innerHTML = objs.length? objs.map(o=>{
+    const d=checkDone(o.name), t=o.fields.length;
+    return '<div class="ocard" data-objcard="'+esc(o.name)+'" data-open-obj="'+esc(o.name)+'">'
+      +'<div class="otop"><span class="oname">'+esc(o.name)+'</span><span class="obadge k-'+o.kind+'">'+kindName(o.kind)+'</span></div>'
+      +'<div class="olabel">'+esc(o.label)+'</div>'
+      +'<div class="opurpose">'+esc(o.purpose||"")+'</div>'
+      +'<div class="obar"><i style="width:'+(t?d/t*100:0)+'%"></i></div>'
+      +'<div class="ometa"><b data-objcount>'+d+'/'+t+'</b> fields'
+      +(o.rca?'<span class="flag f-rca">RCA</span>':"")
+      +(o.task?'<span class="taskpill" data-open-task="'+o.task+'">'+o.task+'</span>':"")
+      +'</div></div>';
+  }).join("") : '<div class="col-empty">No object or field matches the search.</div>';
+
+  const shared=[
+    {key:"@valueSets",title:"Global value sets",n:checkTotal("@valueSets"),note:"§9.6 · reused by picklists"},
+    {key:"@labels",title:"Custom labels EN/FR",n:checkTotal("@labels"),note:"§9.7 · UI microcopy"},
+    {key:"@permissions",title:"Custom permissions",n:checkTotal("@permissions"),note:"§9.5 · Flow gates"},
+    {key:"@validations",title:"Validation rules & formulas",n:checkTotal("@validations"),note:"§11.2 · 2 are Flow/duplicate rules"},
+    {key:"@fls",title:"FLS matrix",n:checkTotal("@fls"),note:"§17 · grant per permission set"},
+    {key:"@indexes",title:"Indexes & external IDs",n:checkTotal("@indexes"),note:"§13 · compound indexes need a support case"},
+    {key:"@seeds",title:"Seed catalogue",n:checkTotal("@seeds"),note:"§15 · upsert, idempotent"},
+    {key:"@deploy",title:"Deployment sequence",n:checkTotal("@deploy"),note:"§19 · reference only"},
+  ];
+  document.getElementById("sharedGrid").innerHTML = shared.map(s=>{
+    const ref=s.key==="@deploy", d=checkDone(s.key);
+    return '<div class="ocard shared" data-open-obj="'+esc(s.key)+'">'
+      +'<div class="otop"><span class="oname">'+esc(s.title)+'</span></div>'
+      +'<div class="opurpose">'+esc(s.note)+'</div>'
+      +'<div class="obar"><i style="width:'+(!ref&&s.n?d/s.n*100:0)+'%"></i></div>'
+      +'<div class="ometa"><b>'+s.n+'</b> '+(ref?'deploy steps':'items')+(ref?'':' · '+d+' done')+'</div>'
+      +'</div>';
+  }).join("");
+
+  const fp=overallConfigProgress();
+  document.getElementById("objSummary").textContent =
+    Object.keys(D.objects).length+" objects · "+fp.total+" checkable items · "+fp.done+" done";
+  bindCheckboxes(document.getElementById("objectGrid"));
+  bindCheckboxes(document.getElementById("sharedGrid"));
+}
+
+/* ---------- render: guide view ---------- */
+function guideTask(t){
+  const steps=stepsOf(t), done=new Set(state.steps[t.id]||[]);
+  const st=statusOf(t), a=assigneeOf(t), od=openDeps(t);
+  return '<details class="gtask" data-id="'+t.id+'">'
+    +'<summary><span class="tid">'+t.id+'</span><span class="gtitle">'+esc(t.title)+'</span>'
+    +'<span class="gstatus s-'+st+'">'+STATUS_BY_ID[st].label+'</span>'
+    +(a?'<span class="person-tag" style="--pc:'+PCOLOR[a]+'">'+a+'</span>':'')
+    +'<span class="gprog" data-stepprog="'+t.id+'">'+done.size+'/'+steps.length+' steps</span></summary>'
+    +'<div class="gbody">'
+    +(st==="blocked"?'<div class="co co-red"><span>⛔</span><div>Blocked by <b>'+esc(blockedReasonOf(t)||"unspecified")+'</b></div></div>':'')
+    +(od.length?'<div class="co co-orange"><span>⚠</span><div>Finish first: '+od.map(depChip).join("")+'</div></div>':'')
+    +(t.goal?'<div class="hint">'+esc(t.goal)+'</div>':'')
+    +'<div class="gsteps">'+steps.map((s,i)=>'<label class="chk'+(done.has(i)?" done":"")+'"><input type="checkbox" data-id="'+t.id+'" data-step="'+i+'"'+(done.has(i)?" checked":"")+'><span>'+mdInline(s)+'</span></label>').join("")+'</div>'
+    +((t.artifacts&&t.artifacts.length)?'<div class="gart">🧱 Create / touch: '+t.artifacts.map(a=>esc(artLabel(a))).join(" · ")+'</div>':'')
+    +'<div class="gfoot"><button class="tb-btn accent" data-open-task="'+t.id+'">Open task detail</button>'
+    +(t.dod.length?'<span class="muted">Definition of done '+((state.dod[t.id]||[]).length)+'/'+t.dod.length+'</span>':'')
+    +'</div></div></details>';
+}
+function renderGuide(){
+  const openDec=D.decisions.filter(d=>!(state.decisions[d.id]||{}).resolved);
+  const blocked=D.tasks.filter(t=>statusOf(t)==="blocked").length;
+  document.getElementById("guideIntro").innerHTML=
+    '<div class="gintro">'
+    +'<div class="gintro-col"><h4>Do this first</h4><ol>'
+      +'<li>Resolve the open decisions in the <a href="#" data-goto="decisions">Decisions</a> view — <b>'+openDec.length+'</b> still open, they block <b>'+blocked+'</b> tasks.</li>'
+      +'<li>Work the epics in phase order: phases 1–2 are the critical path.</li>'
+      +'<li>Inside a task, tick the numbered build steps. The objects/fields to create are listed in the <a href="#" data-goto="objects">Objects</a> view.</li>'
+      +'<li>Use the board for status and ownership; use Export to share progress.</li>'
+    +'</ol></div>'
+    +'<div class="gintro-col"><h4>Deployment order (DATA_MODEL.md §19)</h4><ol>'+D.deployOrder.map(x=>'<li>'+mdInline(x)+'</li>').join("")+'</ol></div>'
+    +'</div>';
+
+  document.getElementById("guideList").innerHTML = D.epics
+    .slice().sort((a,b)=>a.phase-b.phase||a.id.localeCompare(b.id))
+    .map(e=>{
+      const mine=D.tasks.filter(t=>t.epic===e.id), c=counts(mine), n=mine.length||1;
+      return '<div class="gblock">'
+        +'<div class="ghead"><span class="eid">'+e.id+'</span><b>'+esc(e.title)+'</b>'
+        +'<span class="muted">Phase '+e.phase+'</span>'
+        +(e.criticalPath?'<span class="crit">CRITICAL PATH</span>':'')
+        +'<span class="gmuted">'+c.done+'/'+mine.length+' done · ⛔ '+c.blocked+'</span></div>'
+        +'<div class="gobj">'+esc(e.objective)+'</div>'
+        +'<div class="ebar"><i class="fd" style="width:'+(c.done/n*100)+'%"></i><i class="fp" style="width:'+((c.progress+c.review)/n*100)+'%"></i><i class="fb" style="width:'+(c.blocked/n*100)+'%"></i></div>'
+        +mine.map(guideTask).join("")
+        +'<div class="gate">Exit gate: '+esc(e.exitGate)+'</div>'
+        +'</div>';
+    }).join("");
+
+  const gl=document.getElementById("guideList");
+  bindStepChecks(gl); bindCheckboxes(gl);
+  document.querySelectorAll("#guideIntro [data-goto]").forEach(el=>el.onclick=ev=>{
+    ev.preventDefault(); setView(el.dataset.goto); renderAll();
+  });
+}
+
+/* ---------- group checkbox wiring ---------- */
+function refreshFieldUI(key){
+  const fp=overallConfigProgress();
+  const fl=document.getElementById("fieldsLine");
+  if(fl) fl.textContent="🧱 "+fp.done+" / "+fp.total+" fields & config created";
+  document.querySelectorAll('[data-groupprog="'+key.replace(/"/g,'\\"')+'"]').forEach(el=>{
+    el.textContent=checkDone(key)+"/"+checkTotal(key);
+  });
+  if(ui.view==="objects"){
+    const card=document.querySelector('[data-objcard="'+key.replace(/"/g,'\\"')+'"]');
+    if(card){
+      const d=checkDone(key), t=checkTotal(key);
+      const bar=card.querySelector(".obar i"); if(bar) bar.style.width=(t?d/t*100:0)+"%";
+      const cnt=card.querySelector("[data-objcount]"); if(cnt) cnt.textContent=d+"/"+t;
+    }
+  }
+}
+function bindCheckboxes(scope){
+  scope.querySelectorAll("input[data-obj]").forEach(el=>{
+    el.onchange=()=>{
+      const key=el.dataset.obj, i=+el.dataset.fi;
+      const arr=new Set(state.fields[key]||[]);
+      el.checked?arr.add(i):arr.delete(i);
+      state.fields[key]=[...arr].sort((a,b)=>a-b);
+      saveState();
+      const row=el.closest("tr"); if(row) row.classList.toggle("done",el.checked);
+      refreshFieldUI(key);
+    };
+  });
+  scope.querySelectorAll("input[data-shared]").forEach(el=>{
+    el.onchange=()=>{
+      const key=el.dataset.shared, i=+el.dataset.si;
+      const arr=new Set(state.fields[key]||[]);
+      el.checked?arr.add(i):arr.delete(i);
+      state.fields[key]=[...arr].sort((a,b)=>a-b);
+      saveState();
+      const row=el.closest(".vitem")||el.closest(".chk")||el.closest("tr");
+      if(row) row.classList.toggle("done",el.checked);
+      refreshFieldUI(key);
+    };
+  });
+  scope.querySelectorAll("[data-open-task]").forEach(el=>el.onclick=ev=>{
+    ev.preventDefault(); ev.stopPropagation(); openDrawer(el.dataset.openTask);
+  });
+  scope.querySelectorAll("[data-open-obj]").forEach(el=>el.onclick=ev=>{
+    if(ev.target.closest("[data-open-task]")) return;
+    ev.preventDefault(); ev.stopPropagation(); openObject(el.dataset.openObj);
+  });
+  scope.querySelectorAll(".dep-chip[data-open]").forEach(el=>el.onclick=ev=>{
+    ev.preventDefault(); ev.stopPropagation(); openDrawer(el.dataset.open);
+  });
+}
+function bindStepChecks(scope){
+  scope.querySelectorAll("input[data-step]").forEach(el=>{
+    el.onchange=()=>{
+      const id=el.dataset.id, i=+el.dataset.step;
+      const arr=new Set(state.steps[id]||[]);
+      el.checked?arr.add(i):arr.delete(i);
+      state.steps[id]=[...arr].sort((a,b)=>a-b);
+      saveState();
+      if(el.closest(".chk")) el.closest(".chk").classList.toggle("done",el.checked);
+      document.querySelectorAll('[data-stepprog="'+id+'"]').forEach(x=>
+        x.textContent=(state.steps[id]||[]).length+"/"+stepsOf(taskById[id]).length+" steps");
+      const dc=document.getElementById("drStepCount");
+      if(dc && ui.openTask===id) dc.textContent=(state.steps[id]||[]).length+"/"+stepsOf(taskById[id]).length;
+    };
+  });
+}
+
+/* ---------- object / shared-config drawer ---------- */
+const SHARED_TITLE={"@valueSets":"Global value sets","@labels":"Custom labels","@permissions":"Custom permissions",
+  "@validations":"Validation rules","@fls":"Field-level security matrix","@indexes":"Indexes & external IDs",
+  "@seeds":"Seed catalogue","@deploy":"Deployment sequence"};
+function openObject(key){
+  ui.openObject=key; ui.openTask=null;
+  const isObj=key.charAt(0)!=="@";
+  const o=isObj?D.objects[key]:null;
+  document.getElementById("drId").textContent = isObj
+    ? (kindName(o.kind)+" · "+(o.fields.length)+" fields")
+    : "Shared configuration · "+(D.deployOrder?D.deployOrder.length:0)+" steps";
+  document.getElementById("drTitle").textContent = isObj ? (o.label+" ("+o.name+")") : (SHARED_TITLE[key]||key);
+  const B=document.getElementById("drBody");
+  let html="";
+  if(isObj){
+    html+='<div class="dr-sec"><h4>Details</h4><div class="meta-grid">'
+      +'<div><b>Kind</b>'+kindName(o.kind)+'</div>'
+      +'<div><b>Created by</b>'+(o.task?'<button class="tasklink" data-open-task="'+o.task+'">'+o.task+'</button>':"—")+'</div>'
+      +'<div><b>Fields</b>'+o.fields.length+'</div>'
+      +'<div><b>Source</b>'+esc(o.section||"—")+'</div>'
+      +'</div></div>';
+    if(o.purpose) html+='<div class="dr-sec"><h4>Purpose</h4><div class="goal">'+esc(o.purpose)+'</div></div>';
+    if(o.records) html+='<div class="dr-sec"><h4>Volume</h4><div>'+esc(o.records)+'</div></div>';
+    if(o.rca) html+='<div class="co co-orange"><span>⚠</span><div>RCA-dependent object — deploy only after Revenue Cloud Advanced is enabled (DATA_MODEL.md §19 step 6).</div></div>';
+    html+='<div class="dr-sec"><h4>Fields to create</h4>'+groupObject(key)+'</div>';
+    html+='<div class="dr-sec"><h4>Notes</h4><textarea class="notes" id="drNotes" placeholder="Owner, deployment status, deviations…">'+esc(state.notes["obj:"+key]||"")+'</textarea></div>';
+  } else {
+    html+='<div class="dr-sec">'+renderGroup({type:key.slice(1)})+'</div>';
+    html+='<div class="dr-sec" style="font-size:11.5px;color:var(--muted)">Source: DATA_MODEL.md — regenerate data with <span class="mono">node _board-gen.js</span>.</div>';
+  }
+  B.innerHTML=html;
+  bindCheckboxes(B); bindStepChecks(B);
+  const nt=document.getElementById("drNotes");
+  if(nt) nt.oninput=()=>{ state.notes["obj:"+key]=nt.value; saveState(); };
+  showDrawer();
+}
+function showDrawer(){
+  const d=document.getElementById("drawer");
+  d.classList.toggle("wide", !!ui.openObject);
+  d.classList.add("show");
+  document.getElementById("overlay").classList.add("show");
+}
+
+/* ---------- drawer ---------- */
+function openDrawer(id){
+  const t=taskById[id]; if(!t) return;
+  ui.openTask=id; ui.openObject=null;
+  const st=statusOf(t), a=assigneeOf(t);
+  const ac=state.ac[id]||[], dod=state.dod[id]||[];
+  const deps=depIds(t), blocksList=D.tasks.filter(x=>depIds(x).includes(id));
+  const od=openDeps(t);
+  document.getElementById("drId").textContent=t.id+" · "+t.epic+" · Phase "+t.phase;
+  document.getElementById("drTitle").textContent=t.title;
+  const B=document.getElementById("drBody");
+
+  let html="";
+  html+='<div class="dr-sec"><h4>Status</h4><div class="seg" id="drStatus">'
+    +STATUSES.map(s=>'<button data-st="'+s.id+'" class="'+(st===s.id?"on":"")+'" style="--sc:'+s.color+'">'+s.label+'</button>').join("")
+    +'</div>';
+  if(st==="blocked"){
+    html+='<div class="co co-red"><span>⛔</span><div>Blocked by: <b>'+esc(blockedReasonOf(t)||"unspecified")+'</b>'
+      +(isDecisionResolved(blockedReasonOf(t))?'<br>✓ That decision is marked <b>resolved</b> — update the status.':'')
+      +'</div></div>'
+      +'<div class="seg" style="margin-top:8px" id="drUnblock"><button data-unb="1">Unblock → Not started</button>'
+      +'<button data-unb="custom">Set custom reason…</button></div>';
+  }
+  html+='</div>';
+
+  html+='<div class="dr-sec"><h4>Assignee</h4><div class="seg" id="drAssignee">'
+    +D.team.map(p=>'<button data-a="'+p.id+'" class="'+(a===p.id?"on":"")+'" style="--sc:'+PCOLOR[p.id]+'">'+p.id+' · '+esc(p.role.split(" & ")[0])+'</button>').join("")
+    +'</div></div>';
+
+  html+='<div class="dr-sec"><h4>Details</h4><div class="meta-grid">'
+    +'<div><b>Priority</b>'+t.priority+' · '+t.pts+' pts</div>'
+    +'<div><b>Suggested owner</b>'+esc(t.owner)+'</div>'
+    +'<div><b>Actors</b>'+esc(t.actors||"—")+'</div>'
+    +'<div><b>Business process</b>'+esc(t.businessProcess||"—")+'</div>'
+    +'<div><b>Architecture ref</b>'+esc(t.archRef||"—")+'</div>'
+    +'<div><b>Data model ref</b>'+esc(t.dmRef||"—")+'</div>'
+    +'</div></div>';
+
+  if(t.goal) html+='<div class="dr-sec"><h4>Goal</h4><div class="goal">'+esc(t.goal)+'</div></div>';
+
+  if(od.length) html+='<div class="dr-sec"><h4>⚠ Open dependencies</h4><div>'+od.map(x=>depChip(x)).join("")+'</div>'
+    +'<div class="co co-orange"><span>⚠</span><div>'+od.length+' dependency task(s) not Done yet. The backlog says: do not skip phases out of order (phases 1–2 are the critical path).</div></div></div>';
+
+  if(t.dependsOn||t.blocks) html+='<div class="dr-sec"><h4>Dependencies</h4>'
+    +(t.dependsOn?'<div style="margin-bottom:6px"><b style="font-size:11px;color:var(--muted)">DEPENDS ON</b><br>'+t.dependsOn.split(",").map(s=>s.trim()).map(x=>/^UC-/.test(x)?depChip(x):'<span class="dep-chip">'+esc(x)+'</span>').join("")+'</div>':'')
+    +(blocksList.length?'<div><b style="font-size:11px;color:var(--muted)">BLOCKS ('+blocksList.length+')</b><br>'+blocksList.map(x=>depChip(x.id)).join("")+'</div>':'')
+    +(t.blocks&&!blocksList.length?'<div><b style="font-size:11px;color:var(--muted)">BLOCKS</b> '+esc(t.blocks)+'</div>':'')
+    +'</div>';
+
+  if(t.preconditions.length) html+='<div class="dr-sec"><h4>Preconditions</h4><ul class="plain">'+t.preconditions.map(p=>'<li>'+esc(p)+'</li>').join("")+'</ul></div>';
+  const steps=stepsOf(t), sdone=state.steps[id]||[];
+  if(steps.length) html+='<div class="dr-sec"><h4>Build steps (<span id="drStepCount">'+sdone.length+'/'+steps.length+'</span>)</h4>'
+    +(t.guideSteps?'<div class="hint">Step-by-step instructions for this task — tick each one as you finish it.</div>':'<div class="hint">Steps from the use-case card.</div>')
+    +'<div class="gsteps">'+steps.map((s,i)=>'<label class="chk'+(sdone.includes(i)?" done":"")+'"><input type="checkbox" data-id="'+id+'" data-step="'+i+'"'+(sdone.includes(i)?" checked":"")+'><span>'+mdInline(s)+'</span></label>').join("")+'</div></div>';
+  if(t.guideSteps && t.mainFlow.length) html+='<details class="acc"><summary>Use-case flow (original spec) <span class="muted">'+t.mainFlow.length+' steps</span></summary><div class="acc-body"><ol class="steps">'+t.mainFlow.map(p=>'<li>'+esc(p)+'</li>').join("")+'</ol></div></details>';
+  if(t.bizRules.length) html+='<div class="dr-sec"><h4>Business rules</h4><table class="mini-tbl"><tr><th>Rule</th><th>Source</th></tr>'
+    +t.bizRules.map(r=>'<tr><td>'+esc(r.rule)+'</td><td class="mono">'+esc(r.source)+'</td></tr>').join("")+'</table></div>';
+
+  if(t.artifacts&&t.artifacts.length) html+='<div class="dr-sec" id="drArtifacts"><h4>Fields &amp; configuration to create</h4>'
+    +(t.artifacts.some(a=>a.type==="object")?'<div class="hint">Tick a field as you create it — the same list is in the <b>Objects</b> view and is shared between tasks.</div>':'')
+    +t.artifacts.map(renderGroup).join("")+'</div>';
+
+  if(t.acceptance.length) html+='<div class="dr-sec"><h4>Acceptance criteria ('+ac.length+'/'+t.acceptance.length+')</h4>'
+    +t.acceptance.map((x,i)=>'<label class="chk'+(ac.includes(i)?" done":"")+'"><input type="checkbox" data-ac="'+i+'"'+(ac.includes(i)?" checked":"")+'><span>'+esc(x)+'</span></label>').join("")+'</div>';
+
+  if(t.tests.length) html+='<div class="dr-sec"><h4>Test scenarios</h4><table class="mini-tbl"><tr><th>Given</th><th>When</th><th>Then</th></tr>'
+    +t.tests.map(r=>'<tr><td>'+esc(r.given)+'</td><td>'+esc(r.when)+'</td><td>'+esc(r.then)+'</td></tr>').join("")+'</table></div>';
+
+  if(t.dod.length) html+='<div class="dr-sec"><h4>Definition of done ('+dod.length+'/'+t.dod.length+')</h4>'
+    +t.dod.map((x,i)=>'<label class="chk'+(dod.includes(i)?" done":"")+'"><input type="checkbox" data-dod="'+i+'"'+(dod.includes(i)?" checked":"")+'><span>'+esc(x)+'</span></label>').join("")+'</div>';
+
+  if(t.openQuestions) html+='<div class="dr-sec"><h4>Open questions / risks</h4><div class="co co-orange"><span>❓</span><div>'+esc(t.openQuestions)+'</div></div></div>';
+
+  html+='<div class="dr-sec"><h4>Team notes</h4><textarea class="notes" id="drNotes" placeholder="Decisions made, blockers, links to work items…">'+esc(state.notes[id]||"")+'</textarea></div>';
+  html+='<div class="dr-sec" style="font-size:11.5px;color:var(--muted)">Source: <a href="../'+t.source+'">'+t.source+'</a> · cards are regenerated by <span class="mono">node _board-gen.js</span> — your status/notes survive regeneration.</div>';
+
+  B.innerHTML=html;
+  const art=B.querySelector("#drArtifacts");
+  if(art) art.querySelectorAll("details.acc").forEach((a,i)=>{ if(i>0) a.open=false; });
+  B.querySelectorAll("#drStatus button").forEach(btn=>btn.onclick=()=>setStatus(id,btn.dataset.st));
+  B.querySelectorAll("#drAssignee button").forEach(btn=>btn.onclick=()=>{
+    state.assignees[id]=btn.dataset.a; saveState(); renderAll(); openDrawer(id);
+    toast(t.id+" assigned to "+btn.dataset.a);
+  });
+  B.querySelectorAll("[data-ac]").forEach(el=>el.onchange=()=>{
+    const i=+el.dataset.ac; const arr=new Set(state.ac[id]||[]);
+    el.checked?arr.add(i):arr.delete(i); state.ac[id]=[...arr].sort((a,b)=>a-b);
+    saveState(); renderAll(); openDrawer(id);
+  });
+  B.querySelectorAll("[data-dod]").forEach(el=>el.onchange=()=>{
+    const i=+el.dataset.dod; const arr=new Set(state.dod[id]||[]);
+    el.checked?arr.add(i):arr.delete(i); state.dod[id]=[...arr].sort((a,b)=>a-b);
+    saveState(); renderAll(); openDrawer(id);
+  });
+  B.querySelectorAll(".dep-chip[data-open]").forEach(el=>el.onclick=()=>openDrawer(el.dataset.open));
+  bindStepChecks(B); bindCheckboxes(B);
+  const nt=document.getElementById("drNotes");
+  nt.oninput=()=>{ state.notes[id]=nt.value; saveState(); };
+  const unb=B.querySelector("[data-unb='1']");
+  if(unb) unb.onclick=()=>setStatus(id,"backlog");
+  const unbC=B.querySelector("[data-unb='custom']");
+  if(unbC) unbC.onclick=()=>{
+    const r=prompt("Blocker text (a decision id like “Q1 / BQ1”, or free text):", blockedReasonOf(t)||"");
+    if(r!==null){ state.statuses[id]="blocked"; state.blockedReasons[id]=r; saveState(); renderAll(); openDrawer(id); }
+  };
+
+  showDrawer();
+}
+function depChip(id){
+  const t=taskById[id]; if(!t) return '<span class="dep-chip">'+esc(id)+'</span>';
+  const ok=statusOf(t)==="done";
+  return '<button class="dep-chip '+(ok?"ok":"no")+'" data-open="'+id+'" title="'+esc(t.title)+'">'+id+(ok?" ✓":" ↻")+'</button>';
+}
+function closeDrawer(){
+  ui.openTask=null; ui.openObject=null;
+  document.getElementById("drawer").classList.remove("show");
+  document.getElementById("drawer").classList.remove("wide");
+  document.getElementById("overlay").classList.remove("show");
+}
+
+/* ---------- export / import / reset ---------- */
+function exportJSON(){
+  const payload={ app:"ats-board", version:1, exportedAt:new Date().toISOString(), state };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="ats-board-progress-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Progress exported — share this file with the team");
+}
+function importJSON(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const obj=JSON.parse(fr.result);
+      const s=obj.state||obj;
+      if(!s||typeof s!=="object"||!s.statuses) throw new Error("not a board export");
+      ["statuses","assignees","ac","dod","notes","blockedReasons","decisions","fields","steps"].forEach(k=>{
+        if(s[k]&&typeof s[k]==="object") Object.assign(state[k],s[k]);
+      });
+      saveState(); renderAll();
+      toast("Progress imported ("+Object.keys(s.statuses||{}).length+" status entries merged)");
+    }catch(e){ toast("Import failed: "+e.message, true); }
+  };
+  fr.readAsText(file);
+}
+/* ---------- printable build guide (Markdown) ---------- */
+function buildGuideText(){
+  const L=[], P=(s)=>L.push(s===undefined?"":s);
+  P("# ATS Telecom — build guide");
+  P("");
+  P("_Generated "+new Date().toISOString().slice(0,10)+" from `docs/board.html`. Progress marks reflect the browser that exported it._");
+  P("");
+  P("## How to work through this");
+  P("");
+  P("1. Resolve the open decisions first (phase 0) — they block the foundation tasks.");
+  P("2. Work the epics in phase order; phases 1–2 are the critical path.");
+  P("3. Tick every build step and every field as you create it in the Objects view.");
+  P("");
+  P("## Deployment order (DATA_MODEL.md §19)");
+  P("");
+  D.deployOrder.forEach((x,i)=>P((i+1)+". "+x));
+  P("");
+  D.epics.slice().sort((a,b)=>a.phase-b.phase||a.id.localeCompare(b.id)).forEach(e=>{
+    const mine=D.tasks.filter(t=>t.epic===e.id), c=counts(mine);
+    P("## "+e.id+" — "+e.title+"  ·  phase "+e.phase+"  ·  "+c.done+"/"+mine.length+" done");
+    P("");
+    P("**Objective.** "+e.objective);
+    P("");
+    P("**Exit gate.** "+e.exitGate);
+    P("");
+    mine.forEach(t=>{
+      const steps=stepsOf(t), sdone=state.steps[t.id]||[];
+      P("### "+t.id+" — "+t.title);
+      P("");
+      P("`"+STATUS_BY_ID[statusOf(t)].label+"` · owner "+assigneeOf(t)+" · owner role: "+t.owner+" · "+t.priority+" · "+t.pts+" pts"
+        +(blockedReasonOf(t)?" · **blocked by "+blockedReasonOf(t)+"**":""));
+      if(t.goal){ P(""); P(t.goal); }
+      P("");
+      steps.forEach((s,i)=>P("- ["+(sdone.includes(i)?"x":" ")+"] "+s));
+      if(t.artifacts&&t.artifacts.length){ P(""); P("_Create: "+t.artifacts.map(artLabel).join(" · ")+"_"); }
+      P("");
+    });
+  });
+
+  P("## Objects & fields to create");
+  P("");
+  Object.values(D.objects).forEach(o=>{
+    const done=state.fields[o.name]||[];
+    P("### "+o.name+"  ·  "+kindName(o.kind)+(o.rca?"  ·  RCA dependent":""));
+    if(o.purpose){ P(""); P(o.purpose); }
+    if(o.records){ P(""); P("Volume: "+o.records); }
+    P("");
+    o.fields.forEach((f,i)=>{
+      P("- ["+(done.includes(i)?"x":" ")+"] `"+f.name+"` — "
+        +(f.label?f.label+", ":"")+f.type
+        +(f.required?" · **required**":"")+(f.unique?" · unique":"")+(f.extId?" · external id":"")+(f.rca?" · RCA":"")
+        +(f.notes?" — "+f.notes:""));
+    });
+    (o.seedTables||[]).forEach(t=>{
+      P("");
+      P("Records to create:");
+      P("");
+      P("| "+t.header.join(" | ")+" |");
+      P("|"+t.header.map(()=>"---").join("|")+"|");
+      t.rows.forEach(r=>P("| "+r.join(" | ")+" |"));
+    });
+    P("");
+  });
+
+  P("## Shared configuration");
+  P("");
+  const sv=(key,title,rows)=>{ const d=state.fields[key]||[]; P("### "+title); P(""); rows(d); P(""); };
+  sv("@valueSets","Global value sets (§9.6)",(d)=>D.valueSets.forEach((v,i)=>P("- ["+(d.includes(i)?"x":" ")+"] `"+v.name+"` — reused by "+v.reusedBy)));
+  sv("@labels","Custom labels EN/FR (§9.7)",(d)=>D.labels.forEach((l,i)=>P("- ["+(d.includes(i)?"x":" ")+"] `"+l.api+"` — EN: "+l.en+" · FR: "+l.fr)));
+  sv("@permissions","Custom permissions (§9.5)",(d)=>D.permissions.forEach((p,i)=>P("- ["+(d.includes(i)?"x":" ")+"] `"+p.name+"` — "+p.label+" · grants: "+p.grants)));
+  sv("@validations","Validation rules & formulas (§11.2)",(d)=>D.validations.forEach((v,i)=>{
+    P("- ["+(d.includes(i)?"x":" ")+"] **"+v.object+"** — "+v.title+"  _("+v.via+")_");
+    if(v.formula){ P(""); P("```"); P(v.formula); P("```"); }
+    if(v.note){ P("> "+v.note); }
+  }));
+  sv("@fls","Field-level security matrix (§17)",(d)=>D.fls.rows.forEach((r,i)=>P("- ["+(d.includes(i)?"x":" ")+"] `"+r.object+"` — "+r.grants.map((g,j)=>D.fls.columns[j]+": "+g).join(" · "))));
+  sv("@indexes","Indexes & external IDs (§13)",(d)=>{
+    P("External IDs:");
+    D.indexes.external.forEach(r=>P("- [ ] `"+r.object+"."+r.field+"` — "+r.key));
+    P("");
+    P("Compound indexes to request:");
+    D.indexes.compound.forEach(r=>P("- [ ] `"+r.object+"` — "+r.fields+" ("+r.serves+")"));
+  });
+  sv("@seeds","Seed catalogue (§15) — upsert, idempotent",(d)=>{
+    let k=0;
+    D.seeds.forEach(s=>{
+      P("");
+      P("**"+s.title+"**");
+      P("");
+      P("| ✔ | "+s.header.join(" | ")+" |");
+      P("|---|"+s.header.map(()=>"---").join("|")+"|");
+      s.rows.forEach(r=>{ const i=k++; P("| ["+(d.includes(i)?"x":" ")+"] | "+r.join(" | ")+" |"); });
+    });
+  });
+  return L.join("\n");
+}
+function exportGuide(){
+  try{
+    const text=buildGuideText();
+    const blob=new Blob([text],{type:"text/markdown"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="ats-build-guide-"+new Date().toISOString().slice(0,10)+".md";
+    a.click(); URL.revokeObjectURL(a.href);
+    toast("Build guide exported as Markdown");
+  }catch(e){ toast("Could not build the guide: "+e.message, true); }
+}
+
+function resetAll(){
+  if(!confirm("Reset ALL local progress (statuses, assignees, notes, checklists, fields, steps, decisions)?\nExport first if unsure.")) return;
+  state={statuses:{},assignees:{},ac:{},dod:{},notes:{},blockedReasons:{},decisions:{},fields:{},steps:{}};
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  renderAll(); toast("Board reset");
+}
+
+/* ---------- view switching & wiring ---------- */
+function setView(v){
+  ui.view=v;
+  document.querySelectorAll(".viewtabs button").forEach(b=>b.classList.toggle("on",b.dataset.view===v));
+  ["board","guide","objects","decisions","epics","workload"].forEach(x=>{
+    document.getElementById("view-"+x).classList.toggle("hidden", x!==v);
+  });
+}
+function renderFilters(){
+  const sel=document.getElementById("fEpic");
+  if(sel.options.length<=1){
+    D.epics.forEach(e=>{
+      const o=document.createElement("option");
+      o.value=e.id; o.textContent=e.id+" — "+e.title; sel.appendChild(o);
+    });
+  }
+  sel.value=ui.epic;
+  document.querySelectorAll("[data-prio]").forEach(b=>b.classList.toggle("on",ui.prios.has(b.dataset.prio)));
+  document.getElementById("fDeps").classList.toggle("on",ui.depsOnly);
+  document.getElementById("fHideDone").classList.toggle("on",ui.hideDone);
+  document.getElementById("clearF").classList.toggle("hidden",!anyFilter());
+}
+function renderAll(){
+  renderStats(); renderFilters();
+  if(ui.view==="board") renderBoard();
+  if(ui.view==="guide") renderGuide();
+  if(ui.view==="objects") renderObjects();
+  if(ui.view==="decisions") renderDecisions();
+  if(ui.view==="epics") renderEpics();
+  if(ui.view==="workload") renderWorkload();
+}
+
+/* ---------- boot ---------- */
+loadState();
+setView("board");
+renderAll();
+
+document.querySelectorAll(".viewtabs button").forEach(b=>b.onclick=()=>{ setView(b.dataset.view); renderAll(); });
+document.getElementById("fEpic").onchange=e=>{ ui.epic=e.target.value; renderAll(); };
+document.querySelectorAll("[data-prio]").forEach(b=>b.onclick=()=>{
+  const p=b.dataset.prio; ui.prios.has(p)?ui.prios.delete(p):ui.prios.add(p); renderAll();
+});
+document.getElementById("fDeps").onclick=()=>{ ui.depsOnly=!ui.depsOnly; renderAll(); };
+document.getElementById("fHideDone").onclick=()=>{ ui.hideDone=!ui.hideDone; renderAll(); };
+document.getElementById("clearF").onclick=()=>{
+  ui.epic=""; ui.person=""; ui.prios.clear(); ui.q=""; ui.hideDone=false; ui.depsOnly=false;
+  document.getElementById("search").value=""; renderAll();
+};
+document.getElementById("search").oninput=e=>{ ui.q=e.target.value; if(ui.view!=="board"&&ui.view!=="objects") setView("board"); renderAll(); };
+document.addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){ e.preventDefault(); document.getElementById("search").focus(); }
+  if(e.key==="Escape") closeDrawer();
+});
+document.getElementById("drClose").onclick=closeDrawer;
+document.getElementById("overlay").onclick=closeDrawer;
+document.getElementById("exportBtn").onclick=exportJSON;
+document.getElementById("docBtn").onclick=exportGuide;
+document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").onchange=e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value=""; };
+document.getElementById("resetBtn").onclick=resetAll;
+document.getElementById("themeBtn").onclick=()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const next=cur==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",next);
+  try{ localStorage.setItem("ats-theme",next); }catch(e){}
+};
+try{ const th=localStorage.getItem("ats-theme"); if(th) document.documentElement.setAttribute("data-theme",th); }catch(e){}
+</script>
+</body>
+</html>
