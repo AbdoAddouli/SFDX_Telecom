@@ -1,6 +1,6 @@
 # ATS Telecom Build Checkpoint
 
-**Last updated:** 2026-11-14
+**Last updated:** 2026-11-17
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
 **Current step:** E4 is complete through UC-COM-06 and E9 non-admin activation hardening is complete. The `Order_Activation_Validate` screen Flow and `Order.Validate_the_Order` Flow quick action provide the activation entry point and friendly error surface. Activation is idempotent and bulk-safe: a synchronous call is capped at 10 orders, and `ActivationBatchJob` fans 200/500-order requests into independent 10-order queueable chunks with a shared correlation ID. The 200-order test activated 200 subscriptions/assets/contracts across 20 chunks; the 500-order test executed 50 chunks with 500 isolated failures and 50 summaries. The activation service is now a 240-line transaction facade over focused reader, provisioner, BSS, writer, and context classes. `ActivationServiceTest` passes 26/26, `ActivationPermissionSetTest` passes 5/5, and the full local Apex suite passes 168/168. Next: Q1/BQ1 ContractLineItem semantics and the E6/E8 jobs remain blocked.
 
@@ -18,7 +18,14 @@
 - `ActivationPermissionSetTest` (5/5) creates two Standard User test personas, assigns `ats_Advisor`/`ats_AdvisorManager`, asserts object/field permissions and class access, and runs a complete user-mode activation for each persona.
 - Full local Apex suite: 168/168 passing (run `707bm00001WGPr6`). No custom profiles or roles and no persistent org users were created; the runtime proof uses ephemeral Apex test users.
 
-### CI workflow (2026-11-14)\n\n- Added `.github/workflows/ci.yml` to validate XML/JSON structure on metadata changes.\n- When the `SFDX_AUTH_URL` repository secret is configured, CI also runs `sf project deploy start --dry-run --test-level RunLocalTests` against the authenticated org.\n- Without the secret, the org-validation job is skipped so pull requests and metadata-only pushes still get the static validation gate.\n- CI run `43610666415` passed the metadata job; org validation is currently skipped because the secret is not configured.\n\n### Data model (earlier work)
+### CI workflow (2026-11-14)
+
+- Added `.github/workflows/ci.yml` to validate XML/JSON structure on metadata changes.
+- When the `SFDX_AUTH_URL` repository secret is configured, CI also runs `sf project deploy start --dry-run --test-level RunLocalTests` against the authenticated org.
+- Without the secret, the org-validation job is skipped so pull requests and metadata-only pushes still get the static validation gate.
+- CI run `43610666415` passed the metadata job; org validation is currently skipped because the secret is not configured.
+
+### Data model (earlier work)
 
 - 6 custom objects deployed.
 - 53 custom fields on standard objects deployed.
