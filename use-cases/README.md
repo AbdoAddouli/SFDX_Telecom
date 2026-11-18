@@ -139,19 +139,19 @@ These must be resolved and recorded before dependent cards are built. Sources: `
 
 | ID | Question | Owner | Blocks use cases |
 |---|---|---|---|
-| **Q1 / BQ1** | Plan change = **amendment** or **new contract**? | Finance + Sales Ops | `UC-LIF-02`, `UC-COM-05`, `UC-DM-04` |
+| **Q1 / BQ1** | **Resolved 2026-11-17 —** plan change amends the existing contract. | Finance + Sales Ops | `UC-LIF-02`, `UC-COM-05`, `UC-DM-04` unblocked. |
 | **Q2** | Target org type & licensing (RCA Growth vs Advanced) | Project sponsor | `UC-FND-03`, all of E2/E4/E5 |
 | **Q3 / BQ7** | Do invoicing & revenue recognition live in Salesforce? | Finance | Entire E10 |
 | **Q4 / BQ8** | Source system for fibre eligibility data | Network team | `UC-DM-05`, `UC-LIF-01`, `UC-INT-06` |
-| **BQ2 / Q5** | Is 30-day cancellation notice correct for all categories? | Commercial | `UC-DM-10`, `UC-LIF-03` |
+| **BQ2 / Q5** | **Resolved 2026-11-18 —** 30-day notice applies to all products and segments. | Commercial | `UC-DM-10`, `UC-LIF-03` unblocked. |
 | **BQ3** | Does suspension pause the commitment clock? | Commercial + Finance | `UC-LIF-04` |
-| **BQ4** | Do expired commitments roll, lapse, or re-price? | Commercial | `UC-LIF-06` |
+| **BQ4** | **Resolved 2026-11-17 —** expired commitments roll over monthly. | Commercial | `UC-LIF-06` unblocked. |
 | **BQ5 / Q7** | Restocking fee separate from engagement penalty? | Commercial | `UC-LIF-05`, `UC-LIF-03` |
 | **BQ6 / Q3-DM** | Same pricebook for Consumer and Business? | Commercial | `UC-CAT-04` |
-| **BQ9** | Goodwill waiver threshold = approval threshold? | Finance | `UC-LIF-03` |
+| **BQ9** | **Resolved 2026-11-17 —** goodwill waiver threshold equals the approval threshold. | Finance | `UC-LIF-03` unblocked. |
 | **BQ10 / Q6** | **Resolved 2026-11-06 —** MSISDN is globally unique (not per account). | Commercial | `UC-DM-13` and `UC-LIF-07` unblocked. |
-| **BQ11** | Penalty-free window for device commitments? | Commercial | `UC-DM-08`, `UC-LIF-01` |
-| **BQ12** | Set `Churned` on any line cancel or last line? | Sales Ops | `UC-LIF-03` |
+| **BQ11** | **Resolved 2026-11-17 —** 14-day device penalty-free window. | Commercial | `UC-DM-08`, `UC-LIF-01` unblocked. |
+| **BQ12** | **Resolved 2026-11-18 —** set `Churned` only when the last active line cancels. | Sales Ops | `UC-LIF-03` unblocked. |
 | **D4/R12** | B2C (Person Accounts) confirmed vs B2B | Project sponsor | `UC-DM-09`, `UC-POR-05` |
 
 ## 9. Cross-cutting rules quick reference

@@ -3,7 +3,8 @@
  * delivered, this gateway records a deterministic simulated confirmation so
  * the activation transaction can be exercised end to end.
  */
-public class SimulatedBssProvisioningGateway implements BssProvisioningGateway {
+public class SimulatedBssProvisioningGateway
+    implements BssProvisioningGateway, BssDeprovisioningGateway {
     public List<BssProvisioningResponse> provision(
         List<BssProvisioningRequest> requests
     ) {
@@ -22,6 +23,30 @@ public class SimulatedBssProvisioningGateway implements BssProvisioningGateway {
                 'Simulated BSS provisioning. E8 callout not connected yet.';
             response.durationMs = 0;
             response.endpoint = 'simulated://bss/provision';
+            responses.add(response);
+        }
+
+        return responses;
+    }
+
+    public List<BssProvisioningResponse> deprovision(
+        List<BssProvisioningRequest> requests
+    ) {
+        List<BssProvisioningResponse> responses =
+            new List<BssProvisioningResponse>();
+
+        for (BssProvisioningRequest request : requests) {
+            BssProvisioningResponse response = new BssProvisioningResponse();
+            response.subscriptionId = request.subscriptionId;
+            response.success = true;
+            response.externalReference = (
+                'SIM-CANCEL-' + request.subscriptionNumber
+            ).left(64);
+            response.statusCode = '200';
+            response.message =
+                'Simulated BSS de-provisioning. E8 callout not connected yet.';
+            response.durationMs = 0;
+            response.endpoint = 'simulated://bss/deprovision';
             responses.add(response);
         }
 

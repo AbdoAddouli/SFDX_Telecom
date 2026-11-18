@@ -28,6 +28,14 @@
         <apexClass>PlanChangeApprovalService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>CancellationService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>CancellationApprovalService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <customSettingAccesses>
         <enabled>true</enabled>
         <name>ATS_Feature_Flags__c</name>

@@ -1,8 +1,8 @@
 # ATS Telecom Build Checkpoint
 
-**Last updated:** 2026-11-17
+**Last updated:** 2026-11-18
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
-**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ4, BQ9, and BQ11 are resolved as amend, monthly rollover, shared waiver/approval threshold, and a 14-day device window. UC-LIF-01 penalty service, UC-LIF-08 shared intake, and UC-LIF-02 scoped plan change are deployed. Full local Apex suite passes 181/181 (run `707bm00001X1vNa`). Next: UC-LIF-03 cancellation.
+**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ2, BQ4, BQ9, BQ11, and BQ12 are resolved. UC-LIF-01 penalty service, UC-LIF-08 shared intake, UC-LIF-02 scoped plan change, and the full UC-LIF-03 cancellation path (intake → approval → effective-date fulfilment) are deployed. Full local Apex suite passes 193/193 (run `707bm00001XLQDr`). Next: UC-LIF-04 suspension, pending BQ3.
 
 ---
 
@@ -16,7 +16,7 @@
 - Added editable FLS for the fields written by activation, including Order lifecycle/BSS fields, OrderItem numbering/commitment fields, Asset/Contract/Subscription/Engagement fields, and the non-required Integration Log fields. Required fields are governed by object access and do not receive explicit `fieldPermissions` rows.
 - Granted `ActivationService` Apex class access and the `ActivateContract`/`ActivateOrder` user permissions required to complete activation.
 - `ActivationPermissionSetTest` (5/5) creates two Standard User test personas, assigns `ats_Advisor`/`ats_AdvisorManager`, asserts object/field permissions and class access, and runs a complete user-mode activation for each persona.
-- Full local Apex suite: 181/181 passing (run `707bm00001X1vNa`). No custom profiles or roles and no persistent org users were created; the runtime proof uses ephemeral Apex test users.
+- Full local Apex suite: 193/193 passing (run `707bm00001XLQDr`). No custom profiles or roles and no persistent org users were created; the runtime proof uses ephemeral Apex test users.
 
 ### CI workflow (2026-11-14)
 
@@ -30,7 +30,7 @@
 - Resolved decisions: plan changes amend the existing contract, expired commitments roll over monthly, the goodwill waiver threshold equals the approval threshold, and the device penalty-free window is 14 days.
 - UC-LIF-01 `EngagementPenaltyService` computes early-termination fees from engagement snapshots without SOQL or DML. It reuses the active `Engagement_Penalty__mdt` matrix through `ActivationPenaltyPolicy`, applies expired and default-no-penalty rules, and reads the new `Penalty_Applicable_After_Days__c` field for the device window.
 - The service stamps `Penalty_Rule__c`, `Penalty_Calculated_On__c`, `Penalty_Breakdown__c`, and `Early_Termination_Fee__c` on the engagement and returns the server-computed fee for `Customer_Request__c.Calculated_Fee__c`.
-- `EngagementPenaltyServiceTest` passes 4/4; full local suite now passes 181/181 (run `707bm00001X1vNa`) after shared intake and plan change.
+- `EngagementPenaltyServiceTest` passes 4/4; full local suite now passes 193/193 (run `707bm00001XLQDr`) after shared intake, plan change, and cancellation fulfilment.
 - The threshold relationship is resolved: goodwill waiver and approval use the same `Cancellation_Approval_Threshold__c` value. The numeric value remains the existing 0 placeholder until Finance supplies a signed-off amount.
 
 ### E6 UC-LIF-08 shared request intake (2026-11-17)
@@ -39,7 +39,7 @@
 - A savepoint wraps all DML, so validation or DML failure leaves no partial request, Case, or engagement update. Goodwill waivers always require justification and always route to approval.
 - Added the `Customer_Request_Intake` screen Flow that submits to the Apex action and displays the returned request/Case/status without doing any price calculation.
 - Granted `LifecycleRequestService` class access plus `Customer_Request__c` CRUD and `Case` edit in `ats_Advisor` and `ats_AdvisorManager`.
-- `LifecycleRequestServiceTest` passes 6/6 (run `707bm00001X2IyJ`); full local suite passes 181/181 (run `707bm00001X1vNa`).
+- `LifecycleRequestServiceTest` passes 6/6 (run `707bm00001X3KGT`); full local suite passes 193/193 (run `707bm00001XLQDr`).
 
 ### E6 UC-LIF-02 scoped plan change (2026-11-17)
 
@@ -48,6 +48,17 @@
 - Approved execution supersedes the source line and inserts a replacement line with `Parent_Subscription__c`, keeps the existing engagement and term, leaves `MSISDN__c` blank to avoid the unique constraint, and never creates `ContractLineItem`.
 - `PlanChangeApprovalService` is a thin invocable wrapper because Apex allows only one `@InvocableMethod` per class. Both services and the new field access are granted to `ats_Advisor` and `ats_AdvisorManager`.
 - `PlanChangeServiceTest` passes 3/3 (run `707bm00001X2YJs`); the combined targeted run passes 9/9 (run `707bm00001X1DrQ`).
+
+### E6 UC-LIF-03 cancellation (2026-11-18)
+
+- Step 1 intake is deployed through `CancellationService`, `CancellationIntake`, `CancellationValidator`, `CancellationRepository`, `CancellationScheduler`, and `CancellationApproval`. It enforces the 30-day notice, valid reason, goodwill justification, and duplicate in-flight guard, then sets `Subscription__c = PendingCancellation` for approved lines.
+- Step 2 fulfilment is deployed through `CancellationFulfilmentBatch` and `CancellationFulfilmentService`. The daily batch selects `In_Fulfilment` requests whose effective date has been reached; the service de-provisions through `SimulatedBssProvisioningGateway` first, then applies all Salesforce writes inside one savepoint.
+- Fulfilment sets `Subscription__c = Cancelled`, Asset `Retired`, Contract `Terminated`, Engagement `Breached` with the server-computed fee, the Case to `Closed`, and the request to `Completed`. `Account.Customer_Status__c = Churned` only when no active subscription lines remain.
+- Added `Retired` to the Asset Status standard value set and `Terminated` to the Contract Status standard value set. The `Cancellation_Notice_Period` validation rule now applies at intake (`Awaiting_Approval`/`Approved`) and exempts `In_Fulfilment`/`Completed`, so effective-date fulfilment can run.
+- BSS failures roll back every Salesforce write and produce friendly `Integration_Log__c` failure rows; no stack traces are stored. Success logs use operation `cancelSubscription`.
+- `LifecycleRequestService`, `PlanChangeService`, and `CancellationService` were refactored into thin façades with focused validator/repository/writer helpers. The refactors preserved behaviour and kept bulk safety: fixed SOQL count, bulk DML, and one savepoint per batch.
+- `CancellationServiceTest` passes 5/5 (run `707bm00001X2d6q`) and `CancellationFulfilmentServiceTest` passes 7/7 (run `707bm00001XKzVb`). Full suite passes 193/193 (run `707bm00001XLQDr`).
+- The batch is scheduled in the org as `ATS Cancellation Fulfilment (Daily)` and runs at 01:00. Advisor and manager permission sets now grant `CancellationService` and `CancellationApprovalService` class access.
 
 ### Data model (earlier work)
 

@@ -6,9 +6,9 @@
 
 | ID | Title | Priority | Owner | Status |
 |---|---|---|---|---|
-| UC-LIF-01 | `EngagementPenaltyService` + penalty-matrix resolution | Must | Salesforce Developer (Apex) | 🔴 |
+| UC-LIF-01 | `EngagementPenaltyService` + penalty-matrix resolution | Must | Salesforce Developer (Apex) | ✅ |
 | UC-LIF-02 | Plan change Flow (amend path) | Must | Salesforce Developer + Admin | ✅ |
-| UC-LIF-03 | Cancellation Flow (intake → fee → approval → fulfilment) | Must | Salesforce Developer + Admin | 🔴 |
+| UC-LIF-03 | Cancellation Flow (intake → fee → approval → fulfilment) | Must | Salesforce Developer + Admin | ✅ |
 | UC-LIF-04 | Suspension / unfreeze | Must | Salesforce Admin (Flow) | 🔴 |
 | UC-LIF-05 | Equipment swap | Should | Salesforce Admin (Flow) | 🔲 |
 | UC-LIF-06 | Renewal management (T−60/30/7) | Must | Salesforce Admin (Flow) | 🔴 |
@@ -159,7 +159,7 @@
 | Business process | 08 |
 | Architecture ref | §7.2 #10 |
 | Data model ref | §5, §11.2 |
-| Status | 🔴 Blocked — BQ2 (notice), BQ12 (churn derivation) |
+| Status | ✅ Complete — BQ2 = 30-day notice; BQ12 = churn only when the last active line cancels |
 
 **Goal.** Terminate a service legally compliant (notice period), financially correct (penalty), fully traceable (case + reason), and operationally clean (network released, no orphans).
 
@@ -178,7 +178,7 @@
    - today → effective date: `Subscription__c = PendingCancellation` (service continues);
    - on effective date (scheduled job): subscription `Cancelled` (terminal), asset `Retired`, contract `Terminated`, engagement `Breached` with `Early_Termination_Fee__c`/`Breach_Amount__c`, `Account.Customer_Status__c = Churned` if no other lines;
    - BSS de-provision callout (rollback on failure);
-   - platform event after commit.
+   - audit outcome written after commit (`Integration_Log__c`); a platform event can be added when an event object exists in the data model.
 6. Close — `Resolution_Summary__c`, `Completed_On__c`, close Case; reason feeds churn analytics.
 
 **Alternate / exception flows**
@@ -201,10 +201,10 @@
 | BSS failure rolls back | BR-08.11 |
 
 **Acceptance criteria**
-- [ ] Cancellation cannot be created without a reason, a Case, and a compliant effective date.
-- [ ] Correct fee; `PendingCancellation` until the effective date.
-- [ ] On the effective date all four records transition correctly.
-- [ ] Failed de-provision leaves no cancelled-with-live-network state.
+- [x] Cancellation cannot be created without a reason, a Case, and a compliant effective date.
+- [x] Correct fee; `PendingCancellation` until the effective date.
+- [x] On the effective date Subscription, Asset, Contract, Engagement, Case, and request transition correctly.
+- [x] Failed de-provision leaves no cancelled-with-live-network state.
 
 **Test scenarios**
 
@@ -212,14 +212,16 @@
 |---|---|---|---|
 | TS-1 | Active committed line | Submit cancellation | Reason mandatory; fee computed |
 | TS-2 | Fee above threshold | Submit | Awaiting approval |
-| TS-3 | Effective date reached | Scheduled job | Subscription Cancelled, Asset Retired, Engagement Breached |
+| TS-3 | Effective date reached | Scheduled job | Subscription Cancelled, Asset Retired, Contract Terminated, Engagement Breached, request Completed |
 | TS-4 | BSS de-provision 500 | Fulfil | Rollback, retry logged |
 | TS-5 | Second in-flight cancellation | Submit | Blocked |
 
 **Definition of done**
-- [ ] E6 exit gate; both paths produce correct fees; BQ2/BQ12 resolved.
+- [x] E6 exit gate; both paths produce correct fees; BQ2/BQ12 resolved.
 
-**Open questions / risks** — BQ2, BQ12, `R10`.
+**Implementation note (2026-11-18)** — `CancellationFulfilmentBatch` selects due requests and is scheduled daily as `ATS Cancellation Fulfilment (Daily)`; `CancellationFulfilmentService` calls the simulated BSS de-provision gateway before a single savepoint-guarded bulk write. `CancellationFulfilmentServiceTest` passes 7/7 (`707bm00001XKzVb`) and the full suite passes 193/193 (`707bm00001XLQDr`). Audit outcomes are recorded in `Integration_Log__c`; no platform event object exists yet.
+
+**Open questions / risks** — `R10` only; BQ2 and BQ12 are resolved.
 
 ---
 

@@ -44,12 +44,12 @@ The pricing model is implemented **without a Revenue Cloud Advanced licence**. C
 | Quote builder and five-step subscription wizard | Complete |
 | Atomic activation, Flow entry point, idempotency, bulk proof | Complete |
 | Subscription state machine and MSISDN duplicate handling | Complete |
-| Renewal, cancellation, and remaining lifecycle jobs | In progress: penalty service, shared intake, and scoped plan change complete |
+| Renewal, cancellation, and remaining lifecycle jobs | In progress: penalty service, shared intake, scoped plan change, and cancellation intake/fulfilment complete |
 | Real BSS callout and reconciliation batch | Partial: simulated gateway in use |
 | Portal experience | Deferred: no Experience Cloud licence |
 | Non-admin CRUD/FLS hardening | Complete: advisor and manager activation permissions verified |
 
-Latest verified local Apex suite: **181/181 passing**, including `ActivationServiceTest` **26/26**, `SubscriptionWizardControllerTest` **21/21**, `ActivationPermissionSetTest` **5/5**, `EngagementPenaltyServiceTest` **4/4**, `LifecycleRequestServiceTest` **6/6**, and `PlanChangeServiceTest` **3/3**.
+Latest verified local Apex suite: **193/193 passing** (run `707bm00001XLQDr`), including `ActivationServiceTest` **26/26**, `SubscriptionWizardControllerTest` **21/21**, `ActivationPermissionSetTest` **5/5**, `EngagementPenaltyServiceTest` **4/4**, `LifecycleRequestServiceTest` **6/6**, `PlanChangeServiceTest` **3/3**, `CancellationServiceTest` **5/5**, and `CancellationFulfilmentServiceTest` **7/7**.
 
 ---
 
@@ -398,7 +398,9 @@ Latest verified local org run:
 | `EngagementPenaltyServiceTest` | **4/4 passing** |
 | `LifecycleRequestServiceTest` | **6/6 passing** |
 | `PlanChangeServiceTest` | **3/3 passing** |
-| Full local suite | **181/181 passing** |
+| `CancellationServiceTest` | **5/5 passing** |
+| `CancellationFulfilmentServiceTest` | **7/7 passing** |
+| Full local suite | **193/193 passing** |
 
 The suite covers:
 
@@ -422,7 +424,9 @@ The suite covers:
 - server-computed early-termination fees, expired commitments, default rules, and the 14-day device window;
 - advisor/manager activation CRUD/FLS and user-mode execution;
 - 200-order success across 20 chunks;
-- 500-order fan-out across 50 chunks with isolated failures and shared correlation.
+- 500-order fan-out across 50 chunks with isolated failures and shared correlation;
+- cancellation intake, approval, duplicate guard, and 30-day notice;
+- effective-date fulfilment, scheduled batch selection, BSS rollback, and last-line churn.
 
 A real-org smoke test also confirms:
 
@@ -442,7 +446,7 @@ A real-org smoke test also confirms:
 | Metadata over hard-coding | Pricing and configuration rules live in custom metadata |
 | Bulk by default | Batch repository loads, pure evaluators, and chunked activation |
 | Governor-limit discipline | Bounded queries, no per-row SOQL, explicit batch caps |
-| Atomic operations | Savepoint-guarded activation with rollback and user-safe errors |
+| Atomic operations | Savepoint-guarded activation and cancellation fulfilment with rollback and user-safe errors |
 | Idempotent retries | `NoOp` for activated orders and unique BSS keys |
 | Security by design | User-mode reads, `with sharing`, permission sets |
 | Testable core | Evaluators and activation collaborators are small and independently testable |
@@ -461,7 +465,7 @@ A real-org smoke test also confirms:
 - [x] E4 activation and wizard hand-off (`UC-COM-03`/`UC-COM-05`)
 - [x] Activation idempotency and 200/500-order bulk proof (`UC-COM-06`)
 - [x] Activation service split into reader, context, provisioner, BSS, writer, and contract collaborators
-- [ ] E6 renewal, cancellation, and remaining lifecycle jobs — in progress; penalty service and shared intake complete, plan change next
+- [ ] E6 renewal and remaining lifecycle jobs — cancellation path complete; suspension, equipment swap, and renewal outstanding
 - [ ] E7 portal — deferred; Experience Cloud licence required
 - [ ] E8 real BSS callout, reconciliation, and named credentials
 - [x] E9 non-admin activation CRUD/FLS hardening

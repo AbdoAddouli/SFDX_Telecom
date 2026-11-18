@@ -2,10 +2,14 @@
 <ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Cancellation_Notice_Period</fullName>
     <active>true</active>
-    <description>Cancellation effective date must be at least 30 days out.</description>
+    <description>Short notice is blocked at intake. Scheduled and completed requests are exempt so fulfilment can run on the effective date.</description>
     <errorConditionFormula>AND(
   ISPICKVAL(Request_Type__c, "Cancellation"),
   NOT(ISBLANK(Cancellation_Effective_Date__c)),
+  OR(
+    ISPICKVAL(Status__c, "Awaiting_Approval"),
+    ISPICKVAL(Status__c, "Approved")
+  ),
   Cancellation_Effective_Date__c &lt; DATEVALUE(TEXT(TODAY()+30))
 )</errorConditionFormula>
     <errorDisplayField>Cancellation_Effective_Date__c</errorDisplayField>
