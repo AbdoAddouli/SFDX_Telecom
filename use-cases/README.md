@@ -144,7 +144,7 @@ These must be resolved and recorded before dependent cards are built. Sources: `
 | **Q3 / BQ7** | Do invoicing & revenue recognition live in Salesforce? | Finance | Entire E10 |
 | **Q4 / BQ8** | Source system for fibre eligibility data | Network team | `UC-DM-05`, `UC-LIF-01`, `UC-INT-06` |
 | **BQ2 / Q5** | **Resolved 2026-11-18 —** 30-day notice applies to all products and segments. | Commercial | `UC-DM-10`, `UC-LIF-03` unblocked. |
-| **BQ3** | Does suspension pause the commitment clock? | Commercial + Finance | `UC-LIF-04` |
+| **BQ3** | **Resolved 2026-11-19 —** suspension does NOT pause the commitment clock; Contract and Engagement remain unchanged. | Commercial + Finance | `UC-LIF-04` unblocked. |
 | **BQ4** | **Resolved 2026-11-17 —** expired commitments roll over monthly. | Commercial | `UC-LIF-06` unblocked. |
 | **BQ5 / Q7** | Restocking fee separate from engagement penalty? | Commercial | `UC-LIF-05`, `UC-LIF-03` |
 | **BQ6 / Q3-DM** | Same pricebook for Consumer and Business? | Commercial | `UC-CAT-04` |

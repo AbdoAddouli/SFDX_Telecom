@@ -9,7 +9,7 @@
 | UC-LIF-01 | `EngagementPenaltyService` + penalty-matrix resolution | Must | Salesforce Developer (Apex) | ✅ |
 | UC-LIF-02 | Plan change Flow (amend path) | Must | Salesforce Developer + Admin | ✅ |
 | UC-LIF-03 | Cancellation Flow (intake → fee → approval → fulfilment) | Must | Salesforce Developer + Admin | ✅ |
-| UC-LIF-04 | Suspension / unfreeze | Must | Salesforce Admin (Flow) | 🔴 |
+| UC-LIF-04 | Suspension / unfreeze | Must | Salesforce Admin (Flow) | ✅ |
 | UC-LIF-05 | Equipment swap | Should | Salesforce Admin (Flow) | 🔲 |
 | UC-LIF-06 | Renewal management (T−60/30/7) | Must | Salesforce Admin (Flow) | 🔴 |
 | UC-LIF-07 | Number portability (inbound/outbound) | Should | Salesforce Developer | 🔴 |
@@ -238,16 +238,16 @@
 | Business process | 07 |
 | Architecture ref | §7.2 #10 (hybrid) |
 | Data model ref | §3.3 |
-| Status | 🔴 Blocked — BQ3 (does the clock pause?) |
+| Status | 🟢 Deployed — BQ3 resolved 2026-11-19: suspension does NOT pause the commitment clock |
 
 **Goal.** Freeze and unfreeze a line via a reversible transition without touching the commercial term.
 
-**Preconditions** — BQ3 resolved (commitment clock behaviour).
+**Preconditions** — BQ3 resolved: the commitment clock does not pause; Contract and Engagement are untouched.
 
 **Main flow**
 1. Request (`Suspension`) + Case; `Subscription__c` required.
 2. `Active → Suspended` (reversible) via the state machine.
-3. `Contract` **unchanged**; `Engagement__c` **unchanged** (default: freeze does not stop the clock — confirm BQ3).
+3. `Contract` **unchanged**; `Engagement__c` **unchanged** (BQ3: the clock keeps running).
 4. BSS suspend callout; failure rolls back the status change.
 5. Exit: `Suspended → Active` via a reverse request.
 
@@ -264,8 +264,8 @@
 | BSS failure rolls back the status change | §9.2 |
 
 **Acceptance criteria**
-- [ ] Freeze and unfreeze both work through requests.
-- [ ] Contract and engagement untouched by a freeze.
+- [x] Freeze and unfreeze both work through requests.
+- [x] Contract and engagement untouched by a freeze.
 
 **Test scenarios**
 
@@ -276,9 +276,11 @@
 | TS-3 | BSS suspend 500 | Suspend | Rollback to Active |
 
 **Definition of done**
-- [ ] Deployed; BQ3 recorded.
+- [x] Deployed; BQ3 recorded.
 
-**Open questions / risks** — BQ3.
+**Implementation note (2026-11-19)** — `SuspensionService` is the invocable façade; `SuspensionIntake` creates the request/Case through `LifecycleRequestService` and applies approved state changes through `SuspensionFulfilment`, the `BssSuspensionGateway` boundary, and a single savepoint-guarded bulk write. `SuspensionApprovalService` exposes the manager-approval entry point. `SuspensionServiceTest` passes 7/7 (`707bm00001Xcf5U`) and the full suite passes 200/200 (`707bm00001Xdxfq`).
+
+**Open questions / risks** — none; BQ3 resolved as no clock pause.
 
 ---
 

@@ -715,7 +715,7 @@ sequenceDiagram
 | Q1 / BQ1 | Plan change = amend or new contract | `OfferBuilderService.createOrAmendContract`, F-06 |
 | Q3 | Billing in Salesforce? | `Invoice__c`/`Payment__c` (not modelled), Phase 10 |
 | Q4 / BQ8 | Fibre eligibility source | `EligibilityService`, I-06 (image/eligibility sync) |
-| BQ3 | Does suspension pause the clock? | F-08, `EngagementTriggerHandler` |
+| BQ3 | Resolved 2026-11-19 — suspension does not pause the clock | F-08, `SuspensionService` (Contract and Engagement untouched) |
 | BQ4 | Expired commitment roll/lapse/re-price | F-13 |
 | BQ11 | Device penalty-free window | `Engagement_Penalty__mdt` seed, `EngagementPenaltyService` |
 | R4 | RCA field names differ by release | every service calling RCA APIs |

@@ -882,7 +882,7 @@ These block or shape the processes above. They are the business-side counterpart
 |---|---|---|---|---|
 | **BQ1** | Is a plan change an **amendment** of the existing contract or a **new contract**? | 06 | Finance + Sales Ops | **Phase 1.** Determines commitment clock restart and revenue treatment |
 | **BQ2** | Is the 30-day cancellation notice correct for **all** product categories and segments? | 08 | Commercial | Notice-period validation rule |
-| **BQ3** | Does a suspension **pause** the commitment clock or let it run? | 07 | Commercial + Finance | Engagement handling on suspend |
+| **BQ3** | **Resolved 2026-11-19 —** suspension does **not** pause the commitment clock; it keeps running. | 07 | Commercial + Finance | `UC-LIF-04` unblocked; Contract and Engagement unchanged on suspend |
 | **BQ4** | Do expired commitments roll automatically, lapse, or trigger a re-price? | 09 | Commercial | Renewal fulfilment path |
 | **BQ5** | Is there a restocking fee on device returns, separate from the engagement penalty? | 07 / 08 | Commercial | May need a second fee line |
 | **BQ6** | Are consumers and businesses priced from the same pricebook? | 03 / 06 | Commercial | Pricebook topology |

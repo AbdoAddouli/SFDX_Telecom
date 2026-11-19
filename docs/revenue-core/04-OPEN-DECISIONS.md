@@ -9,7 +9,7 @@ The 16 register entries from `docs/index.html` (`Q1`–`Q4` + `BQ1`–`BQ12`), d
 | 3 | `Q3 / BQ7` | Do invoicing & revenue recognition live in Salesforce? | Finance | Entire E10 | **Default answer on your org: No.** RCA Billing SKU unavailable. Close E10 and raise a data-export requirement instead. Do not build `Invoice__c`. |
 | 4 | `Q4 / BQ8` | Source & freshness of fibre eligibility data | Network team | `UC-DM-05`, `UC-LIF-01`, `UC-INT-06` | Unaffected. `Eligibility__c` is a plain custom object — buildable once the SLA is known. |
 | 5 | `BQ2` | Is the 30-day cancellation notice correct for all categories/segments? | Commercial | `UC-DM-10`, `UC-LIF-03` | Unaffected — validation rule value only. |
-| 6 | `BQ3` | Does suspension pause the commitment clock? | Commercial + Finance | `UC-LIF-04` | Unaffected — `Engagement__c` formula behaviour. |
+| 6 | `BQ3` | Resolved 2026-11-19 — suspension does **not** pause the commitment clock | Commercial + Finance | `UC-LIF-04` unblocked | `Engagement__c` term continues unchanged; `SuspensionService` writes only Subscription, Case, and Customer Request. |
 | 7 | `BQ4` | Do expired commitments roll, lapse, or re-price? | Commercial | `UC-LIF-06` | Unaffected. If *re-price*, `PricingService` gets a renewal entry point. |
 | 8 | `BQ5 / Q7` | Restocking fee separate from engagement penalty? | Commercial | `UC-LIF-05`, `UC-LIF-03` | Unaffected — may need a second fee line on `Customer_Request__c`. |
 | 9 | `BQ6 / Q3-DM` | Same pricebook for Consumer and Business? | Commercial | `UC-CAT-04` | **Now a Revenue Core question too.** One pricebook + `Segment__c` on `Pricing_Rule__mdt` (file 03 §3.2), or two `Pricebook2` records. Answer both at once. |

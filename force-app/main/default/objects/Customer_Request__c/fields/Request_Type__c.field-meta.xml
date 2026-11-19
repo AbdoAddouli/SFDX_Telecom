@@ -30,6 +30,10 @@
                 <label>Suspension</label>
             </value>
             <value>
+                <fullName>Unfreeze</fullName>
+                <label>Unfreeze</label>
+            </value>
+            <value>
                 <fullName>Portability</fullName>
                 <label>Portability</label>
             </value>

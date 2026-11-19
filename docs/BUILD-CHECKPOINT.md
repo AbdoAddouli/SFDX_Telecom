@@ -1,8 +1,8 @@
 # ATS Telecom Build Checkpoint
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-19
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
-**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ2, BQ4, BQ9, BQ11, and BQ12 are resolved. UC-LIF-01 penalty service, UC-LIF-08 shared intake, UC-LIF-02 scoped plan change, and the full UC-LIF-03 cancellation path (intake → approval → effective-date fulfilment) are deployed. Full local Apex suite passes 193/193 (run `707bm00001XLQDr`). Next: UC-LIF-04 suspension, pending BQ3.
+**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ2, BQ3, BQ4, BQ9, BQ11, and BQ12 are resolved. UC-LIF-01 penalty service, UC-LIF-08 shared intake, UC-LIF-02 scoped plan change, the full UC-LIF-03 cancellation path (intake → approval → effective-date fulfilment), and UC-LIF-04 reversible suspension/unfreeze are deployed. Full local Apex suite passes 200/200 (run `707bm00001Xdxfq`). Next: UC-LIF-05 equipment swap.
 
 ---
 
@@ -59,6 +59,16 @@
 - `LifecycleRequestService`, `PlanChangeService`, and `CancellationService` were refactored into thin façades with focused validator/repository/writer helpers. The refactors preserved behaviour and kept bulk safety: fixed SOQL count, bulk DML, and one savepoint per batch.
 - `CancellationServiceTest` passes 5/5 (run `707bm00001X2d6q`) and `CancellationFulfilmentServiceTest` passes 7/7 (run `707bm00001XKzVb`). Full suite passes 193/193 (run `707bm00001XLQDr`).
 - The batch is scheduled in the org as `ATS Cancellation Fulfilment (Daily)` and runs at 01:00. Advisor and manager permission sets now grant `CancellationService` and `CancellationApprovalService` class access.
+
+### E6 UC-LIF-04 suspension / unfreeze (2026-11-19)
+
+- Resolved BQ3: suspension does **not** pause the commitment clock. `Contract` and `Engagement__c` are never written by this path; only `Subscription__c`, the linked `Case`, and `Customer_Request__c` change.
+- Added `Unfreeze` to the `Request_Type__c` picklist, the `Customer_Request_Intake` Flow guidance, and `LifecycleRequestPolicy.VALID_TYPES`.
+- `SuspensionService` is a thin invocable façade. `SuspensionIntake`, `SuspensionValidator`, `SuspensionRepository`, `SuspensionFulfilment`, `SuspensionWriter`, `SuspensionLogger`, `SuspensionBssClient`, and `SuspensionApproval` keep validation, bulk reads, BSS calls, writes, and orchestration separate.
+- `SuspensionApprovalService` is the second invocable wrapper needed because Apex allows only one `@InvocableMethod` per class. Advisor and manager permission sets grant both service classes access.
+- `BssSuspensionGateway` defines `suspend`/`resume`; `SimulatedBssProvisioningGateway` implements it until E8. Mixed-action batches are grouped by action, and a BSS failure rolls back the status change only, leaving the approved request/Case available for retry.
+- Awaiting-approval requests never call BSS and never change line status. Approved requests set `Active → Suspended` or `Suspended → Active`, write the external status, close the Case, and complete the request with a resolution note.
+- `SuspensionServiceTest` passes 7/7 (run `707bm00001Xcf5U`); full local suite passes 200/200 (run `707bm00001Xdxfq`). All three ATS scheduled jobs were temporarily aborted for the metadata deploy and restored with their original names/cron expressions.
 
 ### Data model (earlier work)
 

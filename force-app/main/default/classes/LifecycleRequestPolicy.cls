@@ -4,6 +4,7 @@
 public with sharing class LifecycleRequestPolicy {
     public static final String TYPE_INFO = 'Info';
     public static final String TYPE_NEW_SUBSCRIPTION = 'NewSubscription';
+    public static final String TYPE_UNFREEZE = 'Unfreeze';
     public static final String STATUS_COMPLETED = 'Completed';
     public static final String STATUS_APPROVED = 'Approved';
     public static final String STATUS_AWAITING = 'Awaiting_Approval';
@@ -14,6 +15,7 @@ public with sharing class LifecycleRequestPolicy {
         'Cancellation',
         'EquipmentSwap',
         'Suspension',
+        TYPE_UNFREEZE,
         'Portability',
         TYPE_INFO
     };
