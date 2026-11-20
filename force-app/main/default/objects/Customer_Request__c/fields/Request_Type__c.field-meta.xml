@@ -34,6 +34,10 @@
                 <label>Unfreeze</label>
             </value>
             <value>
+                <fullName>Renewal</fullName>
+                <label>Renewal</label>
+            </value>
+            <value>
                 <fullName>Portability</fullName>
                 <label>Portability</label>
             </value>

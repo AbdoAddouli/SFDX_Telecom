@@ -56,7 +56,8 @@ private class ActivationPermissionSetTest {
 
         assertObject(objects, 'Order', true, true, true);
         // OrderItem permissions are inherited from Order in this org.
-        assertObject(objects, 'Asset', true, false, true);
+        // Asset edit is granted to Advisor/Manager for UC-LIF-05 equipment swaps.
+        assertObject(objects, 'Asset', true, true, true);
         assertObject(objects, 'Contract', true, true, true);
         assertObject(objects, 'Subscription__c', true, true, true);
         assertObject(

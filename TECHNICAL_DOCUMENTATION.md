@@ -387,6 +387,21 @@
 
 ---
 
+### 3.14 `RenewalService` and renewal helpers
+
+| Class | Functionality |
+|---|---|
+| `RenewalService` | Invocable façade for `RenewSameTerms`, `RenewNewPlan`, `LetLapse`, and `CancelEarly`; `CancelEarly` is rejected before intake. |
+| `RenewalValidator` | Validates the source line and decision, resolves fibre eligibility, and obtains the quoted amount from `CatalogQueryService.getPriceBreakdown`. |
+| `RenewalIntake` | Creates request/Case pairs through `LifecycleRequestService` with `Request_Type__c = Renewal` and stores the server quote in `Fee_Breakdown__c`. |
+| `RenewalFulfilment` | Applies all writes inside one savepoint so a failed renewal leaves the old term unchanged. |
+| `RenewalWriter` | Expires the old engagement, inserts a new active engagement for renewals, rolls the billing end forward for lapses, and completes requests/Cases in bulk. |
+| `RenewalOutreachBatch` | Scheduled daily scan that creates stage-specific renewal Tasks once per stage per engagement. |
+
+**Use cases:** `UC-LIF-06`, `UC-LIF-08`.
+
+---
+
 ## 4. Apex trigger framework and handlers
 
 **Rule (`ARCHITECTURE.md` §7.4, X8):** exactly one trigger and one handler per object. Triggers contain no logic and no DML; they delegate to a handler. Handlers guarantee a single write path for `Status__c` and lifecycle fields, and intercept **every** DML path (UI, API, data load, integration) — a job Flow cannot reliably do.
@@ -427,8 +442,9 @@ trigger XTrigger on X (before insert, before update, after insert, after update)
 |---|---|---|---|---|
 | `IntegrationLogCleanupBatch` | `Database.Batchable` + `Schedulable` | Weekly | **Hard-delete** `Integration_Log__c` older than 13 months (`DATA_MODEL.md` §14.1) | `Integration_Log__c` |
 | `WizardStateCleanupBatch` | Batch + Schedulable | Nightly | **Hard-delete** inactive `Subscription_Wizard_State__c` past `Expires_On__c` | `Subscription_Wizard_State__c` |
+| `RenewalOutreachBatch` | Batch + Schedulable | Nightly 03:00 | Creates T−60/T−30/T−7 outreach Tasks once per stage per engagement | `Engagement__c`, `Task` |
 | `BssReconciliationBatch` | Batch + Schedulable | Nightly | Compare `Subscription__c` vs BSS; write `External_Status__c` + log drift; retry failed de-provisions | `Subscription__c`, `Integration_Log__c` |
-| `CancellationEffectiveDateBatch` | Batch + Schedulable | Daily | On the effective date: subscription `Cancelled`, asset `Retired`, contract `Terminated`, engagement `Breached`; trigger de-provision | `Subscription__c`, `Asset`, `Contract`, `Engagement__c` |
+| `CancellationFulfilmentBatch` | Batch + Schedulable | Daily 01:00 | On the effective date: subscription `Cancelled`, asset `Retired`, contract `Terminated`, engagement `Breached`; trigger de-provision | `Subscription__c`, `Asset`, `Contract`, `Engagement__c` |
 
 **Shared characteristics**
 - `Database.QueryLocator` for high-volume scans (`DATA_MODEL.md` §13.3).
@@ -436,7 +452,7 @@ trigger XTrigger on X (before insert, before update, after insert, after update)
 - Failures logged (SLA-9 ≤ 4h triage); dead-letter surfaced to ops (`UC-HRD-05`).
 - All jobs are `Schedulable`; activation is driven by `ActivationService`, **not** a batch, to keep atomicity.
 
-**Use cases:** `UC-DM-14`, `UC-INT-04`, `UC-LIF-03` (effective-date fulfilment).
+**Use cases:** `UC-DM-14`, `UC-INT-04`, `UC-LIF-03` (effective-date fulfilment), `UC-LIF-06` (renewal outreach).
 
 ---
 
@@ -458,7 +474,7 @@ Flows are the **orchestration** layer: they own branching, user tasks, screens, 
 | F-10 | Portability | Screen + Autolaunched | Request | `ExternalApiService` | `Subscription__c`, `Customer_Request__c` |
 | F-11 | Request Intake (shared skeleton) | Autolaunched / Subflow | Any lifecycle request | — | `Customer_Request__c`, `Case` |
 | F-12 | Fee Approval Gate | Autolaunched | Fee threshold breach | `FeatureFlagService` | `Customer_Request__c.Approved_By__c` |
-| F-13 | Renewal Outreach | **Scheduled** | Daily T−60/30/7 scan | — | `Engagement__c` (tasks, flags) |
+| F-13 | Renewal Outreach | **Scheduled** | Daily T−60/30/7 scan | `RenewalOutreachService` | `Engagement__c`, `Task` |
 | F-14 | Product Image Sync | **Scheduled** | Daily | `ExternalApiService` | `Product2.Device_Image_URL__c` |
 | F-15 | Activation Confirmation | Autolaunched | Platform event | `NotificationService` | `Case`, email/SMS |
 | F-16 | Portal Submit a Request | **Screen** | Portal customer | F-11, F-06/F-07/F-08 | `Customer_Request__c`, `Case` |
@@ -472,7 +488,7 @@ Flows are the **orchestration** layer: they own branching, user tasks, screens, 
 | F-06 | Amend path keeps the same term; approval gate on fee > threshold | BR-06.1, X10 |
 | F-07 | Reason + 30-day notice enforced; fee server-side; `PendingCancellation` until effective date | BR-08.1–08.8 |
 | F-11 | One intake skeleton reused by F-06…F-10; `Info` creates no Case | X1, BR-10.7 |
-| F-13 | `Renewal_Contacted__c` guards duplicate outreach; DNC filter | BR-09.1, BR-09.2 |
+| F-13 | Stage-prefixed Task subjects guard duplicate outreach; `Renewal_Contacted__c` stamped on first contact; DNC email-only | BR-09.1, BR-09.2 |
 | F-14 | Cached image URLs only; never a live callout per render | §8.2 |
 | F-16 | `AccountId` derived server-side; LDS-only; no portal Apex controllers | X12, §8.3 |
 
@@ -716,7 +732,7 @@ sequenceDiagram
 | Q3 | Billing in Salesforce? | `Invoice__c`/`Payment__c` (not modelled), Phase 10 |
 | Q4 / BQ8 | Fibre eligibility source | `EligibilityService`, I-06 (image/eligibility sync) |
 | BQ3 | Resolved 2026-11-19 — suspension does not pause the clock | F-08, `SuspensionService` (Contract and Engagement untouched) |
-| BQ4 | Expired commitment roll/lapse/re-price | F-13 |
+| BQ4 | Resolved 2026-11-19 — expired commitments roll monthly | F-13, `RenewalService` (`LetLapse`) |
 | BQ11 | Device penalty-free window | `Engagement_Penalty__mdt` seed, `EngagementPenaltyService` |
 | R4 | RCA field names differ by release | every service calling RCA APIs |
 | R13 | Decision tables not activated | `CatalogQueryService`, pricing test harness |

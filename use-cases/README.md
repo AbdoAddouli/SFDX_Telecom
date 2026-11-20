@@ -145,7 +145,7 @@ These must be resolved and recorded before dependent cards are built. Sources: `
 | **Q4 / BQ8** | Source system for fibre eligibility data | Network team | `UC-DM-05`, `UC-LIF-01`, `UC-INT-06` |
 | **BQ2 / Q5** | **Resolved 2026-11-18 —** 30-day notice applies to all products and segments. | Commercial | `UC-DM-10`, `UC-LIF-03` unblocked. |
 | **BQ3** | **Resolved 2026-11-19 —** suspension does NOT pause the commitment clock; Contract and Engagement remain unchanged. | Commercial + Finance | `UC-LIF-04` unblocked. |
-| **BQ4** | **Resolved 2026-11-17 —** expired commitments roll over monthly. | Commercial | `UC-LIF-06` unblocked. |
+| **BQ4** | **Resolved 2026-11-17, implemented 2026-11-19 —** expired commitments roll over monthly through `RenewalService.LetLapse`. | Commercial | `UC-LIF-06` complete. |
 | **BQ5 / Q7** | Restocking fee separate from engagement penalty? | Commercial | `UC-LIF-05`, `UC-LIF-03` |
 | **BQ6 / Q3-DM** | Same pricebook for Consumer and Business? | Commercial | `UC-CAT-04` |
 | **BQ9** | **Resolved 2026-11-17 —** goodwill waiver threshold equals the approval threshold. | Finance | `UC-LIF-03` unblocked. |

@@ -505,8 +505,9 @@ Request raised (Portal | Advisor | API)
 | Effect on `Subscription__c` | **Unchanged** — the service instance survives |
 | Effect on `Asset` | Old asset → `Retired`; new asset → created, `Parent` relationship preserved |
 | Effect on `Engagement__c` | **Unchanged** unless the swap changes the device's commitment tier |
-| Stock/serial | New `Asset` records serial, colour, image; lineage via `OrderItem` |
-| BSS | Device IMEI swap callout |
+| Stock/serial | New `Asset` records serial, colour, image; lineage via `OrderItem` (`Asset.Order_Item__c`) |
+| BSS | Device IMEI swap callout through `BssEquipmentSwapGateway` |
+| Fee (implemented) | BQ5/Q7 default is fee-free (`Calculated_Fee__c = 0`); the open restocking-fee policy is recorded in `Fee_Breakdown__c` |
 
 ### 9.4 Number portability (inbound and outbound)
 
@@ -658,11 +659,24 @@ Scheduled daily job scans `Subscription__c.Next_Renewal_Date__c` (formula over `
    (idempotency guard — the daily job cannot re-contact the same customer)
 ```
 
+**Implementation (2026-11-19).** `RenewalOutreachBatch` runs daily at 03:00 and
+creates stage-specific Tasks (`Renewal T-60`, `Renewal T-30`, `Renewal T-7`)
+once per stage per engagement. Because only one `Renewal_Contacted__c` checkbox
+exists, the guard is the Task subject prefix; the checkbox is stamped on the
+first outreach. DNC contacts receive an email-only Task and T-7 escalations are
+High-priority Tasks assigned to the engagement owner. `RenewalService` handles
+the four decisions through shared request intake. `RenewSameTerms` and
+`RenewNewPlan` expire the old engagement, create a new active engagement, and
+use `CatalogQueryService` for the server-computed amount. `LetLapse` expires the
+old engagement and rolls the subscription billing end forward one month under
+BQ4. `CancelEarly` is rejected before intake so early termination stays in
+Process 08.
+
 ### 11.4 Business rules
 
 | # | Rule | Enforcement |
 |---|---|---|
-| BR-09.1 | **No duplicate outreach.** `Renewal_Contacted__c` guards against the daily job re-creating tasks. | Checkbox + job filter |
+| BR-09.1 | **No duplicate outreach.** Stage-prefixed Task subjects guard each T−60/30/7 step; `Renewal_Contacted__c` is stamped on first outreach. | Task subject check + checkbox |
 | BR-09.2 | Renewal campaigns never contact a customer with `Do_Not_Call__c` by phone. | DNC filter |
 | BR-09.3 | `Months_Remaining__c` and `Is_Committed__c` are **formulas**, never stored — a stored value drifts the moment a date changes and produces wrong renewal and penalty decisions. | Formula fields |
 | BR-09.4 | An expired engagement is terminal (`Expired`); the renewal creates a **new** engagement, it does not resurrect the old one. | State machine |
@@ -883,7 +897,7 @@ These block or shape the processes above. They are the business-side counterpart
 | **BQ1** | Is a plan change an **amendment** of the existing contract or a **new contract**? | 06 | Finance + Sales Ops | **Phase 1.** Determines commitment clock restart and revenue treatment |
 | **BQ2** | Is the 30-day cancellation notice correct for **all** product categories and segments? | 08 | Commercial | Notice-period validation rule |
 | **BQ3** | **Resolved 2026-11-19 —** suspension does **not** pause the commitment clock; it keeps running. | 07 | Commercial + Finance | `UC-LIF-04` unblocked; Contract and Engagement unchanged on suspend |
-| **BQ4** | Do expired commitments roll automatically, lapse, or trigger a re-price? | 09 | Commercial | Renewal fulfilment path |
+| **BQ4** | **Resolved 2026-11-19 —** expired commitments roll over monthly; `LetLapse` implements the rollover. | 09 | Commercial | `UC-LIF-06` unblocked and implemented |
 | **BQ5** | Is there a restocking fee on device returns, separate from the engagement penalty? | 07 / 08 | Commercial | May need a second fee line |
 | **BQ6** | Are consumers and businesses priced from the same pricebook? | 03 / 06 | Commercial | Pricebook topology |
 | **BQ7** | Do invoicing and revenue recognition live in Salesforce? | 05 / 08 | Finance | Whether billing is in scope at all |

@@ -1,8 +1,8 @@
 # ATS Telecom Build Checkpoint
 
-**Last updated:** 2026-11-19
+**Last updated:** 2026-11-20
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
-**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ2, BQ3, BQ4, BQ9, BQ11, and BQ12 are resolved. UC-LIF-01 penalty service, UC-LIF-08 shared intake, UC-LIF-02 scoped plan change, the full UC-LIF-03 cancellation path (intake → approval → effective-date fulfilment), and UC-LIF-04 reversible suspension/unfreeze are deployed. Full local Apex suite passes 200/200 (run `707bm00001Xdxfq`). Next: UC-LIF-05 equipment swap.
+**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ2, BQ3, BQ4, BQ5/Q7, BQ9, BQ11, and BQ12 are resolved. UC-LIF-01 penalty service, UC-LIF-08 shared intake, UC-LIF-02 scoped plan change, the full UC-LIF-03 cancellation path, UC-LIF-04 reversible suspension/unfreeze, UC-LIF-05 equipment swap, UC-LIF-06 renewal management, and UC-LIF-07 two-phase number portability are deployed. Full local Apex suite passes 224/224 (run `707bm00001Y0An9`). Next: commit/push only on explicit instruction.
 
 ---
 
@@ -68,7 +68,38 @@
 - `SuspensionApprovalService` is the second invocable wrapper needed because Apex allows only one `@InvocableMethod` per class. Advisor and manager permission sets grant both service classes access.
 - `BssSuspensionGateway` defines `suspend`/`resume`; `SimulatedBssProvisioningGateway` implements it until E8. Mixed-action batches are grouped by action, and a BSS failure rolls back the status change only, leaving the approved request/Case available for retry.
 - Awaiting-approval requests never call BSS and never change line status. Approved requests set `Active → Suspended` or `Suspended → Active`, write the external status, close the Case, and complete the request with a resolution note.
-- `SuspensionServiceTest` passes 7/7 (run `707bm00001Xcf5U`); full local suite passes 200/200 (run `707bm00001Xdxfq`). All three ATS scheduled jobs were temporarily aborted for the metadata deploy and restored with their original names/cron expressions.
+- `SuspensionServiceTest` passes 7/7 (run `707bm00001Xcf5U`); the full suite passed 200/200 at that checkpoint (run `707bm00001Xdxfq`) and now passes 209/209 (run `707bm00001Xek74`). All three ATS scheduled jobs were temporarily aborted for the metadata deploy and restored with their original names/cron expressions.
+
+### E6 UC-LIF-06 renewal management (2026-11-19)
+
+- BQ4 is implemented as monthly rollover: `LetLapse` expires the old engagement, leaves it terminal, and extends the subscription billing end by one month. A renewal always creates a **new** active engagement; no terminal engagement is resurrected.
+- `RenewalService` is the invocable façade. `RenewalValidator`, `RenewalRepository`, `RenewalIntake`, `RenewalFulfilment`, and `RenewalWriter` keep validation, catalogue querying, intake, orchestration, and bulk writes separate. `LifecycleRequestPolicy.TYPE_RENEWAL` and the `Renewal` request-type value route every decision through the shared request/Case intake.
+- Decisions are `RenewSameTerms`, `RenewNewPlan`, `LetLapse`, and `CancelEarly`. `CancelEarly` is rejected before intake with an instruction to use `CancellationService`; renewal requests carry no penalty fee.
+- Renewal pricing and fibre eligibility go through `CatalogQueryService.getPriceBreakdown` and `CatalogQueryService.getPlans`/`filterByEligibility`. The server-computed amount is stamped into `Customer_Request__c.Fee_Breakdown__c`; no LWC calculates prices and no `ContractLineItem` is created.
+- `RenewalOutreachBatch` runs daily at 03:00 as `ATS Renewal Outreach (Daily)`. It creates stage-specific Tasks prefixed `Renewal T-60`, `Renewal T-30`, and `Renewal T-7`, once per stage per engagement. DNC contacts get email-only Tasks; T-7 escalations use the record owner with `Priority = 'High'`. `Engagement__c` now allows Activities so Tasks can relate directly to the engagement.
+- The three original ATS jobs were temporarily aborted for the deploy and restored with their original cron expressions; the renewal outreach job was added alongside them.
+- `RenewalServiceTest` passes 5/5 and `RenewalOutreachServiceTest` passes 4/4 (combined run `707bm00001XdDLU`). Full local suite passes 209/209 (run `707bm00001Xek74`).
+
+### E6 UC-LIF-07 number portability (2026-11-19)
+
+- Added five typed `Customer_Request__c` fields: `Requested_MSISDN__c`, `Port_Direction__c`, `Port_Request_Reference__c`, `Port_Confirmation_Reference__c`, and `Previous_MSISDN__c`. Field FLS was granted in all 8 permission sets; without that deployment REST/Apex reported `No such column` even though Metadata API showed the fields.
+- Valid MSISDNs match `^\+?[0-9]{7,15}$`; the subscription must be Active; in-flight duplicates use `Approved`, `Awaiting_Approval`, or `In_Fulfilment`. The fee uses `EngagementPenaltyService` through `LifecycleRequestPolicy.PENALTY_TYPES` with `Portability`.
+- `PortabilityService` is the invocable façade for `Portability_Request`; `PortabilityConfirmationService` is the second invocable wrapper for `Portability_Confirmation`. Dedicated Flows avoid branching the shared intake Flow.
+- `PortabilityValidator`, `PortabilityRepository`, `PortabilityIntake`, `PortabilityBssClient`, `PortabilityWriter`, `PortabilityConfirmation`, and `PortabilityLogger` separate validation, bulk reads, intake, BSS calls, writes, and logging.
+- Phase 1 uses `LifecycleRequestService` to create the request/Case pair, then stamps the port fields only after BSS accepts the request. Duplicate requested MSISDNs are rejected before intake.
+- Phase 2 is a separate confirmation invocation: confirmed inbound sets the requested number, confirmed outbound clears `MSISDN__c` and stores `Previous_MSISDN__c`; donor rejection leaves the number unchanged. `Status__c` plus `Port_Confirmation_Reference__c` carry state; no `Port_Confirmation_Status__c` exists.
+- `SimulatedBssPortabilityGateway` is a dedicated gateway so the schedulable `SimulatedBssProvisioningGateway` with its pending CronTrigger is untouched. BSS failures roll back every Salesforce write and leave the request available for retry.
+- `PortabilityServiceTest` passes 7/7 (run `707bm00001XfdGe`); full local suite passes 216/216 (run `707bm00001Xgerz`).
+
+### E6 UC-LIF-05 equipment swap (2026-11-20)
+
+- Resolved BQ5/Q7 with the fee-free default: `Customer_Request__c.Calculated_Fee__c = 0` and the still-open restocking-fee policy recorded verbatim in `Fee_Breakdown__c`. No second fee line was added.
+- Added `Asset.Colour__c`, `Asset.Image_URL__c`, and `Asset.Order_Item__c` for device lineage, plus six typed swap fields on `Customer_Request__c` (`BSS_Swap_Reference__c`, `Old_Asset__c`, `New_Asset__c`, `New_Asset_Serial__c`, `New_Asset_Colour__c`, `New_Asset_Image_URL__c`).
+- `EquipmentSwapService` is the invocable façade; `EquipmentSwapIntake`, `EquipmentSwapValidator`, `EquipmentSwapRepository`, `EquipmentSwapPolicy`, `EquipmentSwapContext`, `EquipmentSwapBssClient`, `EquipmentSwapFulfilment`, `EquipmentSwapWriter`, `EquipmentSwapLogger`, and `EquipmentSwapApprovalService` separate validation, bulk reads, BSS calls, writes, and approval handling. `Equipment_Swap` and `Equipment_Swap_Approval` are dedicated Flows; the shared `Customer_Request_Intake` guidance now directs swap requests to `EquipmentSwap`.
+- Rules enforced server-side: Active subscription only, same product family and commitment tier, no service/contract/commitment change, serial `^[A-Za-z0-9_-]{5,30}$`, and duplicate in-flight guard. Old asset becomes `Retired`/`Superseded`; new asset becomes `Installed`/`Active` and links to a new `OrderItem` through `Asset.Order_Item__c`. Subscription status, price, engagement, and contract are untouched.
+- `SimulatedBssEquipmentSwapGateway` is a dedicated gateway behind `BssEquipmentSwapGateway`, so the schedulable `SimulatedBssProvisioningGateway` with its pending CronTrigger remains untouched. A nested savepoint rolls back new asset/OrderItem writes on BSS failure while the `Approved` request survives for retry. Non-waiver swaps auto-approve; goodwill waivers wait for approval.
+- FLS for the nine new fields was granted in all 8 permission sets. `EquipmentSwapService` and `EquipmentSwapApprovalService` class access plus Asset edit were granted to `ats_Advisor` and `ats_AdvisorManager`; `ActivationPermissionSetTest` was updated for the intentional Asset edit grant. An accidental broad `allowEdit` drift in Advisor/Manager object permissions (Account, Eligibility__c, OrderItem, Pricebook2, PricebookEntry, Product_Classification__c, Product2, Engagement__c) was detected against `HEAD` and reverted, leaving only the intentional Asset edit change.
+- Deploy `0Afbm00000p4XG9CAM` completed 37/37 components; permission-set correction deploy `0Afbm00000p4eJFCAY` completed 2/2. `EquipmentSwapServiceTest` passes 8/8 (run `707bm00001Y0HAM`), `ActivationPermissionSetTest` passes 5/5 (run `707bm00001Y0sUE`). The first full-suite run after deployment was 222/224; the two failures were the stale Asset-edit expectation and the Engagement-edit drift, both corrected before the final runs. Full local suite now passes 224/224 (run `707bm00001Y0An9`).
 
 ### Data model (earlier work)
 
@@ -583,12 +614,13 @@ handler, and seven tests already implement this scope; no deployment was needed.
 
 ### Data lifecycle cleanup (partial)
 
-Two of the four `UC-DM-14` jobs are deployed, tested, and scheduled:
+Three of the four `UC-DM-14` jobs are deployed, tested, and scheduled:
 
 | Job | Type | Schedule | Behavior |
 |---|---|---|---|
 | `IntegrationLogCleanupBatch` | `Database.Batchable` + `Schedulable` | Weekly, Sunday 02:00 (`0 0 2 ? * SUN`) | Hard-deletes `Integration_Log__c` rows with `CreatedDate` older than 13 months; batch size 2,000 |
 | `WizardStateCleanupBatch` | `Database.Batchable` + `Schedulable` | Nightly 01:00 (`0 0 1 ? * *`) | Hard-deletes `Subscription_Wizard_State__c` rows whose `Expires_On__c` is in the past; falls back to `Last_Activity_On__c` older than 7 days when the expiry is blank |
+| `RenewalOutreachBatch` | `Database.Batchable` + `Schedulable` | Nightly 03:00 (`0 0 3 * * ?`) | Creates T−60/T−30/T−7 outreach Tasks once per stage per engagement, with DNC email-only handling |
 
 The wizard job does not filter on `Is_Active__c`: expiry is the retention
 signal, and filtering on the session-concurrency flag would leave abandoned
@@ -598,9 +630,12 @@ rows whose `Expires_On__c` was not populated.
 Deployment and verification:
 
 - `IntegrationLogCleanupBatchTest` and `WizardStateCleanupBatchTest`: 5/5 tests pass.
-- Active `CronTrigger` records verified:
-  `ATS Integration Log Cleanup (Weekly)` next fire 2026-11-08 and
-  `ATS Wizard State Cleanup (Nightly)` next fire 2026-11-07.
+- `RenewalOutreachServiceTest`: 4/4 tests pass; the full suite passes 209/209 (run `707bm00001Xek74`).
+- Active `CronTrigger` records verified on 2026-11-19:
+  `ATS Wizard State Cleanup (Nightly)` (`0 0 1 ? * *`),
+  `ATS Cancellation Fulfilment (Daily)` (`0 0 1 * * ?`),
+  `ATS Renewal Outreach (Daily)` (`0 0 3 * * ?`), and
+  `ATS Integration Log Cleanup (Weekly)` (`0 0 2 ? * SUN`), all `WAITING`.
 - Scheduled jobs are org configuration, not deployable metadata; re-create them
   with `System.schedule` when building a new org.
 
@@ -610,9 +645,10 @@ Source files:
 - `force-app/main/default/classes/IntegrationLogCleanupBatchTest.cls`
 - `force-app/main/default/classes/WizardStateCleanupBatch.cls`
 - `force-app/main/default/classes/WizardStateCleanupBatchTest.cls`
+- `force-app/main/default/classes/RenewalOutreachBatch.cls`
+- `force-app/main/default/classes/RenewalOutreachServiceTest.cls`
 
-Still deferred: `RenewalOutreachScheduler` (wired in E6) and
-`BssReconciliationBatch` (wired in E8).
+Still deferred: `BssReconciliationBatch` (wired in E8).
 
 ### Page layouts (complete)
 
@@ -873,8 +909,9 @@ Current totals:
   auto-number field can't also be an External ID. The engagement reference is
   the auto-number `Name` field (`ENG-{0000}`). A separate Text(30) external ID
   would be a design decision, not a prerequisite for the index request.
-- The remaining two retention/reconciliation jobs in `UC-DM-14` are not yet
-  implemented: `RenewalOutreachScheduler` (E6) and `BssReconciliationBatch` (E8).
+- The remaining reconciliation job in `UC-DM-14` is not yet implemented:
+  `BssReconciliationBatch` (E8). `RenewalOutreachBatch` now covers the renewal
+  outreach job in E6.
 - E2's server-side catalogue, pricing export, and UC-COM-01 quote creation are
   complete. `priceBulk()` is capped at 200 requests per call (the spec's
   supported batch size); the 200-request mixed test passes and a 201-request

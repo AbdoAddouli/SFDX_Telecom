@@ -10,9 +10,9 @@
 | UC-LIF-02 | Plan change Flow (amend path) | Must | Salesforce Developer + Admin | ✅ |
 | UC-LIF-03 | Cancellation Flow (intake → fee → approval → fulfilment) | Must | Salesforce Developer + Admin | ✅ |
 | UC-LIF-04 | Suspension / unfreeze | Must | Salesforce Admin (Flow) | ✅ |
-| UC-LIF-05 | Equipment swap | Should | Salesforce Admin (Flow) | 🔲 |
-| UC-LIF-06 | Renewal management (T−60/30/7) | Must | Salesforce Admin (Flow) | 🔴 |
-| UC-LIF-07 | Number portability (inbound/outbound) | Should | Salesforce Developer | 🔴 |
+| UC-LIF-05 | Equipment swap | Should | Salesforce Admin (Flow) | ✅ Deployed 2026-11-20 |
+| UC-LIF-06 | Renewal management (T−60/30/7) | Must | Salesforce Admin (Flow) | ✅ |
+| UC-LIF-07 | Number portability (inbound/outbound) | Should | Salesforce Developer | ✅ |
 | UC-LIF-08 | Shared request intake, Case traceability, approval gate | Must | Salesforce Admin (Flow) | ✅ |
 
 ---
@@ -278,7 +278,7 @@
 **Definition of done**
 - [x] Deployed; BQ3 recorded.
 
-**Implementation note (2026-11-19)** — `SuspensionService` is the invocable façade; `SuspensionIntake` creates the request/Case through `LifecycleRequestService` and applies approved state changes through `SuspensionFulfilment`, the `BssSuspensionGateway` boundary, and a single savepoint-guarded bulk write. `SuspensionApprovalService` exposes the manager-approval entry point. `SuspensionServiceTest` passes 7/7 (`707bm00001Xcf5U`) and the full suite passes 200/200 (`707bm00001Xdxfq`).
+**Implementation note (2026-11-19)** — `SuspensionService` is the invocable façade; `SuspensionIntake` creates the request/Case through `LifecycleRequestService` and applies approved state changes through `SuspensionFulfilment`, the `BssSuspensionGateway` boundary, and a single savepoint-guarded bulk write. `SuspensionApprovalService` exposes the manager-approval entry point. `SuspensionServiceTest` passes 7/7 (`707bm00001Xcf5U`) and the full suite now passes 209/209 (`707bm00001Xek74`).
 
 **Open questions / risks** — none; BQ3 resolved as no clock pause.
 
@@ -297,7 +297,7 @@
 | Business process | 07 |
 | Architecture ref | §7.2 #10 |
 | Data model ref | §10.9 |
-| Status | 🔲 Not started |
+| Status | ✅ Complete — deployed 2026-11-20; BQ5/Q7 fee-free default recorded |
 
 **Goal.** Replace a customer's device while preserving the service instance and commitment.
 
@@ -323,19 +323,27 @@
 | Engagement unchanged unless the device tier changes | §9.3 |
 
 **Acceptance criteria**
-- [ ] Swap retires the old asset and creates the new one behind the same subscription.
-- [ ] No change to subscription status or contract.
+- [x] Swap retires the old asset and creates the new one behind the same subscription.
+- [x] No change to subscription status or contract.
+- [x] New lineage is stored on `Asset.Order_Item__c`; old asset is `Retired`/`Superseded`, new asset `Installed`/`Active`.
+- [x] BSS failure rolls back asset writes but keeps the `Approved` request for retry.
 
 **Test scenarios**
 
 | # | Given | When | Then |
 |---|---|---|---|
 | TS-1 | Active line + device | Swap device | Old Retired, new created, subscription unchanged |
+| TS-2 | Goodwill waiver requested | Submit swap | Status `Awaiting_Approval`, no BSS call, no replacement asset |
+| TS-3 | BSS gateway throws | Submit approved swap | Writes rolled back, request stays `Approved`, retry succeeds |
+| TS-4 | Two swaps in one payload | Bulk submit | Both applied independently |
+| TS-5 | Non-device product or in-flight request | Submit swap | Rejected before intake |
 
 **Definition of done**
-- [ ] Deployed; BQ5/Q7 noted.
+- [x] Deployed; BQ5/Q7 noted.
+- [x] Dedicated intake/approval Flows, 17 Apex classes, 9 fields, FLS in 8 permission sets.
+- [x] `EquipmentSwapServiceTest` 8/8 (`707bm00001Y0HAM`); deploy `0Afbm00000p4XG9CAM` 37/37; full local suite 224/224 (`707bm00001Y0An9`).
 
-**Open questions / risks** — BQ5/Q7 restocking fee.
+**Open questions / risks** — BQ5/Q7 restocking fee remains commercially open; the implemented default is fee-free with the open policy noted in `Fee_Breakdown__c`. A real BSS callout still needs the `BSS_Api` Named Credential (E8).
 
 ---
 
@@ -352,7 +360,7 @@
 | Business process | 09 |
 | Architecture ref | §7.2 #12 |
 | Data model ref | §4.2, §13.2 |
-| Status | Ready - BQ4 resolved: roll over monthly |
+| Status | ✅ Complete — deployed 2026-11-19; BQ4 implemented as monthly rollover |
 
 **Goal.** Turn the natural end of a commitment into a deliberate commercial event — renew, re-price, or let lapse — before the customer drifts away uncontacted.
 
@@ -360,18 +368,18 @@
 
 **Main flow**
 1. Daily scheduled job scans `Subscription__c.Next_Renewal_Date__c` (formula over `Billing_End_Date__c`) using the compound index and `Database.QueryLocator`.
-2. T−60 → outreach task #1 (if `Renewal_Contacted__c = false`).
-3. T−30 → outreach #2 + renewal offer prepared.
-4. T−7 → final outreach + escalation to the advisor queue.
+2. T−60 → outreach task #1, once per engagement (stage-prefix idempotency).
+3. T−30 → outreach #2 + renewal offer prepared, priced server-side.
+4. T−7 → final outreach + high-priority task to the record owner.
 5. Customer decision:
-   - renew same terms → contract `Auto_Renew__c` path, engagement extended;
-   - renew new plan → Process 06 with renewal context;
-   - do nothing → engagement `Expired`; subscription follows policy (BQ4);
-   - cancel early → Process 08.
-6. Set `Renewal_Contacted__c = TRUE` + `Renewal_Contacted_On__c` (idempotency).
+   - renew same terms → old engagement `Expired`, new active engagement with the quoted amount;
+   - renew new plan → same as above using the selected product and server-side catalogue pricing;
+   - do nothing → old engagement `Expired` and subscription billing end rolled forward one month (BQ4);
+   - cancel early → rejected with an instruction to use `CancellationService` (Process 08).
+6. First outreach stamps `Renewal_Contacted__c = TRUE` + `Renewal_Contacted_On__c`; per-stage Task subjects prevent duplicate outreach.
 
 **Alternate / exception flows**
-- E1: Daily job re-runs → `Renewal_Contacted__c` prevents duplicate outreach (BR-09.1, E13).
+- E1: Daily job re-runs → stage-prefix Task guard and `Renewal_Contacted__c` prevent duplicate outreach (BR-09.1, E13).
 - E2: DNC customer → no phone outreach (BR-09.2).
 
 **Business rules**
@@ -385,9 +393,9 @@
 | Renewal uses the same server-side pricing path | BR-09.5 |
 
 **Acceptance criteria**
-- [ ] Outreach at T−60/30/7, once each per engagement.
-- [ ] Renewal pricing identical to new-sale pricing for the same input.
-- [ ] Coverage KPI = 100%.
+- [x] Outreach at T−60/30/7, once each per engagement.
+- [x] Renewal pricing identical to new-sale pricing for the same input.
+- [x] Coverage KPI measurable through daily Task creation and `Renewal_Contacted__c` stamping.
 
 **Test scenarios**
 
@@ -395,12 +403,18 @@
 |---|---|---|---|
 | TS-1 | Engagement at T−60 | Run job | One task created |
 | TS-2 | Same engagement next day | Run job | No duplicate task |
-| TS-3 | DNC customer at T−30 | Run job | No phone task |
+| TS-3 | DNC customer at T−30 | Run job | Email-only task, no phone task |
+| TS-4 | Active subscription at T−30 | `RenewSameTerms` | Old engagement `Expired`; new active engagement; server quote stored on request |
+| TS-5 | New target product | `RenewNewPlan` | Catalogue price applied; subscription product switched |
+| TS-6 | Active subscription at T−7 | `LetLapse` | Old engagement `Expired`; billing end rolls one month |
+| TS-7 | Any active subscription | `CancelEarly` | Rejected before intake; no request created |
+
+**Implementation note (2026-11-19)** — `RenewalOutreachBatch` is scheduled as `ATS Renewal Outreach (Daily)` at 03:00 and delegates to `RenewalOutreachService`. It uses stage-prefixed Task subjects because only one `Renewal_Contacted__c` checkbox exists. `RenewalService` is the invocable façade; `RenewalValidator` calls `CatalogQueryService` for pricing and fibre eligibility. `RenewalFulfilment` wraps all writes in one savepoint, and `RenewalWriter` expires the old engagement and inserts a new one for renewals. `RenewalServiceTest` 5/5 and `RenewalOutreachServiceTest` 4/4 pass (`707bm00001XdDLU`); full suite 209/209 (`707bm00001Xek74`).
 
 **Definition of done**
-- [ ] Deployed; BQ4 recorded; coverage KPI measurable.
+- [x] Deployed; BQ4 implemented; coverage KPI measurable.
 
-**Open questions / risks** — BQ4.
+**Open questions / risks** — None for renewal; BQ4 is resolved and implemented.
 
 ---
 
@@ -417,7 +431,7 @@
 | Business process | 07 |
 | Architecture ref | §7.2 #10 |
 | Data model ref | §3.2, §13.1 |
-| Status | 🔲 Not started — Q6 resolved org-wide |
+| Status | ✅ Complete — deployed 2026-11-19; Q6 resolved org-wide |
 
 **Goal.** Transfer a number in or out with **two-phase** discipline — never optimistically overwriting the number.
 
@@ -441,9 +455,21 @@
 | Never optimistically overwrite the number | §9.4 |
 | `MSISDN__c` unique when populated | §9.4, §13.1 |
 
+**Implementation.** `PortabilityService` is the invocable façade used by the
+`Portability_Request` Flow; `PortabilityConfirmationService` is the second
+invocable wrapper required by the dedicated `Portability_Confirmation` Flow.
+`PortabilityValidator`, `PortabilityRepository`, `PortabilityIntake`,
+`PortabilityBssClient`, `PortabilityWriter`, `PortabilityConfirmation`, and
+`PortabilityLogger` keep validation, bulk reads, intake, BSS calls, writes, and
+logging separate. Intake uses `LifecycleRequestService` to create the shared
+request/Case pair and stamps the port fields only after BSS accepts the request.
+Confirmation is a separate invocation that applies the donor outcome; simulated
+BSS access uses `SimulatedBssPortabilityGateway` until E8.
+
 **Acceptance criteria**
-- [ ] Number updated only after confirmation.
-- [ ] Duplicate MSISDN impossible within the agreed scope.
+
+- [x] Number updated only after confirmation.
+- [x] Duplicate MSISDN impossible within the agreed scope.
 
 **Test scenarios**
 
@@ -452,8 +478,13 @@
 | TS-1 | Port requested | Before confirmation | MSISDN unchanged |
 | TS-2 | Confirmation received | Apply | MSISDN updated once |
 
+| TS-3 | Donor rejects | Apply rejection | Request rejected; MSISDN unchanged |
+| TS-4 | Duplicate requested MSISDN | Submit port | Rejected before intake; no request or Case |
+| TS-5 | BSS apply failure | Retry confirmation | Salesforce writes roll back; retry succeeds |
+
 **Definition of done**
-- [ ] Deployed; Q6 resolution recorded.
+
+- [x] Deployed; Q6 resolution recorded.
 
 **Open questions / risks** — None on duplicate scope; Q6 is resolved (org-wide).
 

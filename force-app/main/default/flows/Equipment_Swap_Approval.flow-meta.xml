@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+  <actionCalls>
+    <name>Apply_Swap</name>
+    <label>Apply Approved Equipment Swap</label>
+    <locationX>600</locationX>
+    <locationY>300</locationY>
+    <actionName>EquipmentSwapApprovalService</actionName>
+    <actionType>apex</actionType>
+    <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+    <connector>
+      <targetReference>Check_Result</targetReference>
+    </connector>
+    <faultConnector>
+      <targetReference>Screen_Error</targetReference>
+    </faultConnector>
+    <inputParameters>
+      <name>requestId</name>
+      <value><elementReference>requestId</elementReference></value>
+    </inputParameters>
+    <storeOutputAutomatically>true</storeOutputAutomatically>
+  </actionCalls>
+  <decisions>
+    <name>Check_Result</name>
+    <label>Swap Applied?</label>
+    <locationX>800</locationX>
+    <locationY>300</locationY>
+    <defaultConnector>
+      <targetReference>Screen_Failed</targetReference>
+    </defaultConnector>
+    <defaultConnectorLabel>Failed</defaultConnectorLabel>
+    <rules>
+      <name>Applied</name>
+      <conditionLogic>and</conditionLogic>
+      <conditions>
+        <leftValueReference>Apply_Swap.success</leftValueReference>
+        <operator>EqualTo</operator>
+        <rightValue><booleanValue>true</booleanValue></rightValue>
+      </conditions>
+      <connector>
+        <targetReference>Screen_Success</targetReference>
+      </connector>
+    </rules>
+  </decisions>
+  <description>UC-LIF-05 manager approval. Applies an approved equipment-swap request through the same BSS gateway and atomic write path as intake.</description>
+  <interviewLabel>Equipment Swap Approval {!$Flow.CurrentDateTime}</interviewLabel>
+  <label>Equipment Swap Approval</label>
+  <processMetadataValues>
+    <name>BuilderType</name>
+    <value><stringValue>LightningFlowBuilder</stringValue></value>
+  </processMetadataValues>
+  <processType>Flow</processType>
+  <screens>
+    <name>Screen_Intake</name>
+    <label>Approve Equipment Swap</label>
+    <locationX>200</locationX>
+    <locationY>300</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <connector>
+      <targetReference>Apply_Swap</targetReference>
+    </connector>
+    <fields>
+      <name>Guidance</name>
+      <fieldText>Enter the approved Customer Request Id. The swap is applied only if the request is Approved and has complete device details. BSS failure rolls back all Salesforce writes and leaves the request ready for retry.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>requestId</name>
+      <fieldType>InputField</fieldType>
+      <dataType>String</dataType>
+      <isRequired>true</isRequired>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Success</name>
+    <label>Swap Applied</label>
+    <locationX>1000</locationX>
+    <locationY>300</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Success_Message</name>
+      <fieldText>{!Apply_Swap.message}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Success_Old_Asset</name>
+      <fieldText>Old Asset: {!Apply_Swap.oldAssetId}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <fields>
+      <name>Success_New_Asset</name>
+      <fieldText>New Asset: {!Apply_Swap.newAssetId}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Failed</name>
+    <label>Swap Not Applied</label>
+    <locationX>800</locationX>
+    <locationY>500</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Failed_Message</name>
+      <fieldText>{!Apply_Swap.message}</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <screens>
+    <name>Screen_Error</name>
+    <label>Approval Error</label>
+    <locationX>600</locationX>
+    <locationY>500</locationY>
+    <allowBack>false</allowBack>
+    <allowFinish>true</allowFinish>
+    <allowPause>false</allowPause>
+    <fields>
+      <name>Error_Message</name>
+      <fieldText>The swap could not be applied. Review the request and retry.</fieldText>
+      <fieldType>DisplayText</fieldType>
+    </fields>
+    <showFooter>true</showFooter>
+    <showHeader>true</showHeader>
+  </screens>
+  <start>
+    <locationX>50</locationX>
+    <locationY>0</locationY>
+    <connector>
+      <targetReference>Screen_Intake</targetReference>
+    </connector>
+  </start>
+  <status>Active</status>
+</Flow>

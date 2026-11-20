@@ -765,7 +765,7 @@
 2. Seed `Product2`: 4 mobile + 2 fibre + 3 devices with `ATS_Product_Code__c` (§15.1–15.3).
 3. Seed 4 selling models/options and 2 bundle adjustments (§15.4–15.5) — executed in E2.
 4. Seed 7 `Eligibility__c` records (§15.6), including the inactive `75099`.
-5. Deploy schedulers: `IntegrationLogCleanupBatch` (weekly, hard delete > 13 months), `WizardStateCleanupBatch` (nightly), `RenewalOutreachScheduler` (daily — wired in E6), `BssReconciliationBatch` (nightly — wired in E8).
+5. Deploy schedulers: `IntegrationLogCleanupBatch` (weekly, hard delete > 13 months), `WizardStateCleanupBatch` (nightly), `RenewalOutreachBatch` (daily 03:00 — implemented in E6), `BssReconciliationBatch` (nightly — wired in E8).
 
 **Alternate / exception flows**
 - E1: Re-running the seed duplicates catalogue → the use of `insert` is a defect; must use upsert.

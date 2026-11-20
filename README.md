@@ -44,12 +44,12 @@ The pricing model is implemented **without a Revenue Cloud Advanced licence**. C
 | Quote builder and five-step subscription wizard | Complete |
 | Atomic activation, Flow entry point, idempotency, bulk proof | Complete |
 | Subscription state machine and MSISDN duplicate handling | Complete |
-| Renewal, cancellation, and remaining lifecycle jobs | In progress: penalty service, shared intake, scoped plan change, cancellation intake/fulfilment, and reversible suspension complete |
+| Renewal, cancellation, and remaining lifecycle jobs | In progress: penalty service, shared intake, scoped plan change, cancellation intake/fulfilment, reversible suspension, renewal management, and number portability complete; equipment swap remains |
 | Real BSS callout and reconciliation batch | Partial: simulated gateway in use |
 | Portal experience | Deferred: no Experience Cloud licence |
 | Non-admin CRUD/FLS hardening | Complete: advisor and manager activation permissions verified |
 
-Latest verified local Apex suite: **200/200 passing** (run `707bm00001Xdxfq`), including `ActivationServiceTest` **26/26**, `SubscriptionWizardControllerTest` **21/21**, `ActivationPermissionSetTest` **5/5**, `EngagementPenaltyServiceTest` **4/4**, `LifecycleRequestServiceTest` **6/6**, `PlanChangeServiceTest` **3/3**, `CancellationServiceTest` **5/5**, `CancellationFulfilmentServiceTest` **7/7**, and `SuspensionServiceTest` **7/7**.
+Latest verified local Apex suite: **216/216 passing** (run `707bm00001Xgerz`), including `ActivationServiceTest` **26/26**, `SubscriptionWizardControllerTest` **21/21**, `ActivationPermissionSetTest` **5/5**, `EngagementPenaltyServiceTest` **4/4**, `LifecycleRequestServiceTest` **6/6**, `PlanChangeServiceTest` **3/3**, `CancellationServiceTest` **5/5**, `CancellationFulfilmentServiceTest` **7/7**, `SuspensionServiceTest` **7/7**, `RenewalServiceTest` **5/5**, `RenewalOutreachServiceTest` **4/4**, and `PortabilityServiceTest` **7/7**. Renewal targeted run: `707bm00001XdDLU`; portability targeted run: `707bm00001XfdGe`.
 
 ---
 
@@ -401,7 +401,10 @@ Latest verified local org run:
 | `CancellationServiceTest` | **5/5 passing** |
 | `CancellationFulfilmentServiceTest` | **7/7 passing** |
 | `SuspensionServiceTest` | **7/7 passing** |
-| Full local suite | **200/200 passing** |
+| `RenewalServiceTest` | **5/5 passing** |
+| `RenewalOutreachServiceTest` | **4/4 passing** |
+| `PortabilityServiceTest` | **7/7 passing** |
+| Full local suite | **216/216 passing** |
 
 The suite covers:
 
@@ -467,7 +470,8 @@ A real-org smoke test also confirms:
 - [x] E4 activation and wizard hand-off (`UC-COM-03`/`UC-COM-05`)
 - [x] Activation idempotency and 200/500-order bulk proof (`UC-COM-06`)
 - [x] Activation service split into reader, context, provisioner, BSS, writer, and contract collaborators
-- [ ] E6 renewal and remaining lifecycle jobs — cancellation and suspension paths complete; equipment swap and renewal outstanding
+- [x] E6 renewal management (`UC-LIF-06`) — outreach, server-side quoting, four decisions, and monthly rollover
+- [ ] E6 remaining lifecycle jobs — equipment swap outstanding
 - [ ] E7 portal — deferred; Experience Cloud licence required
 - [ ] E8 real BSS callout, reconciliation, and named credentials
 - [x] E9 non-admin activation CRUD/FLS hardening

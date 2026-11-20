@@ -147,7 +147,7 @@
     </connector>
     <fields>
       <name>Guidance</name>
-      <fieldText>Every actionable request creates a linked Case and resolves the impacted engagement. Valid types: NewSubscription, PlanChange, Cancellation, EquipmentSwap, Suspension, Unfreeze, Portability, Info. Valid channels: Advisor, Portal, API, Batch. Subscription is required for all types except NewSubscription and Info.</fieldText>
+      <fieldText>Every actionable request creates a linked Case and resolves the impacted engagement. Valid types: NewSubscription, PlanChange, Cancellation, EquipmentSwap, Suspension, Unfreeze, Renewal, Portability, Info. Valid channels: Advisor, Portal, API, Batch. Subscription is required for all types except NewSubscription and Info. Use Portability Request and Portability Confirmation for UC-LIF-07; this flow does not move an MSISDN. Use Equipment Swap for UC-LIF-05; this flow does not change device assets.</fieldText>
       <fieldType>DisplayText</fieldType>
     </fields>
     <fields>

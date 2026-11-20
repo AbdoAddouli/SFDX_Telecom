@@ -9,6 +9,7 @@
     </nameField>
     <compactLayoutAssignment>ATS_Engagement_Compact</compactLayoutAssignment>
     <deploymentStatus>Deployed</deploymentStatus>
+    <enableActivities>true</enableActivities>
     <sharingModel>ReadWrite</sharingModel>
     <description>Commitment period (12 or 24 months) with a penalty. Carries the snapshot fields that make an early termination fee reproducible.</description>
 </CustomObject>

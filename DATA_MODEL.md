@@ -966,7 +966,7 @@ Redundant fields are a deliberate trade-off here, not an oversight. Each exists 
 |---|---|---|
 | `IntegrationLogCleanupBatch` | Weekly | Hard delete `Integration_Log__c` older than 13 months |
 | `WizardStateCleanupBatch` | Nightly | Hard delete inactive `Subscription_Wizard_State__c` past `Expires_On__c` |
-| `RenewalOutreachScheduler` | Daily | Scheduled Flow, T−60/30/7 — guarded by `Renewal_Contacted__c` |
+| `RenewalOutreachBatch` | Daily 03:00 | Creates T−60/T−30/T−7 Tasks once per stage per engagement; first outreach stamps `Renewal_Contacted__c` |
 | `BssReconciliationBatch` | Nightly | Compare `Subscription__c` vs BSS; write `Integration_Log__c` and `External_Status__c` |
 
 ---
