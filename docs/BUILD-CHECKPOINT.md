@@ -1,8 +1,8 @@
 # ATS Telecom Build Checkpoint
 
-**Last updated:** 2026-11-20
+**Last updated:** 2026-11-21
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
-**Current step:** E4 and E9 are complete. E6 is in progress: Q1/BQ1, BQ2, BQ3, BQ4, BQ5/Q7, BQ9, BQ11, and BQ12 are resolved. UC-LIF-01 penalty service, UC-LIF-08 shared intake, UC-LIF-02 scoped plan change, the full UC-LIF-03 cancellation path, UC-LIF-04 reversible suspension/unfreeze, UC-LIF-05 equipment swap, UC-LIF-06 renewal management, and UC-LIF-07 two-phase number portability are deployed. Full local Apex suite passes 224/224 (run `707bm00001Y0An9`). Next: commit/push only on explicit instruction.
+**Current step:** E4, E6, E9, and E10 are complete. E8 slices 1–2 are deployed: a short `ExternalApiService` façade + collaborators, and a rollback-safe `Integration_Log_Event__e` outbox. No live gateway is switched over. E7 portal remains deferred. Full local Apex suite passes 235/235 (run `707bm00001YKV8b`). Next: continue E8 slices only on explicit instruction; commit/push only on explicit instruction.
 
 ---
 
@@ -100,6 +100,27 @@
 - `SimulatedBssEquipmentSwapGateway` is a dedicated gateway behind `BssEquipmentSwapGateway`, so the schedulable `SimulatedBssProvisioningGateway` with its pending CronTrigger remains untouched. A nested savepoint rolls back new asset/OrderItem writes on BSS failure while the `Approved` request survives for retry. Non-waiver swaps auto-approve; goodwill waivers wait for approval.
 - FLS for the nine new fields was granted in all 8 permission sets. `EquipmentSwapService` and `EquipmentSwapApprovalService` class access plus Asset edit were granted to `ats_Advisor` and `ats_AdvisorManager`; `ActivationPermissionSetTest` was updated for the intentional Asset edit grant. An accidental broad `allowEdit` drift in Advisor/Manager object permissions (Account, Eligibility__c, OrderItem, Pricebook2, PricebookEntry, Product_Classification__c, Product2, Engagement__c) was detected against `HEAD` and reverted, leaving only the intentional Asset edit change.
 - Deploy `0Afbm00000p4XG9CAM` completed 37/37 components; permission-set correction deploy `0Afbm00000p4eJFCAY` completed 2/2. `EquipmentSwapServiceTest` passes 8/8 (run `707bm00001Y0HAM`), `ActivationPermissionSetTest` passes 5/5 (run `707bm00001Y0sUE`). The first full-suite run after deployment was 222/224; the two failures were the stale Asset-edit expectation and the Engagement-edit drift, both corrected before the final runs. Full local suite now passes 224/224 (run `707bm00001Y0An9`).
+
+### E8 slice 1 — integration plumbing (2026-11-21)
+
+- Added `ExternalApiService`, `ExternalApiException`, `IntegrationCorrelation`, and `IntegrationLogService`. No live gateway is switched over: `BssProvisioningGateway`, `SimulatedBssProvisioningGateway`, and all other simulated gateways remain untouched.
+- `ExternalApiService` resolves base URL, auth type, Named Credential name, timeout, cache TTL, rate limit, and `Is_Active__c` from `External_Api__mdt` by `DeveloperName`, then applies the `ATS_Feature_Flags__c.External_Api_Enabled__c` global kill switch. Missing rows, inactive APIs, disabled global flag, blank base URL/auth type, or NamedCredential auth without a credential all fail fast before any callout.
+- The service joins base URL and path without duplicate slashes, sets `X-Correlation-Id` (36 chars) and optional `Idempotency-Key`, defaults `Content-Type: application/json` for JSON bodies, applies the configured timeout, and throws `ExternalApiException` on transport errors or non-2xx responses. Callers can therefore roll back Salesforce writes on BSS failure.
+- `IntegrationLogService` is the single normalisation path for `Integration_Log__c`. In slice 1 it inserted best-effort directly; slice 2 replaces that with a rollback-safe platform-event publish (see below). Values are normalised and truncated to schema lengths; unknown systems/statuses fall back to `Other`/`Failure`.
+- PII protection: raw request/response bodies are never persisted. `Payload_Summary__c` stores only `METHOD operation bytes=N`, so secrets such as subscription numbers cannot leak into logs. `Error_Stack__c` is only populated from caught exceptions and remains restricted to ops/integration users.
+- No DML occurs before `Http.send()`: logging is written only after the callout returns or throws. This keeps the transaction clear of `UNCOMMITTED_WORK_PENDING` errors when real gateways adopt the service.
+- Scope boundary: `Cache_Ttl_Seconds__c` and `Rate_Limit_Per_Minute__c` are read into config but not enforced yet; payload files via `ContentDocument`, platform-event outbox, reconciliation batch, and live gateway cutover remain later E8 slices.
+- `ExternalApiService` was refactored from a single long class into a 59-line façade plus five focused collaborators: `ExternalApiCall` (orchestration), `ExternalApiConfigLoader` (metadata/flag reads), `ExternalApiValidator` (fail-fast checks), `ExternalApiRequestBuilder` (pure HTTP mapping), and `ExternalApiLogWriter` (audit rows). Public API and tests are unchanged. Each invocation still uses one metadata query, one feature-flag read, one callout and at most one log insert; no SOQL/DML is performed before `Http.send()`.
+- Initial deploy `0Afbm00000p8zx0CAA` completed 6/6 components; refactor deploy `0Afbm00000p9CRBCA2` completed 11/11. Targeted `ExternalApiServiceTest` + `IntegrationLogServiceTest` pass 10/10 (run `707bm00001YJjyZ` after refactor; originally `707bm00001YKU7b`), covering success/error/transport mocks, both kill switches, missing metadata, missing Named Credential, field truncation, and safe defaults. Full local suite passes 234/234 after the refactor (run `707bm00001YJxK9`), matching the pre-refactor baseline and up from 224/224 at E6.
+
+### E8 slice 2 — rollback-safe audit outbox (2026-11-21)
+
+- Added high-volume platform event `Integration_Log_Event__e` with `PublishImmediately` behaviour. A published audit event is not rolled back with the publishing transaction, so failure logs survive a BSS-triggered rollback.
+- `IntegrationLogService.publish(LogInput)` replaces the former direct `Database.insert`. It normalises/truncates values via `build()`, maps them to event fields (including lookups as 18-character text), and calls `EventBus.publish()`. `fromEvent()` reverses the mapping for the subscriber.
+- Added bulk-safe `IntegrationLogEventHandler` and `IntegrationLogEventTrigger` (`after insert`). The handler inserts all event rows with one `Database.insert(records, false)`, so a bad log row cannot fail event delivery.
+- No live gateway is switched. `ExternalApiLogWriter` now calls `publish()`; the rest of the callout orchestration is unchanged.
+- Rollback proof: `IntegrationLogServiceTest.failureLogSurvivesBusinessRollback` opens a savepoint, publishes a failure event, rolls back, delivers the event, and asserts the `Integration_Log__c` row still exists with the error message and stack. Apex forbids an open savepoint across `Http.send()`, so the proof is intentionally at the publisher boundary.
+- Deploy `0Afbm00000p9IRlCAM` completed 29/29 components after correcting event `eventType`, `deploymentStatus`, and LongTextArea `visibleLines`. Targeted suite: 11/11 (run `707bm00001YL0sH`); full local suite 235/235 (run `707bm00001YKV8b`).
 
 ### Data model (earlier work)
 

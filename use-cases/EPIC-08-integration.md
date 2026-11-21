@@ -7,11 +7,11 @@
 | ID | Title | Priority | Owner | Status |
 |---|---|---|---|---|
 | UC-INT-01 | BSS/OSS provisioning callout | Must | Salesforce Developer (Apex) | 🔲 |
-| UC-INT-02 | `Integration_Log__c` logging and correlation framework | Must | Salesforce Developer | 🔲 |
-| UC-INT-03 | Platform events (post-commit outbox) | Must | Salesforce Developer | 🔲 |
+| UC-INT-02 | `Integration_Log__c` logging and correlation framework | Must | Salesforce Developer | 🔶 Slice 1 complete |
+| UC-INT-03 | Platform events (post-commit outbox) | Must | Salesforce Developer | 🔶 Slice 2 complete |
 | UC-INT-04 | BSS status reconciliation batch | Must | Salesforce Developer | 🔲 |
 | UC-INT-05 | Product image sync | Should | Salesforce Developer | 🔲 |
-| UC-INT-06 | `ExternalApiService` + `External_Api__mdc` framework | Must | Salesforce Developer | 🔲 |
+| UC-INT-06 | `ExternalApiService` + `External_Api__mdc` framework | Must | Salesforce Developer | 🔶 Slice 1 complete |
 | UC-INT-07 | Reporting / BI feed (Change Data Capture) | Should | Integration Developer | 🔲 |
 
 ---
@@ -88,7 +88,7 @@
 | Business process | 05, 07, 08 |
 | Architecture ref | §5.7, §7.3 |
 | Data model ref | §7 |
-| Status | 🔲 Not started |
+| Status | 🔶 Slice 1 complete (logging + correlation; payload files deferred) |
 
 **Goal.** Give every transaction chain a shared `Correlation_Id__c` and log each step, so a failed callout is diagnosable and reconciliation is automated.
 
@@ -128,6 +128,8 @@
 
 **Open questions / risks** — highest-volume object; retention mandatory.
 
+> **E8 slice 1 (2026-11-21):** `IntegrationLogService` now generates 36-character correlation IDs via `IntegrationCorrelation`, normalises/truncates values to schema lengths, defaults unknown systems/statuses safely, and publishes rollback-safe audit events via `IntegrationLogService.publish()` (see UC-INT-03). `ExternalApiService` emits success and failure audit events after the callout, including status code, duration, idempotency key, and a non-PII payload summary. Full payload files via `ContentDocument` remain a later slice. Targeted suite: 10/10 (run `707bm00001YKU7b`).
+
 ---
 
 ### UC-INT-03 — Platform events (post-commit outbox)
@@ -143,7 +145,7 @@
 | Business process | 05 |
 | Architecture ref | §7.3, §9 |
 | Data model ref | — |
-| Status | 🔲 Not started |
+| Status | 🔶 Slice 2 complete (integration audit outbox; activation event still pending) |
 
 **Goal.** Publish `ats.service.activated.v1` only **after commit**, so consumers never observe phantom state.
 
@@ -179,6 +181,8 @@
 - [ ] Event tested with a subscriber stub.
 
 **Open questions / risks** — none.
+
+> **E8 slice 2 (2026-11-21):** Added `Integration_Log_Event__e` (`PublishImmediately`, high volume) plus `IntegrationLogEventTrigger`/`IntegrationLogEventHandler`. `IntegrationLogService.publish()` now emits audit events that survive a business rollback; the handler bulk-inserts `Integration_Log__c` rows. `IntegrationLogServiceTest.failureLogSurvivesBusinessRollback` proves durability across an explicit `Database.rollback`. Deploy `0Afbm00000p9IRlCAM` (29/29), targeted suite 11/11 (run `707bm00001YL0sH`), full suite 235/235 (run `707bm00001YKV8b`). The activation-specific `ats.service.activated.v1` event remains a later slice.
 
 ---
 
@@ -298,7 +302,7 @@
 | Business process | 05, 11 |
 | Architecture ref | §9 |
 | Data model ref | §9.2 |
-| Status | 🔲 Not started |
+| Status | 🔶 Slice 1 complete (callout + kill switches; cache/throttle deferred) |
 
 **Goal.** Provide one callout framework where no URL or key is ever hardcoded, with caching, throttling, timeouts, and a kill switch.
 
@@ -334,6 +338,8 @@
 - [ ] Framework used by every integration card; no hardcoded endpoints remain.
 
 **Open questions / risks** — none.
+
+> **E8 slice 1 (2026-11-21):** `ExternalApiService` resolves `External_Api__mdt` rows by `DeveloperName`, honours `Is_Active__c` plus the `ATS_Feature_Flags__c.External_Api_Enabled__c` global switch, validates auth type and Named Credential presence, joins base URL + path without duplicate slashes, applies configured timeout, sets `X-Correlation-Id` and optional `Idempotency-Key`, and throws `ExternalApiException` on transport errors or non-2xx responses. No URL or credential is hardcoded. `Cache_Ttl_Seconds__c` and `Rate_Limit_Per_Minute__c` are read into config but enforcement is deferred; no live gateway is switched over yet. Deploy `0Afbm00000p8zx0CAA` (6/6), refactored into a short façade + collaborators in deploy `0Afbm00000p9CRBCA2` (11/11), targeted suite 10/10 (run `707bm00001YJjyZ`), full suite 234/234 after refactor (run `707bm00001YJxK9`).
 
 ---
 

@@ -127,10 +127,13 @@ Critical path E1 → E2 → E3/E4 per `use-cases/README.md` §2. Only acceptance
 - [ ] ⛔ **Skip UC-LIF-02 and UC-DM-04** — blocked on Q1/BQ1 (assumption "amend", pending Finance + Sales Ops)
 
 ### E8 — Integration
-- [ ] `External_Api__mdc` + named credentials
+- [x] Slice 1 (2026-11-21): `ExternalApiService` façade + focused collaborators + `IntegrationLogService` + `HttpCalloutMock` failure suite deployed; no live gateway switched over.
+- [x] Slice 2 (2026-11-21): `Integration_Log_Event__e` Publish Immediately outbox + bulk trigger handler; failure logs survive rollback.
+- [ ] `External_Api__mdt` + named credentials (real Named Credential still blocked in DE org)
 - [ ] Callout services I-01…I-07 with `Integration_Log__c` logging
-- [ ] Platform events, image sync
-- [ ] `HttpCalloutMock` suite incl. deliberately failing endpoint
+- [ ] Activation event `ats.service.activated.v1`, image sync
+- [ ] Cache TTL / rate-limit enforcement, payload files via `ContentDocument`
+- [ ] `HttpCalloutMock` suite incl. deliberately failing endpoint (slice 1 covers mock success/HTTP error/transport error; real failing endpoint pending)
 
 ### E9 — Hardening & NFR
 - [ ] Permission sets + FLS matrix (`DATA_MODEL.md` §17)
