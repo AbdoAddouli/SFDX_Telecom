@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Product_Image_Live__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Flag-off scaffold for the product image sync. Keep false until the Product_Image endpoint is supplied; pages always read the cached Product2 field.</description>
+    <label>Product Image Live</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

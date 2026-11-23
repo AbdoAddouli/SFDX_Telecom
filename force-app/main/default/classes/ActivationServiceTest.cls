@@ -303,7 +303,9 @@ private class ActivationServiceTest {
                 Subscription__c,
                 Idempotency_Key__c
             FROM Integration_Log__c
-            WHERE Order__c = :order.Id AND Status__c = 'Success'
+            WHERE Order__c = :order.Id
+              AND Status__c = 'Success'
+              AND Operation__c = 'activateOrder'
             LIMIT 1
         ];
         System.assertEquals('BSS', log.System__c);
@@ -1098,7 +1100,9 @@ private class ActivationServiceTest {
             [
                 SELECT COUNT()
                 FROM Integration_Log__c
-                WHERE Order__c = :order.Id AND Status__c = 'Success'
+                WHERE Order__c = :order.Id
+                  AND Status__c = 'Success'
+                  AND Operation__c != 'ServiceActivatedEvent'
             ]
         );
     }
@@ -1290,6 +1294,77 @@ private class ActivationServiceTest {
         } catch (ActivationBatchJob.ActivationBatchException error) {
             System.assert(error.getMessage().contains('at most 500'));
         }
+    }
+
+    @IsTest
+    static void successfulActivationPublishesServiceActivatedEvent() {
+        Account account = consumerAccount();
+        Contact contact = consumerContact();
+        Order order = newOrder(account, contact, 'Activation Event Order');
+        insertLine(order, FIBER_CODE, 'COMMIT12');
+        String correlationId = 'E8-EVENT-' + String.valueOf(DateTime.now().getTime());
+
+        Test.startTest();
+        List<ActivationService.ActivationResult> results =
+            ActivationService.activate(
+                new List<Id>{ order.Id },
+                correlationId
+            );
+        ActivationService.ActivationResult result = results[0];
+        Test.stopTest();
+        Test.getEventBus().deliver();
+
+        System.assertEquals('Activated', result.status, result.message);
+        List<Integration_Log__c> events = [
+            SELECT Id, Status__c, Status_Code__c, Operation__c, System__c,
+                Order__c, Subscription__c, Payload_Summary__c, Error_Message__c
+            FROM Integration_Log__c
+            WHERE Correlation_Id__c = :correlationId
+              AND Operation__c = 'ServiceActivatedEvent'
+        ];
+        System.assertEquals(1, events.size());
+        System.assertEquals('Success', events[0].Status__c);
+        System.assertEquals('200', events[0].Status_Code__c);
+        System.assertEquals('BSS', events[0].System__c);
+        System.assertEquals(order.Id, events[0].Order__c);
+        System.assertNotEquals(null, events[0].Subscription__c);
+        System.assertEquals(
+            'Activation event subscriptions=1',
+            events[0].Payload_Summary__c
+        );
+        System.assertEquals(null, events[0].Error_Message__c);
+    }
+
+    @IsTest
+    static void failedActivationDoesNotPublishServiceActivatedEvent() {
+        Account account = consumerAccount();
+        Contact contact = consumerContact();
+        Order order = newOrder(account, contact, 'Activation Event Failure Order');
+        String correlationId =
+            'E8-NOEVENT-' + String.valueOf(DateTime.now().getTime());
+
+        Test.startTest();
+        List<ActivationService.ActivationResult> results =
+            ActivationService.activate(
+                new List<Id>{ order.Id },
+                correlationId
+            );
+        ActivationService.ActivationResult result = results[0];
+        Test.stopTest();
+        Test.getEventBus().deliver();
+
+        System.assertEquals('Failed', result.status, result.message);
+        List<Integration_Log__c> events = [
+            SELECT Id
+            FROM Integration_Log__c
+            WHERE Correlation_Id__c = :correlationId
+              AND Operation__c = 'ServiceActivatedEvent'
+        ];
+        System.assertEquals(
+            0,
+            events.size(),
+            'PublishAfterCommit events must not escape a rolled-back activation.'
+        );
     }
 
     private static List<Order> createReadyOrders(

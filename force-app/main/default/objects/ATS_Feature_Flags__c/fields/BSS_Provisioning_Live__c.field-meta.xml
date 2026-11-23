@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>BSS_Provisioning_Live__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Flag-off scaffold for the real BSS provisioning gateway. Keep false until the BSS_Api Named Credential endpoint/auth and External_Api__mdt.Bss_Provisioning are supplied.</description>
+    <label>BSS Provisioning Live</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

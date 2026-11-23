@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CDC_Reporting_Live__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Flag-off scaffold for Change Data Capture reporting subscribers. Keep false until CDC is enabled in Setup and authorised consumers are configured. Only explicit non-PII allowlists are published.</description>
+    <label>CDC Reporting Live</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

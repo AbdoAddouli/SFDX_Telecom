@@ -8,7 +8,7 @@ public with sharing class ActivationBssClient {
 
     @TestVisible
     private static BssProvisioningGateway gateway =
-        new SimulatedBssProvisioningGateway();
+        BssProvisioningGatewayFactory.create();
 
     public class CallResult {
         public List<BssProvisioningResponse> responses;

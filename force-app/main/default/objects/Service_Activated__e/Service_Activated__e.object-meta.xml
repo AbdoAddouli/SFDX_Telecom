@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Post-commit domain event announcing a successfully activated order. No customer PII is included.</description>
+    <eventType>HighVolume</eventType>
+    <label>Service Activated</label>
+    <pluralLabel>Service Activated Events</pluralLabel>
+    <publishBehavior>PublishAfterCommit</publishBehavior>
+</CustomObject>

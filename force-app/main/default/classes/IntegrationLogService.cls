@@ -10,7 +10,7 @@ public without sharing class IntegrationLogService {
         'Success', 'Failure', 'Retried', 'DeadLetter'
     };
     private static final Set<String> SYSTEMS = new Set<String>{
-        'BSS', 'OSS', 'ProductImage', 'Weather', 'Other'
+        'BSS', 'OSS', 'ProductImage', 'Weather', 'CDC', 'Other'
     };
 
     public class LogInput {

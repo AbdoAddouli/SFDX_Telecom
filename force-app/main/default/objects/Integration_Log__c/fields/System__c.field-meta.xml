@@ -25,6 +25,10 @@
                 <label>Weather</label>
             </value>
             <value>
+                <fullName>CDC</fullName>
+                <label>CDC</label>
+            </value>
+            <value>
                 <fullName>Other</fullName>
                 <label>Other</label>
             </value>

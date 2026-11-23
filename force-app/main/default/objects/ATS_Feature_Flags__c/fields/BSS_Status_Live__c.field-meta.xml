@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>BSS_Status_Live__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Flag-off scaffold for the real BSS status reconciliation gateway. Keep false until the BSS_Api endpoint/auth and External_Api__mdt.Bss_Status are supplied.</description>
+    <label>BSS Status Live</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

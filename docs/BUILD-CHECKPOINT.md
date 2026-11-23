@@ -1,8 +1,8 @@
 # ATS Telecom Build Checkpoint
 
-**Last updated:** 2026-11-21
+**Last updated:** 2026-11-23
 **Org:** `abdo@telecom.com` (`00Dbm000014hQqrEAE`)
-**Current step:** E4, E6, E9, and E10 are complete. E8 slices 1–2 are deployed: a short `ExternalApiService` façade + collaborators, and a rollback-safe `Integration_Log_Event__e` outbox. No live gateway is switched over. E7 portal remains deferred. Full local Apex suite passes 235/235 (run `707bm00001YKV8b`). Next: continue E8 slices only on explicit instruction; commit/push only on explicit instruction.
+**Current step:** E4, E6, E9, and E10 are complete. E8 slices 1–8 are deployed: a short `ExternalApiService` façade + collaborators, a rollback-safe `Integration_Log_Event__e` outbox, a runtime proof against a deliberately failing endpoint, a post-commit `Service_Activated__e` domain event, flag-off real BSS provisioning/status scaffolds, a flag-off product image sync, and a flag-off CDC reporting scaffold. No live gateway is switched over and no outbound BI feed is configured. E7 portal remains deferred. Full local Apex suite passes 257/257 (run `707bm00001Yovlk`). Next: supply the real BSS endpoint/auth before enabling any live flag; continue E8 slices only on explicit instruction; commit/push only on explicit instruction.
 
 ---
 
@@ -109,7 +109,7 @@
 - `IntegrationLogService` is the single normalisation path for `Integration_Log__c`. In slice 1 it inserted best-effort directly; slice 2 replaces that with a rollback-safe platform-event publish (see below). Values are normalised and truncated to schema lengths; unknown systems/statuses fall back to `Other`/`Failure`.
 - PII protection: raw request/response bodies are never persisted. `Payload_Summary__c` stores only `METHOD operation bytes=N`, so secrets such as subscription numbers cannot leak into logs. `Error_Stack__c` is only populated from caught exceptions and remains restricted to ops/integration users.
 - No DML occurs before `Http.send()`: logging is written only after the callout returns or throws. This keeps the transaction clear of `UNCOMMITTED_WORK_PENDING` errors when real gateways adopt the service.
-- Scope boundary: `Cache_Ttl_Seconds__c` and `Rate_Limit_Per_Minute__c` are read into config but not enforced yet; payload files via `ContentDocument`, platform-event outbox, reconciliation batch, and live gateway cutover remain later E8 slices.
+- Scope boundary: `Cache_Ttl_Seconds__c` and `Rate_Limit_Per_Minute__c` are read into config but not enforced yet; payload files via `ContentDocument`, activation event, reconciliation batch, and live gateway cutover remain later E8 slices.
 - `ExternalApiService` was refactored from a single long class into a 59-line façade plus five focused collaborators: `ExternalApiCall` (orchestration), `ExternalApiConfigLoader` (metadata/flag reads), `ExternalApiValidator` (fail-fast checks), `ExternalApiRequestBuilder` (pure HTTP mapping), and `ExternalApiLogWriter` (audit rows). Public API and tests are unchanged. Each invocation still uses one metadata query, one feature-flag read, one callout and at most one log insert; no SOQL/DML is performed before `Http.send()`.
 - Initial deploy `0Afbm00000p8zx0CAA` completed 6/6 components; refactor deploy `0Afbm00000p9CRBCA2` completed 11/11. Targeted `ExternalApiServiceTest` + `IntegrationLogServiceTest` pass 10/10 (run `707bm00001YJjyZ` after refactor; originally `707bm00001YKU7b`), covering success/error/transport mocks, both kill switches, missing metadata, missing Named Credential, field truncation, and safe defaults. Full local suite passes 234/234 after the refactor (run `707bm00001YJxK9`), matching the pre-refactor baseline and up from 224/224 at E6.
 
@@ -122,13 +122,60 @@
 - Rollback proof: `IntegrationLogServiceTest.failureLogSurvivesBusinessRollback` opens a savepoint, publishes a failure event, rolls back, delivers the event, and asserts the `Integration_Log__c` row still exists with the error message and stack. Apex forbids an open savepoint across `Http.send()`, so the proof is intentionally at the publisher boundary.
 - Deploy `0Afbm00000p9IRlCAM` completed 29/29 components after correcting event `eventType`, `deploymentStatus`, and LongTextArea `visibleLines`. Targeted suite: 11/11 (run `707bm00001YL0sH`); full local suite 235/235 (run `707bm00001YKV8b`).
 
+### E8 slice 3 — failing-endpoint runtime proof (2026-11-21)
+
+- Added `RemoteSiteSetting.Httpbin` and synthetic `External_Api__mdt.E8_Failure_Test` (`AuthType=None`, `https://httpbin.org`, no cache). Nothing in production flows references this row.
+- Added `E8IntegrationSmoke` plus `E8IntegrationSmokeTest`. The harness sends only a non-PII body (`{"scenario":"E8_RUNTIME_ROLLBACK_PROOF","containsPii":false}`) and uses the production metadata path; the test uses `SeeAllData=true` so it exercises the real `External_Api_Enabled__c` flag without doing DML before the callout.
+- **Runtime proof passed** against the real `https://httpbin.org/status/500` endpoint: `ExternalApiException` with `External API E8_Failure_Test returned HTTP 500.`, correlation `2d669e93-b9ae-8be1-a130-cd8b90a932f3`, outcome `EXPECTED_FAILURE`. Governor usage from the same run: 1 callout, 1 Publish Immediate DML, 0 SOQL queries, 0 DML rows, 33 ms CPU — confirming no business writes were attempted and the audit event was emitted.
+- The event subscriber materialised log row `a04bm000009h713AAA`: `Status__c=Failure`, `Status_Code__c=500`, `System__c=Other`, `Operation__c=E8_Failure_Proof`, `Endpoint__c=https://httpbin.org/status/500`.
+- Deploy `0Afbm00000p9PzVCAU` completed 4/4 components; targeted smoke test 1/1 (run `707bm00001YK9kv`); full local suite 236/236 (run `707bm00001YK898`). No live gateway is switched and no customer PII is sent anywhere.
+
+### E8 slice 4 — post-commit activation event (2026-11-21)
+
+- Added `Service_Activated__e` (`PublishAfterCommit`) with non-PII fields (`Correlation_Id__c`, `Order_Id__c`, `Account_Id__c`, `Subscription_Ids__c`, `Subscription_Count__c`, `Activated_At__c`, `Source__c`).
+- Added `ServiceActivatedEventPublisher`, invoked from `ActivationService` only after a successful activation commit path completes, and `ServiceActivatedEventTrigger`/`ServiceActivatedEventHandler` as a testable subscriber stub (materialises a non-PII `Integration_Log__c` row under operation `ServiceActivatedEvent`).
+- `ActivationServiceTest.successfulActivationPublishesServiceActivatedEvent` confirms exactly one event-backed success log with `Status__c=200`, `Order__c`, a subscription link, and no error message; `failedActivationDoesNotPublishServiceActivatedEvent` confirms no `ServiceActivatedEvent` logs on rollback.
+- Deploy `0Afbm00000pFPbpCAG` completed 13/13 components. Full local Apex suite passes 238/238 (run `707bm00001Ya5Zt`). No live gateway is switched and no customer PII is included in the event payload.
+
+### E8 slice 5 — flag-off real-gateway scaffold (2026-11-22)
+
+- Added `BSS_Provisioning_Live__c` to `ATS_Feature_Flags__c` with **default `false`**. `BssProvisioningGatewayFactory.create()` returns `SimulatedBssProvisioningGateway` by default; `create(true)` selects the new `RealBssProvisioningGateway` for the future cutover.
+- `ActivationBssClient` now resolves its gateway through the factory instead of a hard-coded simulated instance. A `BSS_Api` Named Credential is **not** deployed yet because no endpoint/auth details are available; `External_Api__mdt.Bss_Provisioning` remains the placeholder for those values.
+- `RealBssProvisioningGateway` is unreachable while the flag is off. It sends only non-PII fields (`subscriptionNumber`, `productCode`, `serviceLineType`, `idempotencyKey`) via `ExternalApiService`, never `accountName`, and maps the BSS response into the existing gateway DTO.
+- Tests prove the default is simulated, the seam selects the real gateway, the built request contains no customer name, and blank/malformed responses fail closed.
+- Deploy `0Afbm00000pFgROCA0` completed 5/5 components. Full local Apex suite passes 243/243 (run `707bm00001YZ8qL`). No live gateway is switched and no endpoint/auth secret is stored.
+
+### E8 slice 6 — BSS status reconciliation batch scaffold (2026-11-22)
+
+- Added `BSS_Status_Live__c` (default `false`) and `External_Api__mdt.Bss_Status` as the placeholder for the future status lookup. `BssStatusReconciliationGatewayFactory` returns the simulated gateway by default; `create(true)` selects the unreachable `RealBssStatusReconciliationGateway`.
+- Added `BssReconciliationBatch` + `BssReconciliationScheduler`. The batch compares `Subscription__c.Status__c` to the BSS status, writes only `External_Status__c` and `Last_Sync_DateTime__c`, emits drift findings via `IntegrationLogService.publish()`, and never mutates the Salesforce lifecycle status.
+- Added non-PII DTOs and a simulated gateway with an override map for deterministic drift tests. Tests prove drift detection, external-status-only writes, unchanged local status, a `checked=2; drift=1` summary, and the no-drift path.
+- `RealBssStatusReconciliationGateway` uses `ExternalApiService`, sends only subscription number/external reference, and fails closed on empty/malformed/missing responses. No Named Credential or secret is deployed.
+- Deploy `0Afbm00000pFnB7CAK` completed 12/12 components. Full local Apex suite passes 248/248 (run `707bm00001YasKL`). No live gateway is switched and no customer PII is sent.
+
+### E8 slice 7 — flag-off product image sync (2026-11-22)
+
+- Added `Product_Image_Live__c` (default `false`) and a placeholder `RemoteSiteSetting.ImagesAtsTelecomExample` matching the existing `External_Api__mdt.Product_Image` base URL (`https://images.ats-telecom.example/catalogue`, `AuthType=None`, 86400-second cache TTL). No real image endpoint is configured.
+- Added `ProductImageSyncBatch` + `ProductImageSyncScheduler`. The batch fetches image URLs in one bulk call per chunk and writes only `Product2.Device_Image_URL__c`; runtime pages/datatables continue to read the cached field, so no callout occurs on render.
+- `ExternalApiException` is caught per chunk and logged; failed syncs leave the last good URL untouched. Request bodies contain only product codes — no MSISDN or account name.
+- Tests prove the flag defaults off, flag-off performs no callout/write, and the live path caches a returned URL while the built request stays PII-free.
+- Deploy `0Afbm00000pFsvZCAS` completed 6/6 components; metadata correction deploy `0Afbm00000pFjXKCA0` completed 7/7 components. Full local Apex suite passes 252/252 (run `707bm00001YaYf4`). No live endpoint is contacted and no customer PII is sent.
+
+### E8 slice 8 — flag-off CDC reporting scaffold (2026-11-23)
+
+- Enabled Change Data Capture on `Subscription__c`, `Engagement__c`, `Customer_Request__c`, `Eligibility__c`, and `Asset`. Object enablement required a legacy v41 metadata deploy (`0Afbm00000pFV9OCAW` probe, `0Afbm00000pFOZMCA4` for all five); source object metadata deliberately omits `enableChangeDataCapture` so normal v68 deploys remain valid.
+- Added `CDC_Reporting_Live__c` (default `false`), five change-event triggers, and `CdcReportingService`. The service publishes one sanitised `Integration_Log__c` audit event per trigger batch using explicit non-PII allowlists; MSISDN, account/contact lookups, free text, postal code, and geo hash are excluded.
+- Added `CDC` to `IntegrationLogService.SYSTEMS` and to the restricted `Integration_Log__c.System__c` picklist. Without the picklist value the best-effort event handler silently dropped the audit row.
+- Correct Apex change-event types are `Subscription__ChangeEvent`, `Engagement__ChangeEvent`, `Customer_Request__ChangeEvent`, `Eligibility__ChangeEvent`, and `AssetChangeEvent` (the trailing `c` from `__c` is dropped).
+- Deploy `0Afbm00000pG0GPCA0` completed the service/trigger scaffold; a final metadata deploy added the `CDC` picklist value. Targeted tests pass (`707bm00001YalHQ`); full local Apex suite passes 257/257 (run `707bm00001Yovlk`). CDC is enabled in the org but the flag is off and no Data Cloud/Power BI feed is configured.
+
 ### Data model (earlier work)
 
 - 6 custom objects deployed.
 - 53 custom fields on standard objects deployed.
 - UC-DM-13 external IDs: 6 deployed fields are External ID + Unique;
   `Order.BSS_Order_Key__c` was changed to `unique=true` on 2026-11-06.
-- `ATS_Feature_Flags__c` hierarchy custom setting + 7 fields, with the org-default record loaded.
+- `ATS_Feature_Flags__c` hierarchy custom setting + 12 fields, with the org-default record loaded.
 - 4 custom permissions.
 - 3 global value sets created.
 - 12 custom labels + 12 French translations.

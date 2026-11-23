@@ -129,11 +129,17 @@ Critical path E1 → E2 → E3/E4 per `use-cases/README.md` §2. Only acceptance
 ### E8 — Integration
 - [x] Slice 1 (2026-11-21): `ExternalApiService` façade + focused collaborators + `IntegrationLogService` + `HttpCalloutMock` failure suite deployed; no live gateway switched over.
 - [x] Slice 2 (2026-11-21): `Integration_Log_Event__e` Publish Immediately outbox + bulk trigger handler; failure logs survive rollback.
+- [x] Slice 3 (2026-11-21): Failing-endpoint runtime proof via synthetic `E8_Failure_Test` metadata + `E8IntegrationSmoke`; real HTTP 500 produced 0 DML rows and a surviving `Failure`/`500` audit row.
+- [x] Slice 4 (2026-11-21): `Service_Activated__e` post-commit activation event, publisher, subscriber stub and rollback/no-PII tests.
+- [x] Slice 5 (2026-11-22): Flag-off `RealBssProvisioningGateway` scaffold + factory and `BSS_Provisioning_Live__c` (default false); simulated gateway remains the live path.
+- [x] Slice 6 (2026-11-22): Flag-off `BssReconciliationBatch` + scheduler, status gateway factory, drift tests and status-only writes; `BSS_Status_Live__c` default false.
+- [x] Slice 7 (2026-11-22): Flag-off `ProductImageSyncBatch` + scheduler, placeholder `Product_Image` metadata, cached-field writes and no-PII request test; `Product_Image_Live__c` default false.
+- [x] Slice 8 (2026-11-23): CDC enablement on four custom objects + `Asset`, flag-off `CdcReportingService` with five change-event triggers and non-PII allowlists, `CDC` audit picklist; `CDC_Reporting_Live__c` default false.
 - [ ] `External_Api__mdt` + named credentials (real Named Credential still blocked in DE org)
 - [ ] Callout services I-01…I-07 with `Integration_Log__c` logging
-- [ ] Activation event `ats.service.activated.v1`, image sync
+- [x] Activation event `ats.service.activated.v1` (`Service_Activated__e`); [x] image sync scaffold (slice 7), [x] CDC reporting scaffold (slice 8), [ ] live endpoints/feed
 - [ ] Cache TTL / rate-limit enforcement, payload files via `ContentDocument`
-- [ ] `HttpCalloutMock` suite incl. deliberately failing endpoint (slice 1 covers mock success/HTTP error/transport error; real failing endpoint pending)
+- [x] `HttpCalloutMock` suite incl. deliberately failing endpoint (slice 1 covers mock success/HTTP error/transport error; slice 3 proves real HTTP 500 with rollback-safe audit)
 
 ### E9 — Hardening & NFR
 - [ ] Permission sets + FLS matrix (`DATA_MODEL.md` §17)

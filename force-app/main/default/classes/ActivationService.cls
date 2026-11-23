@@ -198,6 +198,11 @@ public with sharing class ActivationService {
                 bss.durationMs,
                 failureEndpoint
             );
+            ServiceActivatedEventPublisher.publish(
+                order,
+                contexts,
+                result.correlationId
+            );
             return result;
         } catch (Exception error) {
             Database.rollback(checkpoint);

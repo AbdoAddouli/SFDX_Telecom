@@ -1,18 +1,30 @@
 # E8 — Integration (Phase 8)
 
 **Objective:** make every external boundary idempotent, observable, and reversible — especially the BSS provisioning boundary that the activation transaction depends on.
-**Exit gate:** *Rollback verified against a deliberately failing endpoint* (`ARCHITECTURE.md` §13).
+**Exit gate:** ✅ *Rollback verified against a deliberately failing endpoint* (`ARCHITECTURE.md` §13) — see E8 slice 3 note below.
 **Source:** `ARCHITECTURE.md` §9, §7.3; `BUSINESS_PROCESS.md` §7, §17; `DATA_MODEL.md` §7, §9.2.
+
+> **E8 slice 3 (2026-11-21):** Added synthetic `External_Api__mdt.E8_Failure_Test` + `RemoteSiteSetting.Httpbin` and the `E8IntegrationSmoke` harness. A real HTTP 500 from `https://httpbin.org/status/500` produced `ExternalApiException`, 0 DML rows, 1 Publish Immediate DML, and a surviving `Failure`/`500` log row (`a04bm000009h713AAA`, correlation `2d669e93-b9ae-8be1-a130-cd8b90a932f3`). Deploy `0Afbm00000p9PzVCAU` (4/4); targeted test 1/1 (`707bm00001YK9kv`); full suite 236/236 (`707bm00001YK898`). No live gateway switched; no customer PII sent.
+
+> **E8 slice 4 (2026-11-21):** Added `Service_Activated__e` with `PublishAfterCommit` and non-PII fields, `ServiceActivatedEventPublisher` called from `ActivationService`, and a bulk subscriber stub that writes a `ServiceActivatedEvent` audit row. Tests prove exactly one event on success and none on rollback. Deploy `0Afbm00000pFPbpCAG` (13/13); full suite 238/238 (`707bm00001Ya5Zt`).
+
+> **E8 slice 5 (2026-11-22):** Added a flag-off real-gateway scaffold. `BSS_Provisioning_Live__c` defaults to `false`; `BssProvisioningGatewayFactory` keeps the simulated gateway as the default and exposes a tested seam for the real one. `RealBssProvisioningGateway` uses `ExternalApiService`, sends no account name/PII, and fails closed on blank responses. No Named Credential or secret is deployed until endpoint/auth details are supplied. Deploy `0Afbm00000pFgROCA0` (5/5); full suite 243/243 (`707bm00001YZ8qL`).
+
+> **E8 slice 6 (2026-11-22):** Added a flag-off BSS status reconciliation batch (`BssReconciliationBatch` + scheduler), non-PII DTOs, a simulated gateway with drift overrides, and an unreachable real gateway behind `BSS_Status_Live__c=false`. The batch writes only `External_Status__c`/`Last_Sync_DateTime__c` and surfaces drift through rollback-safe audit events. Deploy `0Afbm00000pFnB7CAK` (12/12); full suite 248/248 (`707bm00001YasKL`).
+
+> **E8 slice 7 (2026-11-22):** Added a flag-off `ProductImageSyncBatch` + scheduler. `Product_Image_Live__c` defaults to `false`; the batch writes only `Product2.Device_Image_URL__c` so runtime renders never call out. Placeholder `External_Api__mdt.Product_Image` uses `AuthType=None` with an 86400-second cache TTL. Deploy `0Afbm00000pFsvZCAS` (6/6), metadata correction `0Afbm00000pFjXKCA0` (7/7); full suite 252/252 (`707bm00001YaYf4`).
+
+> **E8 slice 8 (2026-11-23):** Enabled CDC on the four custom objects plus `Asset` via legacy v41 metadata. Added a flag-off `CdcReportingService` and five change-event triggers with explicit non-PII allowlists, plus the `CDC` integration-log picklist value. No outbound Data Cloud/Power BI feed is configured. Deploy `0Afbm00000pFOZMCA4` (CDC enablement) and `0Afbm00000pG0GPCA0` (scaffold); targeted tests pass (`707bm00001YalHQ`), full suite 257/257 (`707bm00001Yovlk`).
 
 | ID | Title | Priority | Owner | Status |
 |---|---|---|---|---|
-| UC-INT-01 | BSS/OSS provisioning callout | Must | Salesforce Developer (Apex) | 🔲 |
+| UC-INT-01 | BSS/OSS provisioning callout | Must | Salesforce Developer (Apex) | 🔶 Flag-off scaffold (slice 5) |
 | UC-INT-02 | `Integration_Log__c` logging and correlation framework | Must | Salesforce Developer | 🔶 Slice 1 complete |
-| UC-INT-03 | Platform events (post-commit outbox) | Must | Salesforce Developer | 🔶 Slice 2 complete |
-| UC-INT-04 | BSS status reconciliation batch | Must | Salesforce Developer | 🔲 |
-| UC-INT-05 | Product image sync | Should | Salesforce Developer | 🔲 |
+| UC-INT-03 | Platform events (post-commit outbox) | Must | Salesforce Developer | ✅ Complete (slices 2 + 4) |
+| UC-INT-04 | BSS status reconciliation batch | Must | Salesforce Developer | 🔶 Flag-off scaffold (slice 6) |
+| UC-INT-05 | Product image sync | Should | Salesforce Developer | 🔶 Flag-off scaffold (slice 7) |
 | UC-INT-06 | `ExternalApiService` + `External_Api__mdc` framework | Must | Salesforce Developer | 🔶 Slice 1 complete |
-| UC-INT-07 | Reporting / BI feed (Change Data Capture) | Should | Integration Developer | 🔲 |
+| UC-INT-07 | Reporting / BI feed (Change Data Capture) | Should | Integration Developer | 🔶 Flag-off scaffold (slice 8) |
 
 ---
 
@@ -29,11 +41,13 @@
 | Business process | 05, 08 |
 | Architecture ref | §9, §7.3 |
 | Data model ref | §9.2 |
-| Status | 🔲 Not started |
+| Status | 🔶 Flag-off scaffold ready; live cutover blocked on endpoint/auth |
 
 **Goal.** Provision and de-provision services over a Named Credential with an idempotency key, rolling back on failure.
 
 **Preconditions** — `BSS_Provisioning` metadata row seeded; Named Credential registered.
+
+> **Cutover note (E8 slice 5):** `RealBssProvisioningGateway` and `BssProvisioningGatewayFactory` exist but are unreachable while `BSS_Provisioning_Live__c = false`. Supply the `BSS_Api` Named Credential endpoint/auth and update `External_Api__mdt.Bss_Provisioning` before enabling the flag. The simulated gateway remains untouched.
 
 **Main flow**
 1. Implement provisioning/de-provisioning via `@future(callout=true)` or Batch Apex (the activation boundary).
@@ -145,7 +159,7 @@
 | Business process | 05 |
 | Architecture ref | §7.3, §9 |
 | Data model ref | — |
-| Status | 🔶 Slice 2 complete (integration audit outbox; activation event still pending) |
+| Status | ✅ Complete (audit outbox + post-commit activation event) |
 
 **Goal.** Publish `ats.service.activated.v1` only **after commit**, so consumers never observe phantom state.
 
@@ -182,7 +196,7 @@
 
 **Open questions / risks** — none.
 
-> **E8 slice 2 (2026-11-21):** Added `Integration_Log_Event__e` (`PublishImmediately`, high volume) plus `IntegrationLogEventTrigger`/`IntegrationLogEventHandler`. `IntegrationLogService.publish()` now emits audit events that survive a business rollback; the handler bulk-inserts `Integration_Log__c` rows. `IntegrationLogServiceTest.failureLogSurvivesBusinessRollback` proves durability across an explicit `Database.rollback`. Deploy `0Afbm00000p9IRlCAM` (29/29), targeted suite 11/11 (run `707bm00001YL0sH`), full suite 235/235 (run `707bm00001YKV8b`). The activation-specific `ats.service.activated.v1` event remains a later slice.
+> **E8 slice 2 (2026-11-21):** Added `Integration_Log_Event__e` (`PublishImmediately`, high volume) plus `IntegrationLogEventTrigger`/`IntegrationLogEventHandler`. `IntegrationLogService.publish()` now emits audit events that survive a business rollback; the handler bulk-inserts `Integration_Log__c` rows. `IntegrationLogServiceTest.failureLogSurvivesBusinessRollback` proves durability across an explicit `Database.rollback`. Deploy `0Afbm00000p9IRlCAM` (29/29), targeted suite 11/11 (run `707bm00001YL0sH`), full suite 235/235 (run `707bm00001YKV8b`). The activation-specific event is now delivered in slice 4 via `Service_Activated__e`.
 
 ---
 
@@ -199,11 +213,13 @@
 | Business process | 05, 07, 08 |
 | Architecture ref | §9 |
 | Data model ref | §14.2 |
-| Status | 🔲 Not started |
+| Status | 🔶 Flag-off scaffold ready; live cutover blocked on endpoint/auth |
 
 **Goal.** Nightly compare Salesforce state to the BSS and surface drift, retrying failed de-provisions.
 
 **Preconditions** — BSS callouts live.
+
+> **Cutover note (E8 slice 6):** `BssReconciliationBatch` and `BssReconciliationScheduler` are deployed and tested with a simulated gateway. `BSS_Status_Live__c` defaults to `false`, so `RealBssStatusReconciliationGateway` is unreachable until the `BSS_Api` endpoint/auth and `External_Api__mdt.Bss_Status` are supplied. The batch never changes `Status__c`; it only writes `External_Status__c`, `Last_Sync_DateTime__c`, and audit findings.
 
 **Main flow**
 1. Implement `BssReconciliationBatch` (nightly) comparing `Subscription__c` vs BSS.
@@ -222,8 +238,8 @@
 | Discrepancy resolution ≤ 1 business day | SLA-8 |
 
 **Acceptance criteria**
-- [ ] Batch detects a deliberately introduced drift.
-- [ ] `External_Status__c` written only by the batch.
+- [x] Batch detects a deliberately introduced drift (slice 6 simulated-drift test).
+- [x] `External_Status__c` written only by the batch (slice 6 status-only write test).
 
 **Test scenarios**
 
@@ -251,11 +267,13 @@
 | Business process | 03 |
 | Architecture ref | §7.2 #14, §9 |
 | Data model ref | §10.5 |
-| Status | 🔲 Not started |
+| Status | 🔶 Flag-off scaffold ready; live image endpoint not supplied |
 
 **Goal.** Cache device photography onto `Product2.Device_Image_URL__c` so the 360° and wizard never make a live callout per row.
 
 **Preconditions** — `Product_Image` metadata row seeded.
+
+> **Cutover note (E8 slice 7):** `ProductImageSyncBatch` and `ProductImageSyncScheduler` are deployed with `Product_Image_Live__c=false` by default. `External_Api__mdt.Product_Image` is a placeholder (`AuthType=None`, cache TTL 86400). Supply the real image endpoint before enabling the flag. Runtime components read only the cached `Device_Image_URL__c` field.
 
 **Main flow**
 1. Scheduled Flow → `ExternalApiService` fetches image URLs.
@@ -273,8 +291,8 @@
 | API disabled via `Is_Active__c` without a deployment | §9 |
 
 **Acceptance criteria**
-- [ ] All device products carry a cached image URL after sync.
-- [ ] No live callout on any datatable render.
+- [ ] All device products carry a cached image URL after sync (requires the real endpoint).
+- [x] No live callout on any datatable render (slice 7 caches onto `Product2.Device_Image_URL__c`).
 
 **Test scenarios**
 
@@ -356,11 +374,13 @@
 | Business process | all |
 | Architecture ref | §9 |
 | Data model ref | §14 |
-| Status | 🔲 Not started |
+| Status | 🔶 Flag-off scaffold ready; outbound feed not configured |
 
 **Goal.** Stream the four custom objects plus `Asset` to Data Cloud / Power BI for churn, penalty, and operational KPIs.
 
 **Preconditions** — objects deployed.
+
+> **Cutover note (E8 slice 8):** CDC is enabled on `Subscription__c`, `Engagement__c`, `Customer_Request__c`, `Eligibility__c`, and `Asset`. `CDC_Reporting_Live__c` defaults to `false`; five change-event triggers call `CdcReportingService`, which publishes one sanitised audit event per batch from explicit non-PII allowlists. The `CDC` system value was added to `IntegrationLogService` and the `Integration_Log__c.System__c` picklist. Object enablement used a legacy v41 deploy and is intentionally absent from v68 source metadata. Configure the authorised Data Cloud / Power BI consumer before enabling the flag.
 
 **Main flow**
 1. Enable Change Data Capture on `Subscription__c`, `Engagement__c`, `Customer_Request__c`, `Eligibility__c` (+ `Asset`).
@@ -378,8 +398,9 @@
 | PII never leaves the platform unredacted | X15 |
 
 **Acceptance criteria**
-- [ ] CDC channels created; a change appears downstream.
-- [ ] Field selection excludes restricted PII.
+- [x] CDC enabled on the four custom objects plus `Asset`; a sanitised audit event is produced (slice 8).
+- [ ] Outbound feed to Data Cloud / Power BI configured and a change appears downstream.
+- [x] Salesforce-side field selection excludes restricted PII (explicit allowlists; slice 8).
 
 **Test scenarios**
 
